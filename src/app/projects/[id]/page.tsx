@@ -129,6 +129,7 @@ export default function ProjectDetailClient({ params }: { params: Promise<{ id: 
                   <ResearchRecordCard 
                     key={entry.record.record_id} 
                     entry={entry} 
+                    projectId={id}
                     onDelete={async () => {
                       const res = await fetch(`/api/projects/${id}/research?recordId=${entry.record.record_id}`, { method: 'DELETE' });
                       if (res.ok) {

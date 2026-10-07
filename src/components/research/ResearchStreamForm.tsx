@@ -179,7 +179,7 @@ export default function ResearchStreamForm({
                 <input 
                   type="number" 
                   min="1"
-                  max="25"
+                  max="50"
                   placeholder="e.g. 25"
                   value={batchCount === '' ? '' : batchCount} 
                   onChange={e => {
