@@ -1,0 +1,19 @@
+{
+  "id": "test-08-unrelated-industry",
+  "category": "unrelated_industry",
+  "title": "Drip irrigation suppliers for Kenyan smallholders",
+  "edge_case": false,
+  "brief": "Project: Shamba Water\n\nOur agricultural cooperative in Kenya wants to find suppliers of drip irrigation equipment in East Africa that offer financing or pay-as-you-go plans to smallholder farmers. Exclude suppliers that only sell to large commercial farms. We need supplier name, countries served, financing model, minimum order size and a public sales contact. We will contact them by phone or email to request quotes.",
+  "expected": {
+    "intent_keywords": ["irrigation", "cooperative"],
+    "targets": [{ "any_of": ["supplier"], "geography": ["East Africa"] }],
+    "max_targets": 1,
+    "criteria_keywords": ["financing", "smallholder"],
+    "exclusion_keywords": ["large commercial farms"],
+    "research_keywords": ["financing model", "countries served"],
+    "personalization_keywords": ["phone", "email"],
+    "must_flag_unknowns": [],
+    "database_fields": ["financing model", "minimum order"]
+  },
+  "notes": "Outside Lunim's usual industries; any leak of film/book/startup/AI vocabulary is a reusability failure."
+}

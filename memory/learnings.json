@@ -1,0 +1,34 @@
+[
+  {
+    "learning_id": "l-001",
+    "project_id": null,
+    "target_types": ["film producer", "cinematographer"],
+    "lesson": "Crowd-edited credit databases occasionally list unreleased or uncredited work; confirm feature credits with a second source (distributor, festival or national film body listing).",
+    "validated": true,
+    "tags": ["verification"]
+  },
+  {
+    "learning_id": "l-002",
+    "project_id": null,
+    "target_types": [],
+    "lesson": "Common names produce identity collisions. Confirm identity with at least two matching attributes (role + organisation, or role + location) before recording.",
+    "validated": true,
+    "tags": ["identity"]
+  },
+  {
+    "learning_id": "l-003",
+    "project_id": "maya-book-awards",
+    "target_types": ["debut author"],
+    "lesson": "Publisher catalogue pages are the most reliable source for publication dates.",
+    "validated": true,
+    "tags": ["sources"]
+  },
+  {
+    "learning_id": "l-004",
+    "project_id": null,
+    "target_types": [],
+    "lesson": "Unvalidated idea: social follower counts correlate with reply rate.",
+    "validated": false,
+    "tags": ["hypothesis"]
+  }
+]

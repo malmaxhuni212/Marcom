@@ -1,0 +1,19 @@
+{
+  "id": "test-03-ambiguous",
+  "category": "ambiguous",
+  "title": "Influential people in the creative space",
+  "edge_case": true,
+  "brief": "We want to get in front of influential people in the creative space. Find the top ones and reach out to them about working together.",
+  "expected": {
+    "intent_keywords": ["creative", "working together"],
+    "targets": [{ "any_of": ["influential people", "people in the creative", "creative"] }],
+    "max_targets": 2,
+    "criteria_keywords": [],
+    "exclusion_keywords": [],
+    "research_keywords": [],
+    "personalization_keywords": [],
+    "must_flag_unknowns": ["influential", "top", "creative space", "geography", "channel"],
+    "database_fields": ["name"]
+  },
+  "notes": "Must NOT invent follower thresholds. 'creative space' is undefined; 'working together' is undefined."
+}

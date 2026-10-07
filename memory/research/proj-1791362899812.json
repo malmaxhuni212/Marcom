@@ -1,0 +1,146 @@
+[
+  {
+    "record": {
+      "research_record_version": "1.1",
+      "record_id": "r-david-p-smith-muxv95ey",
+      "project_id": "proj-1791362899812",
+      "brief_target_id": "target-1",
+      "identity": {
+        "name": "David P. Smith",
+        "entity_kind": "person",
+        "identity_verified": true
+      },
+      "target_type": "Authors",
+      "role": "Professor",
+      "organisation": "University of Texas at Austin",
+      "country": "USA",
+      "location": "Austin, TX",
+      "website": "https://www.utexas.edu",
+      "linkedin": null,
+      "instagram": null,
+      "other_public_profiles": [],
+      "public_contact": [],
+      "relevant_experience": [],
+      "relevant_projects": [],
+      "achievements": [],
+      "industry_involvement": [],
+      "qualification_assessment": [
+        {
+          "criterion": "Published author",
+          "status": "not_met",
+          "note": "No evidence of book publication",
+          "source_ids": [
+            "S1"
+          ]
+        },
+        {
+          "criterion": "Active author",
+          "status": "not_met",
+          "note": "Academic research, not literary author",
+          "source_ids": [
+            "S1"
+          ]
+        },
+        {
+          "criterion": "Poet, fiction writer, nonfiction writer, or genre‑specific writer",
+          "status": "not_met",
+          "note": null,
+          "source_ids": [
+            "S1"
+          ]
+        },
+        {
+          "criterion": "Recent book or project release",
+          "status": "not_met",
+          "note": null,
+          "source_ids": [
+            "S1"
+          ]
+        },
+        {
+          "criterion": "Active in literary communities or competitions",
+          "status": "not_met",
+          "note": null,
+          "source_ids": [
+            "S1"
+          ]
+        },
+        {
+          "criterion": "Public professional presence",
+          "status": "met",
+          "note": null,
+          "source_ids": [
+            "S1"
+          ]
+        }
+      ],
+      "reason_for_relevance": "Does not meet author criteria; only academic role",
+      "fit": {
+        "score": 10,
+        "band": "irrelevant",
+        "rationale": "Does not meet author criteria; only academic role"
+      },
+      "summary": "David P. Smith is a professor at U Texas Austin, not a literary author. No evidence of book publication or literary activity.",
+      "evidence": [
+        {
+          "claim": "University affiliation",
+          "field": "organisation",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "University of Texas at Austin",
+          "confidence": "verified"
+        }
+      ],
+      "sources": [
+        {
+          "id": "S1",
+          "url": "https://www.utexas.edu",
+          "title": "University of Texas at Austin",
+          "source_type": "official website",
+          "retrieved_at": "2026-10-07T08:49:19.018Z"
+        }
+      ],
+      "unknowns": [
+        {
+          "field": "contact_form",
+          "reason": "No publicly verified value found."
+        },
+        {
+          "field": "contact",
+          "reason": "No legitimate public contact route was verified."
+        },
+        {
+          "field": "books",
+          "reason": "none found"
+        }
+      ],
+      "contradictions": [],
+      "research_confidence": "low",
+      "matched_prospect_id": null,
+      "researched_at": "2026-10-07T08:49:19.018Z",
+      "research_agent_version": "research-agent/0.1.0"
+    },
+    "seed": {
+      "name": "David P. Smith",
+      "entity_kind": "person",
+      "organisation": "University of Texas at Austin"
+    },
+    "qa": {
+      "status": "needs_review",
+      "issues": [
+        {
+          "severity": "warning",
+          "code": "unverified_contact",
+          "message": "Removed contact_form \"https://www.utexas.edu/contact\" — not found verbatim in any searched page."
+        }
+      ]
+    },
+    "relationship_status": null,
+    "model": "openai/gpt-oss-20b",
+    "searches": [
+      "David P. Smith University of Texas at Austin",
+      "\"David P. Smith\" \"University of Texas\" \"Austin\" \"author\""
+    ]
+  }
+]

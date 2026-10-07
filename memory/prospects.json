@@ -1,0 +1,209 @@
+[
+  {
+    "prospect_id": "p-ex-001",
+    "name": "Imogen Harrow",
+    "aliases": [
+      "Imogen J. Harrow"
+    ],
+    "entity_kind": "person",
+    "target_types": [
+      "film producer"
+    ],
+    "role": "Producer",
+    "organisation": "Greyfell Pictures",
+    "country": "United Kingdom",
+    "website": "https://greyfell.example",
+    "linkedin": null,
+    "project_ids": [
+      "soulbound"
+    ],
+    "last_researched_at": "2026-09-20",
+    "summary": "FICTIONAL EXAMPLE. Producer with two released features."
+  },
+  {
+    "prospect_id": "p-ex-002",
+    "name": "Dev Okafor",
+    "aliases": [],
+    "entity_kind": "person",
+    "target_types": [
+      "film producer"
+    ],
+    "role": "Producer",
+    "organisation": "Northlight Films",
+    "country": "United Kingdom",
+    "website": null,
+    "linkedin": null,
+    "project_ids": [],
+    "last_researched_at": "2026-06-02",
+    "summary": "FICTIONAL EXAMPLE. Known from an earlier, unrelated film project."
+  },
+  {
+    "prospect_id": "p-ex-003",
+    "name": "Lucía Ferro",
+    "aliases": [],
+    "entity_kind": "person",
+    "target_types": [
+      "film producer"
+    ],
+    "role": "Producer",
+    "organisation": null,
+    "country": "Spain",
+    "website": null,
+    "linkedin": null,
+    "project_ids": [],
+    "last_researched_at": "2026-05-10",
+    "summary": "FICTIONAL EXAMPLE. Producer outside the UK (should be excluded by geography)."
+  },
+  {
+    "prospect_id": "p-ex-004",
+    "name": "Tomasz Wren",
+    "aliases": [],
+    "entity_kind": "person",
+    "target_types": [
+      "cinematographer"
+    ],
+    "role": "Director of Photography",
+    "organisation": null,
+    "country": "United Kingdom",
+    "website": null,
+    "linkedin": null,
+    "project_ids": [
+      "soulbound"
+    ],
+    "last_researched_at": "2026-09-21",
+    "summary": "FICTIONAL EXAMPLE. Cinematographer (different Soulbound target group)."
+  },
+  {
+    "prospect_id": "p-ex-101",
+    "name": "Hannah Quill",
+    "aliases": [],
+    "entity_kind": "person",
+    "target_types": [
+      "debut author"
+    ],
+    "role": "Author",
+    "organisation": null,
+    "country": "United Kingdom",
+    "website": null,
+    "linkedin": null,
+    "project_ids": [
+      "maya-book-awards"
+    ],
+    "last_researched_at": "2026-09-01",
+    "summary": "FICTIONAL EXAMPLE. Debut novelist (Maya)."
+  },
+  {
+    "prospect_id": "p-ex-102",
+    "name": "The Lantern Reading Trust",
+    "aliases": [],
+    "entity_kind": "organisation",
+    "target_types": [
+      "literary organisation"
+    ],
+    "role": null,
+    "organisation": "The Lantern Reading Trust",
+    "country": "United Kingdom",
+    "website": null,
+    "linkedin": null,
+    "project_ids": [
+      "maya-book-awards"
+    ],
+    "last_researched_at": "2026-09-03",
+    "summary": "FICTIONAL EXAMPLE. Reading charity (Maya)."
+  },
+  {
+    "prospect_id": "p-muwhu2j3",
+    "name": "David P. McCraw",
+    "aliases": [],
+    "entity_kind": "person",
+    "target_types": [
+      "Authors"
+    ],
+    "role": "Professor",
+    "organisation": "University of Texas at Austin",
+    "country": "USA",
+    "website": "https://law.utexas.edu",
+    "linkedin": null,
+    "project_ids": [
+      "proj-1791279211699"
+    ],
+    "last_researched_at": "2026-10-06T09:45:54.252Z",
+    "summary": "David P. McCraw is a law professor at UT Austin with no evidence of literary authorship, making him an unsuitable prospect for the Maya Book Awards author outreach."
+  },
+  {
+    "prospect_id": "p-muwp0mm5",
+    "name": "Robert J. Sharer",
+    "aliases": [],
+    "entity_kind": "person",
+    "target_types": [
+      "Authors"
+    ],
+    "role": null,
+    "organisation": "University of Texas at Austin",
+    "country": "United States",
+    "website": null,
+    "linkedin": null,
+    "project_ids": [
+      "proj-1791279211699"
+    ],
+    "last_researched_at": "2026-10-06T13:06:57.529Z",
+    "summary": "Robert J. Sharer is a deceased American archaeologist, not a contemporary author; does not meet project criteria."
+  },
+  {
+    "prospect_id": "p-muwp1xtp",
+    "name": "David M Jones",
+    "aliases": [],
+    "entity_kind": "person",
+    "target_types": [
+      "Authors"
+    ],
+    "role": "Academic author",
+    "organisation": "University of Texas at Austin",
+    "country": "USA",
+    "website": "https://www.simonandschuster.com/authors/David-M-Jones/242742868",
+    "linkedin": null,
+    "project_ids": [
+      "proj-1791279211699"
+    ],
+    "last_researched_at": "2026-10-06T13:07:58.715Z",
+    "summary": "David M Jones is an academic author affiliated with the University of Texas at Austin, known for works on Mesoamerican mythology. No evidence of recent literary activity or active participation in literary communities. Contact information limited to a generic publisher email."
+  },
+  {
+    "prospect_id": "p-muwp2n5j",
+    "name": "David Stuart",
+    "aliases": [],
+    "entity_kind": "person",
+    "target_types": [
+      "Authors"
+    ],
+    "role": "Schele Professor of Mesoamerican Art and Writing, Department of Art and Art History, The University of Texas at Austin",
+    "organisation": "University of Texas at Austin",
+    "country": "United States",
+    "website": "https://www.utexas.edu",
+    "linkedin": null,
+    "project_ids": [
+      "proj-1791279211699"
+    ],
+    "last_researched_at": "2026-10-06T13:08:58.862Z",
+    "summary": "David Stuart is a prominent Maya archaeologist at the University of Texas at Austin. He does not meet the Maya Book Awards target criteria of being an active or published author in fiction, nonfiction, or poetry."
+  },
+  {
+    "prospect_id": "p-muxv95f5",
+    "name": "David P. Smith",
+    "aliases": [],
+    "entity_kind": "person",
+    "target_types": [
+      "Authors"
+    ],
+    "role": "Professor",
+    "organisation": "University of Texas at Austin",
+    "country": "USA",
+    "website": "https://www.utexas.edu",
+    "linkedin": null,
+    "project_ids": [
+      "proj-1791362899812"
+    ],
+    "last_researched_at": "2026-10-07T08:49:19.018Z",
+    "summary": "David P. Smith is a professor at U Texas Austin, not a literary author. No evidence of book publication or literary activity."
+  }
+]

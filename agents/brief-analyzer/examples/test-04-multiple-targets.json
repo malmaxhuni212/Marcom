@@ -1,0 +1,23 @@
+{
+  "id": "test-04-multiple-targets",
+  "category": "multiple_target_types",
+  "title": "Ocean plastics summit: scientists, corporate leads, journalists",
+  "edge_case": false,
+  "brief": "Project: Tidewater Summit\n\nWe are organising a one-day summit on ocean plastics in Lisbon next spring. We need three groups:\n(a) Identify marine scientists who have published peer-reviewed research on microplastics in the last five years, anywhere in Europe — we want them as speakers.\n(b) Find sustainability leads at European packaging companies who could attend as delegates.\n(c) Find environment journalists writing for Portuguese or Spanish outlets who might cover the event.\nScientists are the priority. For scientists capture: name, institution, most relevant paper, and institutional email if published. Use Google Scholar, university pages and journal sites. Outreach by email, respectful and concise.",
+  "expected": {
+    "intent_keywords": ["summit", "ocean plastics", "Lisbon"],
+    "targets": [
+      { "any_of": ["marine scientist"], "geography": ["Europe"] },
+      { "any_of": ["sustainability lead"], "geography": ["Europe", "European"] },
+      { "any_of": ["journalist"], "geography": ["Portug", "Spanish", "Spain"] }
+    ],
+    "max_targets": 3,
+    "criteria_keywords": ["peer-reviewed", "microplastics"],
+    "exclusion_keywords": [],
+    "research_keywords": ["institution", "paper", "scholar"],
+    "personalization_keywords": ["respectful", "concise", "email"],
+    "must_flag_unknowns": [],
+    "database_fields": ["institution", "paper"]
+  },
+  "notes": "Different criteria apply to different groups; scientists marked primary."
+}

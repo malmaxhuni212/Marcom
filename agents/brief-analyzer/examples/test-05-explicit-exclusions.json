@@ -1,0 +1,18 @@
+{
+  "id": "test-05-explicit-exclusions",
+  "category": "explicit_exclusions",
+  "title": "Senior frontend engineers in Berlin with strict exclusions",
+  "edge_case": false,
+  "brief": "Project: Berlin Frontend Hiring\n\nRecruit senior frontend engineers based in Berlin with at least five years of React or Vue experience. Exclude recruiters and agency staff. Do not contact anyone currently working at Helix GmbH or Brightloop, as they are our clients. Exclude anyone we have already contacted in the past six months. Do not use personal social media accounts; professional profiles and GitHub only. Capture name, current role, years of experience, GitHub profile and public work email if listed.",
+  "expected": {
+    "intent_keywords": ["frontend engineer", "Berlin"],
+    "targets": [{ "any_of": ["frontend engineer"], "geography": ["Berlin"] }],
+    "max_targets": 1,
+    "criteria_keywords": ["five years", "React"],
+    "exclusion_keywords": ["recruiter", "Helix", "Brightloop", "six months", "personal social media"],
+    "research_keywords": ["GitHub", "years of experience"],
+    "personalization_keywords": [],
+    "must_flag_unknowns": ["channel"],
+    "database_fields": ["current role", "GitHub"]
+  }
+}

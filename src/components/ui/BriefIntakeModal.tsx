@@ -1,0 +1,338 @@
+'use client';
+
+import { useState, useRef } from 'react';
+import PrimaryButton from './PrimaryButton';
+import SecondaryButton from './SecondaryButton';
+import type { StructuredBrief } from '@/marcom/schemas/structured-brief';
+
+interface BriefIntakeModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSuccess: () => void;
+}
+
+type Step = 'INPUT' | 'PROCESSING' | 'REVIEW';
+type InputMode = 'PASTE' | 'UPLOAD' | 'URL';
+
+export default function BriefIntakeModal({ isOpen, onClose, onSuccess }: BriefIntakeModalProps) {
+  const [step, setStep] = useState<Step>('INPUT');
+  const [inputMode, setInputMode] = useState<InputMode>('PASTE');
+  
+  // Input state
+  const [briefText, setBriefText] = useState('');
+  const [projectName, setProjectName] = useState('');
+  const [file, setFile] = useState<File | null>(null);
+  const [url, setUrl] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Processing state
+  const [extractedText, setExtractedText] = useState('');
+  const [editableJson, setEditableJson] = useState('');
+  
+  // Create Project state
+  const [isCreating, setIsCreating] = useState(false);
+
+  if (!isOpen) return null;
+
+  const handleReset = () => {
+    setStep('INPUT');
+    setBriefText('');
+    setProjectName('');
+    setFile(null);
+    setUrl('');
+    setError(null);
+  };
+
+  const extractAndAnalyze = async () => {
+    setError(null);
+    
+    try {
+      const formData = new FormData();
+      if (inputMode === 'PASTE') {
+        if (!briefText.trim()) throw new Error('Please enter your brief.');
+        formData.append('text', briefText);
+      } else if (inputMode === 'UPLOAD') {
+        if (!file) throw new Error('Please select a file.');
+        formData.append('file', file);
+      } else if (inputMode === 'URL') {
+        if (!url.trim()) throw new Error('Please enter a Google Doc URL.');
+        formData.append('url', url);
+      }
+
+      setStep('PROCESSING');
+
+      let textToAnalyze = '';
+
+      if (inputMode === 'PASTE') {
+        textToAnalyze = briefText;
+      } else {
+        const extractRes = await fetch('/api/extract', {
+          method: 'POST',
+          body: formData,
+        });
+        
+        let extractData;
+        try {
+          extractData = await extractRes.json();
+        } catch (e) {
+          throw new Error('Failed to extract file. The server returned an invalid response.');
+        }
+
+        if (!extractRes.ok) throw new Error(extractData.error || 'Failed to extract brief.');
+        textToAnalyze = extractData.extracted_text;
+      }
+      
+      setExtractedText(textToAnalyze);
+
+      // 2. Analyze
+      const analyzeRes = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ briefText: textToAnalyze }),
+      });
+      let analyzeData;
+      try {
+        analyzeData = await analyzeRes.json();
+      } catch (e) {
+        throw new Error('Failed to analyze brief. The server returned an invalid response (possibly a rate limit).');
+      }
+      
+      if (!analyzeRes.ok) {
+        throw new Error(analyzeData.error || 'Failed to analyze brief.');
+      }
+
+      setEditableJson(JSON.stringify(analyzeData.structured_brief, null, 2));
+      setStep('REVIEW');
+    } catch (err: unknown) {
+      setError((err as Error).message);
+      setStep('INPUT');
+    }
+  };
+
+  const handleCreate = async () => {
+    try {
+      setError(null);
+      setIsCreating(true);
+      
+      // Parse the JSON they might have edited
+      let finalBrief: StructuredBrief;
+      try {
+        finalBrief = JSON.parse(editableJson);
+      } catch (e) {
+        throw new Error("Invalid JSON formatting in the edited brief. Please fix syntax errors.");
+      }
+
+      const res = await fetch('/api/projects/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          structured_brief: finalBrief,
+          original_brief: extractedText,
+          source_type: inputMode,
+          source_name: file?.name || 'Manual Input',
+          project_name: projectName || finalBrief.project.name
+        }),
+      });
+      
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to create project');
+      }
+
+      handleReset();
+      onSuccess();
+      onClose();
+    } catch (err: unknown) {
+      setError((err as Error).message);
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#08080c]/90 backdrop-blur-md p-6">
+      <div className="w-full max-w-6xl max-h-[90vh] flex flex-col bg-[#0d0d12] border border-white/[0.08] rounded-2xl shadow-2xl overflow-hidden">
+        
+        {/* Header */}
+        <div className="px-8 py-6 border-b border-white/[0.06] flex items-center justify-between shrink-0">
+          <div>
+            <h2 className="text-xl font-semibold text-white/90">Create a new project</h2>
+            <p className="text-[13px] text-white/40 mt-1">
+              Give MARCOM the context for what you&apos;re trying to achieve. You can paste your brief, upload a document, or import a Google Doc.
+            </p>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/[0.05] text-white/40 hover:text-white transition-colors">
+            ✕
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto p-8 relative">
+          {error && (
+            <div className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+              {error}
+            </div>
+          )}
+
+          {step === 'INPUT' && (
+            <div className="max-w-3xl mx-auto flex flex-col gap-8">
+              <div className="flex flex-col gap-2">
+                <label className="text-[13px] font-medium text-white/60">Optional Project Name</label>
+                <input
+                  type="text"
+                  placeholder="MARCOM will infer a project name from the brief if left blank..."
+                  value={projectName}
+                  onChange={e => setProjectName(e.target.value)}
+                  className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-4 py-3 text-sm text-white/90 placeholder:text-white/30 focus:outline-none focus:border-accent-blue/50"
+                />
+              </div>
+
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center gap-2 p-1 bg-white/[0.03] border border-white/[0.06] rounded-xl w-fit">
+                  {(['PASTE', 'UPLOAD', 'URL'] as InputMode[]).map((mode) => (
+                    <button
+                      key={mode}
+                      onClick={() => setInputMode(mode)}
+                      className={`px-4 py-2 rounded-lg text-[13px] font-medium transition-all ${inputMode === mode ? 'bg-white/[0.08] text-white/90 shadow-sm' : 'text-white/40 hover:text-white/70'}`}
+                    >
+                      {mode === 'PASTE' ? 'Paste Text' : mode === 'UPLOAD' ? 'Upload File' : 'Google Doc'}
+                    </button>
+                  ))}
+                </div>
+
+                {inputMode === 'PASTE' && (
+                  <textarea
+                    placeholder="Paste your project brief, strategy document, campaign notes, client requirements, research brief, or any other context here..."
+                    value={briefText}
+                    onChange={e => setBriefText(e.target.value)}
+                    className="w-full h-64 bg-white/[0.03] border border-white/[0.08] rounded-xl p-5 text-sm text-white/80 placeholder:text-white/30 focus:outline-none focus:border-accent-blue/50 resize-none"
+                  />
+                )}
+
+                {inputMode === 'UPLOAD' && (
+                  <div 
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-full h-64 border-2 border-dashed border-white/[0.1] rounded-xl flex flex-col items-center justify-center gap-3 cursor-pointer hover:bg-white/[0.02] hover:border-white/[0.2] transition-colors"
+                  >
+                    <input 
+                      type="file" 
+                      ref={fileInputRef} 
+                      className="hidden" 
+                      accept=".pdf,.docx,.txt,.md"
+                      onChange={e => e.target.files && setFile(e.target.files[0])}
+                    />
+                    <div className="w-12 h-12 rounded-full bg-white/[0.05] flex items-center justify-center">
+                      <svg className="w-5 h-5 text-white/50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                      </svg>
+                    </div>
+                    {file ? (
+                      <div className="text-center">
+                        <p className="text-sm font-medium text-white/90">{file.name}</p>
+                        <p className="text-xs text-white/40 mt-1">{(file.size / 1024 / 1024).toFixed(2)} MB • Ready to analyze</p>
+                      </div>
+                    ) : (
+                      <div className="text-center">
+                        <p className="text-sm font-medium text-white/90">Drop your brief here</p>
+                        <p className="text-xs text-white/40 mt-1">PDF, Word, TXT or Markdown</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {inputMode === 'URL' && (
+                  <div className="w-full h-64 flex flex-col justify-center">
+                    <label className="text-[13px] font-medium text-white/60 mb-2">Google Docs URL</label>
+                    <input
+                      type="url"
+                      placeholder="https://docs.google.com/document/d/..."
+                      value={url}
+                      onChange={e => setUrl(e.target.value)}
+                      className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-4 py-3 text-sm text-white/90 placeholder:text-white/30 focus:outline-none focus:border-accent-blue/50"
+                    />
+                    <p className="text-xs text-white/40 mt-3">Document must be publicly accessible or shared with MARCOM.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {step === 'PROCESSING' && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#0d0d12]">
+              <div className="w-16 h-16 rounded-2xl bg-accent-blue/10 border border-accent-blue/20 flex items-center justify-center mb-6">
+                <div className="w-6 h-6 border-2 border-accent-blue border-t-transparent rounded-full animate-spin" />
+              </div>
+              <h3 className="text-lg font-medium text-white/90 mb-8">Analyzing your brief...</h3>
+              <div className="flex flex-col gap-4 text-sm text-white/60 min-w-[240px]">
+                <div className="flex items-center gap-3">
+                  <span className="text-green-400">✓</span> Reading project context
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-green-400">✓</span> Extracting target types
+                </div>
+                <div className="flex items-center gap-3 animate-pulse text-white/80">
+                  <span className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin ml-0.5" /> Building structured brief
+                </div>
+              </div>
+            </div>
+          )}
+
+          {step === 'REVIEW' && (
+            <div className="h-full flex flex-col">
+              <div className="mb-4">
+                <h3 className="text-lg font-medium text-white/90">Review your project brief</h3>
+                <p className="text-sm text-white/50 mt-1">Check MARCOM&apos;s understanding and correct any mistakes before creating the project.</p>
+              </div>
+              <div className="flex-1 flex gap-6 min-h-0">
+                
+                {/* Original */}
+                <div className="flex-1 flex flex-col border border-white/[0.06] rounded-xl overflow-hidden bg-white/[0.01]">
+                  <div className="px-4 py-2 border-b border-white/[0.06] bg-white/[0.02]">
+                    <span className="text-[11px] font-semibold text-white/40 uppercase tracking-wider">Original Brief</span>
+                  </div>
+                  <div className="flex-1 overflow-y-auto p-4">
+                    <p className="text-[13px] text-white/60 whitespace-pre-wrap leading-relaxed">{extractedText}</p>
+                  </div>
+                </div>
+
+                {/* Structured JSON */}
+                <div className="flex-1 flex flex-col border border-white/[0.06] rounded-xl overflow-hidden bg-black/20">
+                  <div className="px-4 py-2 border-b border-white/[0.06] bg-accent-blue/5 border-b-accent-blue/10 flex items-center justify-between">
+                    <span className="text-[11px] font-semibold text-accent-blue/80 uppercase tracking-wider">MARCOM Understanding</span>
+                    <span className="text-[10px] text-white/30">Edit JSON directly</span>
+                  </div>
+                  <textarea
+                    value={editableJson}
+                    onChange={e => setEditableJson(e.target.value)}
+                    className="flex-1 w-full bg-transparent p-4 text-[13px] font-mono text-white/80 leading-relaxed focus:outline-none focus:ring-1 focus:ring-inset focus:ring-accent-blue/30 resize-none"
+                    spellCheck={false}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="px-8 py-5 border-t border-white/[0.06] flex items-center justify-end gap-3 shrink-0 bg-white/[0.01]">
+          {step === 'INPUT' && (
+            <>
+              <SecondaryButton onClick={onClose}>Cancel</SecondaryButton>
+              <PrimaryButton onClick={extractAndAnalyze}>Analyze Brief</PrimaryButton>
+            </>
+          )}
+          {step === 'REVIEW' && (
+            <>
+              <SecondaryButton onClick={() => setStep('INPUT')} disabled={isCreating}>Back to Input</SecondaryButton>
+              <PrimaryButton onClick={handleCreate} disabled={isCreating}>
+                {isCreating ? 'Creating...' : 'Approve & Create Project'}
+              </PrimaryButton>
+            </>
+          )}
+        </div>
+
+      </div>
+    </div>
+  );
+}

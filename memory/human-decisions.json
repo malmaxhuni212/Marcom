@@ -1,0 +1,57 @@
+[
+  {
+    "decision_id": "d-001",
+    "project_id": "soulbound",
+    "subject_type": "criterion",
+    "subject_id": null,
+    "decision": "rule",
+    "reason": "Festival shorts do not count as a 'released feature credit'. Only theatrical or streaming feature releases qualify.",
+    "target_types": ["film producer"],
+    "decided_by": "Example Human",
+    "created_at": "2026-09-18"
+  },
+  {
+    "decision_id": "d-002",
+    "project_id": "soulbound",
+    "subject_type": "rule",
+    "subject_id": null,
+    "decision": "rule",
+    "reason": "Approach crew through their agents where an agent is listed.",
+    "target_types": [],
+    "decided_by": "Example Human",
+    "created_at": "2026-09-18"
+  },
+  {
+    "decision_id": "d-003",
+    "project_id": "maya-book-awards",
+    "subject_type": "criterion",
+    "subject_id": null,
+    "decision": "rule",
+    "reason": "Self-published debuts are out of scope this year.",
+    "target_types": ["debut author"],
+    "decided_by": "Example Human",
+    "created_at": "2026-09-02"
+  },
+  {
+    "decision_id": "d-004",
+    "project_id": null,
+    "subject_type": "rule",
+    "subject_id": null,
+    "decision": "rule",
+    "reason": "Never use generic info@ addresses as a personal contact; label them as organisational contact.",
+    "target_types": [],
+    "decided_by": "Example Human",
+    "created_at": "2026-08-30"
+  },
+  {
+    "decision_id": "d-005",
+    "project_id": "soulbound",
+    "subject_type": "prospect",
+    "subject_id": "p-ex-004",
+    "decision": "approved",
+    "reason": "Strong match for tone of the film.",
+    "target_types": ["cinematographer"],
+    "decided_by": "Example Human",
+    "created_at": "2026-09-22"
+  }
+]

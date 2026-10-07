@@ -1,0 +1,20 @@
+[
+  {
+    "prospect_id": "p-ex-001",
+    "project_id": "soulbound",
+    "status": "contacted",
+    "events": [{ "date": "2026-09-25", "channel": "email (via agent)", "summary": "Initial introduction sent; awaiting reply." }]
+  },
+  {
+    "prospect_id": "p-ex-002",
+    "project_id": null,
+    "status": "do_not_contact",
+    "events": [{ "date": "2026-06-10", "channel": "email", "summary": "Asked not to be contacted about new projects." }]
+  },
+  {
+    "prospect_id": "p-ex-101",
+    "project_id": "maya-book-awards",
+    "status": "replied",
+    "events": [{ "date": "2026-09-12", "channel": "email", "summary": "Interested in submitting." }]
+  }
+]
