@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "search:smoke": "npx tsx src/scripts/search-smoke.ts",
+    "test": "npx tsx --test src/marcom/search/__tests__/*.test.ts"
   },
   "dependencies": {
     "mammoth": "^1.13.0",

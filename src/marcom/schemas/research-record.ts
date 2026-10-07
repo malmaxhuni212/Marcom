@@ -148,4 +148,5 @@ export interface ResearchEntry {
   relationship_status: string | null;
   model: string;
   searches: string[];
+  search_provider?: string;
 }

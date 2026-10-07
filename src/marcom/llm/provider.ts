@@ -21,12 +21,14 @@ export interface LLMRequest {
 }
 
 export interface LLMProvider {
+  readonly model: string;
   readonly name: string;
   /** Returns the raw text response. Callers are responsible for parsing and validation. */
   complete(request: LLMRequest): Promise<string>;
 }
 
 export class UnconfiguredProvider implements LLMProvider {
+  model = 'unconfigured';
   readonly name = 'unconfigured';
   async complete(): Promise<string> {
     throw new Error(

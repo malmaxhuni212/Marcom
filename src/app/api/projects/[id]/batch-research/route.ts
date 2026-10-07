@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { JsonFileMemoryStore } from '@/marcom/memory/store';
 import { GroqProvider } from '@/marcom/llm/groq-provider';
+import { getSearchProvider } from '@/marcom/search/registry';
+import { discoverProspects } from '@/marcom/agents/research/discovery';
 import { runResearchAgent } from '@/marcom/agents/research/agent';
 import { saveResearch, upsertProspectMemory } from '@/marcom/memory/research-store';
 
@@ -28,45 +30,43 @@ async function processBatch(projectId: string, targetId: string, count: number, 
 
     try {
       // 1. Auto-discover a name
-      const discoveryQuery = `Find ONE highly specific real-world example of a ${targetName} relevant to: ${project.structured_brief.project.name}. Return ONLY a JSON object with {"name": "...", "organisation": "..."}. Do not use Markdown. Return a DIFFERENT prospect than previous ones.`;
+      const candidates = await discoverProspects(project.structured_brief, targetId, projectId, store, getSearchProvider(), provider, count - i);
       
-      const text = await provider.complete({
-         system: "You are a web discovery agent. Output ONLY valid JSON.",
-         user: discoveryQuery,
-         maxTokens: 500
-      });
-      
-      let parsed;
-      try {
-        parsed = JSON.parse(text);
-      } catch(e) {
-         const m = text.match(/\{[\s\S]*\}/);
-         if (m) parsed = JSON.parse(m[0]);
+      if (!candidates || candidates.length === 0) {
+        console.log('No candidates found by discovery.');
+        break; // Stop loop if no candidates found
       }
 
-      if (parsed && parsed.name) {
-        const seed = {
-          name: parsed.name,
-          entity_kind: target?.entity_kind === 'person' || target?.entity_kind === 'organisation' ? target.entity_kind : 'unknown' as any,
-          organisation: parsed.organisation || undefined
-        };
+      for (const parsed of candidates) {
+        if (i >= count) break;
+        if (parsed && parsed.name) {
+          const seed = {
+            name: parsed.name,
+            entity_kind: target?.entity_kind === 'person' || target?.entity_kind === 'organisation' ? target.entity_kind : 'unknown' as any,
+            organisation: parsed.organisation || undefined
+          };
 
-        // 2. Run research
-        const entry = await runResearchAgent({
-          projectId,
-          brief: project.structured_brief,
-          targetId,
-          seed,
-          store,
-          provider,
-        });
+          // 2. Run research
+          const entry = await runResearchAgent({
+            projectId,
+            brief: project.structured_brief,
+            targetId,
+            seed,
+            store,
+            searchProvider: getSearchProvider(),
+            llmProvider: provider,
+          });
 
-        saveResearch(projectId, entry);
-        upsertProspectMemory(entry);
+          saveResearch(projectId, entry);
+          upsertProspectMemory(entry);
+        }
+        
+        const task = backgroundTasks.get(taskId);
+        if (task && task.status !== 'cancelled') task.completed++;
+        i++; // advance the counter since we just completed one
       }
-      
-      const task = backgroundTasks.get(taskId);
-      if (task && task.status !== 'cancelled') task.completed++;
+      i--; // adjust because the outer loop will do i++
+
 
     } catch (e) {
       console.error(`Batch research iteration ${i} failed:`, e);
@@ -81,7 +81,9 @@ async function processBatch(projectId: string, targetId: string, count: number, 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id: projectId } = await params;
   const body = await req.json().catch(() => ({}));
-  const count = Number(body.count) || 1;
+  const maxAppLimit = parseInt(process.env.SEARCH_MAX_RESULTS || '25', 10);
+  let count = Number(body.count) || 1;
+  if (count <= 0 || count > maxAppLimit) return NextResponse.json({ error: `Count must be between 1 and ${maxAppLimit}` }, { status: 400 });
   const targetId = body.target_id;
 
   const taskId = `${projectId}-${Date.now()}`;

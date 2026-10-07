@@ -2,6 +2,2020 @@
   {
     "record": {
       "research_record_version": "1.1",
+      "record_id": "r-elizabeth-letts-muy2x4qu",
+      "project_id": "proj-1791362899812",
+      "brief_target_id": "target-1",
+      "identity": {
+        "name": "Elizabeth Letts",
+        "entity_kind": "person",
+        "identity_verified": true
+      },
+      "target_type": "Authors",
+      "role": "Author",
+      "organisation": "Penguin Random House",
+      "country": "United States",
+      "location": "Los Angeles Metropolitan Area",
+      "website": null,
+      "linkedin": "https://www.linkedin.com/in/elizabeth-letts-144a284",
+      "instagram": null,
+      "other_public_profiles": [],
+      "public_contact": [],
+      "relevant_experience": [],
+      "relevant_projects": [
+        "Author (Current) at Penguin Random House"
+      ],
+      "achievements": [],
+      "industry_involvement": [],
+      "qualification_assessment": [
+        {
+          "criterion": "Published author",
+          "status": "unknown",
+          "note": null,
+          "source_ids": [
+            "S1",
+            "S6"
+          ]
+        },
+        {
+          "criterion": "Active author",
+          "status": "met",
+          "note": null,
+          "source_ids": [
+            "S1",
+            "S6"
+          ]
+        },
+        {
+          "criterion": "Poet, fiction writer, nonfiction writer, or genre‑specific writer",
+          "status": "unknown",
+          "note": null,
+          "source_ids": [
+            "S1",
+            "S6"
+          ]
+        },
+        {
+          "criterion": "Recent book or project release",
+          "status": "unknown",
+          "note": null,
+          "source_ids": [
+            "S1",
+            "S6"
+          ]
+        },
+        {
+          "criterion": "Active in literary communities or competitions",
+          "status": "unknown",
+          "note": null,
+          "source_ids": [
+            "S1",
+            "S6"
+          ]
+        },
+        {
+          "criterion": "Public professional presence",
+          "status": "met",
+          "note": null,
+          "source_ids": [
+            "S1",
+            "S6"
+          ]
+        }
+      ],
+      "reason_for_relevance": "Limited evidence of recent publication or active literary community involvement; however, current author role and public presence partially align with objectives.",
+      "fit": {
+        "score": 0,
+        "band": "irrelevant",
+        "rationale": "Limited evidence of recent publication or active literary community involvement; however, current author role and public presence partially align with objectives."
+      },
+      "summary": "Elizabeth Letts is a US-based author currently employed at Penguin Random House, with a LinkedIn profile indicating her role and location. Evidence confirms her status as a published author and public professional presence, but lacks details on recent works or community engagement.",
+      "evidence": [
+        {
+          "claim": "Elizabeth Letts is a New York Times bestselling author.",
+          "field": "role",
+          "source_ids": [
+            "S1",
+            "S6"
+          ],
+          "quote": "\"#1 New York Times Bestselling Author\"",
+          "confidence": "uncertain"
+        },
+        {
+          "claim": "Elizabeth Letts works as Author at Penguin Random House.",
+          "field": "organisation",
+          "source_ids": [
+            "S1",
+            "S6"
+          ],
+          "quote": "\"Author - Penguin Random House\"",
+          "confidence": "uncertain"
+        },
+        {
+          "claim": "Elizabeth Letts is based in Los Angeles Metropolitan Area.",
+          "field": "location",
+          "source_ids": [
+            "S1",
+            "S6"
+          ],
+          "quote": "\"Los Angeles Metropolitan Area (US)\"",
+          "confidence": "uncertain"
+        },
+        {
+          "claim": "Elizabeth Letts is a United States citizen.",
+          "field": "country",
+          "source_ids": [
+            "S1",
+            "S6"
+          ],
+          "quote": "\"مواطنة الولايات المتحدة\"",
+          "confidence": "uncertain"
+        },
+        {
+          "claim": "Elizabeth Letts attended Yale University.",
+          "field": "education",
+          "source_ids": [
+            "S1",
+            "S6"
+          ],
+          "quote": "\"Yale University\"",
+          "confidence": "uncertain"
+        }
+      ],
+      "sources": [
+        {
+          "id": "S1",
+          "url": "https://www.linkedin.com/in/elizabeth-letts-144a284",
+          "title": "Elizabeth Letts",
+          "source_type": "LinkedIn profile",
+          "retrieved_at": "2026-10-07T12:23:55.206Z"
+        },
+        {
+          "id": "S6",
+          "url": "https://www.linkedin.com/in/elizabeth-letts-144a284",
+          "title": "Elizabeth Letts",
+          "source_type": "LinkedIn profile",
+          "retrieved_at": "2026-10-07T12:23:55.206Z"
+        }
+      ],
+      "unknowns": [
+        {
+          "field": "contact",
+          "reason": "No legitimate public contact route was verified."
+        },
+        {
+          "field": "website",
+          "reason": "No official website verified."
+        },
+        {
+          "field": "background",
+          "reason": "No evidence of specific books, projects, or awards"
+        },
+        {
+          "field": "achievements",
+          "reason": "No evidence of awards or recognitions"
+        },
+        {
+          "field": "industry_involvement",
+          "reason": "No evidence of community or competition participation"
+        },
+        {
+          "field": "contacts",
+          "reason": "No contact details provided"
+        }
+      ],
+      "contradictions": [],
+      "research_confidence": "low",
+      "matched_prospect_id": null,
+      "researched_at": "2026-10-07T12:23:55.206Z",
+      "research_agent_version": "research-agent/0.1.0"
+    },
+    "seed": {
+      "name": "Elizabeth Letts",
+      "entity_kind": "person"
+    },
+    "qa": {
+      "status": "passed",
+      "issues": []
+    },
+    "relationship_status": null,
+    "model": "openai/gpt-oss-20b",
+    "searches": [
+      "Elizabeth Letts Authors",
+      "Elizabeth Letts email contact linkedin"
+    ],
+    "search_provider": "exa"
+  },
+  {
+    "record": {
+      "research_record_version": "1.1",
+      "record_id": "r-hy-bender-muy2wlhw",
+      "project_id": "proj-1791362899812",
+      "brief_target_id": "target-1",
+      "identity": {
+        "name": "Hy Bender",
+        "entity_kind": "person",
+        "identity_verified": true
+      },
+      "target_type": "Authors",
+      "role": "Author, Ghostwriter, Book Proposal Expert",
+      "organisation": "BookProposal.net",
+      "country": "United States",
+      "location": "New York, New York, United States",
+      "website": null,
+      "linkedin": "https://www.linkedin.com/in/hybender",
+      "instagram": null,
+      "other_public_profiles": [],
+      "public_contact": [],
+      "relevant_experience": [
+        "Author of 19 books for major publishers (Penguin Random House, HarperCollins, McGraw‑Hill) and niche publishers (Writers Digest Books, DC Comics). Ghostwriter for first‑time authors who became New York Times bestsellers. Developed a book proposal that secured a $1 million advance and sold over 500,000 copies. Author of five books in the \"Dummies\" series and a \"Complete Idiot's Guide\". Interview book with Neil Gaiman. Sold humor pieces to The New York Times, Ad Age, Mad Magazine."
+      ],
+      "relevant_projects": [
+        "Ghostwriting for first‑time authors, book proposal development, authoring nonfiction and guidebooks, interview book with Neil Gaiman."
+      ],
+      "achievements": [
+        "New York Times & USA Today bestselling author; sold over 1 million books; ghostwrote NYT bestsellers; secured a $1 million advance for a first‑time author; authored five \"Dummies\" books; interview book with Neil Gaiman."
+      ],
+      "industry_involvement": [
+        "Active in the publishing industry as a bestselling author, ghostwriter, and book proposal consultant; engages with literary communities through book proposals and author services."
+      ],
+      "qualification_assessment": [
+        {
+          "criterion": "Published author",
+          "status": "met",
+          "note": "Author of 19 books",
+          "source_ids": [
+            "S1"
+          ]
+        },
+        {
+          "criterion": "Active author",
+          "status": "met",
+          "note": "Continues to write and offer services",
+          "source_ids": [
+            "S1"
+          ]
+        },
+        {
+          "criterion": "Poet, fiction writer, nonfiction writer, or genre‑specific writer",
+          "status": "met",
+          "note": "Writes nonfiction and guidebooks; ghostwrites across genres",
+          "source_ids": [
+            "S1"
+          ]
+        },
+        {
+          "criterion": "Recent book or project release",
+          "status": "unknown",
+          "note": "No recent release date provided",
+          "source_ids": [
+            "S1"
+          ]
+        },
+        {
+          "criterion": "Active in literary communities or competitions",
+          "status": "unknown",
+          "note": "No explicit community or competition activity mentioned",
+          "source_ids": [
+            "S1"
+          ]
+        },
+        {
+          "criterion": "Public professional presence (website, social media, interviews)",
+          "status": "met",
+          "note": "LinkedIn profile present; mentions BookProposal.net",
+          "source_ids": [
+            "S1"
+          ]
+        }
+      ],
+      "reason_for_relevance": "Hy Bender meets most qualification criteria: published, active, nonfiction author, public presence. Lack of recent release and explicit community activity slightly reduces fit.",
+      "fit": {
+        "score": 8,
+        "band": "irrelevant",
+        "rationale": "Hy Bender meets most qualification criteria: published, active, nonfiction author, public presence. Lack of recent release and explicit community activity slightly reduces fit."
+      },
+      "summary": "Hy Bender is a bestselling author and ghostwriter with extensive publishing experience, meeting the majority of Maya Book Awards qualification criteria. He lacks a recent book release and explicit literary community involvement, but his professional presence and achievements make him a strong candidate.",
+      "evidence": [
+        {
+          "claim": "Hy Bender is a New York Times & USA Today bestselling author",
+          "field": "role",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "New York Times & USA Today bestselling author",
+          "confidence": "uncertain"
+        },
+        {
+          "claim": "Hy Bender has sold over 1 million books",
+          "field": "achievements",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "sold over 1 million books",
+          "confidence": "uncertain"
+        },
+        {
+          "claim": "Hy Bender ghostwrote two NYT bestsellers for first‑time authors",
+          "field": "background",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "Two of the books I ghostwrote for first‑time authors became New York Times bestsellers",
+          "confidence": "uncertain"
+        },
+        {
+          "claim": "Hy Bender secured a $1 million advance for a first‑time author",
+          "field": "background",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "a book proposal I meticulously developed from scratch for a first‑time, non‑celebrity author resulted in a $1 million advance",
+          "confidence": "uncertain"
+        },
+        {
+          "claim": "Hy Bender authored five books in the \"Dummies\" series",
+          "field": "background",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "I'm also the author of five books in the popular \"Dummies\" series",
+          "confidence": "uncertain"
+        }
+      ],
+      "sources": [
+        {
+          "id": "S1",
+          "url": "https://www.linkedin.com/in/hybender",
+          "title": "Hy Bender",
+          "source_type": "LinkedIn profile",
+          "retrieved_at": "2026-10-07T12:23:30.260Z"
+        }
+      ],
+      "unknowns": [
+        {
+          "field": "contact",
+          "reason": "No legitimate public contact route was verified."
+        },
+        {
+          "field": "website",
+          "reason": "No official website verified."
+        },
+        {
+          "field": "contact email",
+          "reason": "No email address provided in evidence"
+        },
+        {
+          "field": "contact phone",
+          "reason": "No phone number provided in evidence"
+        },
+        {
+          "field": "recent book release",
+          "reason": "No recent release date mentioned"
+        },
+        {
+          "field": "active in literary communities or competitions",
+          "reason": "No explicit community or competition activity mentioned"
+        }
+      ],
+      "contradictions": [],
+      "research_confidence": "low",
+      "matched_prospect_id": null,
+      "researched_at": "2026-10-07T12:23:30.260Z",
+      "research_agent_version": "research-agent/0.1.0"
+    },
+    "seed": {
+      "name": "Hy Bender",
+      "entity_kind": "person"
+    },
+    "qa": {
+      "status": "passed",
+      "issues": []
+    },
+    "relationship_status": null,
+    "model": "openai/gpt-oss-20b",
+    "searches": [
+      "Hy Bender Authors",
+      "Hy Bender email contact linkedin"
+    ],
+    "search_provider": "exa"
+  },
+  {
+    "record": {
+      "research_record_version": "1.1",
+      "record_id": "r-meg-waite-clayton-muy2wfbl",
+      "project_id": "proj-1791362899812",
+      "brief_target_id": "target-1",
+      "identity": {
+        "name": "Meg Waite Clayton",
+        "entity_kind": "person",
+        "identity_verified": true
+      },
+      "target_type": "Authors",
+      "role": "Novelist",
+      "organisation": "Meg Waite Clayton LLC",
+      "country": "United States",
+      "location": "Carmel-by-the-Sea, California, United States",
+      "website": "http://megwaiteclayton.com/",
+      "linkedin": "https://www.linkedin.com/in/megclayton",
+      "instagram": null,
+      "other_public_profiles": [
+        "facebook.com/novelistmeg",
+        "@megwaiteclayto"
+      ],
+      "public_contact": [],
+      "relevant_experience": [
+        "Published novelist with nine books, including TYPEWRITER BEACH (forthcoming July 2025), THE POSTMISTRESS OF PARIS, THE LAST TRAIN TO LONDON, and THE WEDNESDAY SISTERS. Finalist for the Bellwether Prize, National Jewish Book Award, and Langum Prize. Writes for major newspapers and magazines and mentors in the OpEd Project."
+      ],
+      "relevant_projects": [
+        "TYPEWRITER BEACH (forthcoming July 1, 2025)"
+      ],
+      "achievements": [
+        "Bellwether Prize finalist, National Jewish Book Award finalist, Langum Prize finalist"
+      ],
+      "industry_involvement": [
+        "Member of the National Book Critics Circle, PEN, JAWS, California bar; mentor in the OpEd Project"
+      ],
+      "qualification_assessment": [
+        {
+          "criterion": "Published author",
+          "status": "unknown",
+          "note": "Has nine published novels",
+          "source_ids": [
+            "S1"
+          ]
+        },
+        {
+          "criterion": "Active author",
+          "status": "unknown",
+          "note": "Current role as Novelist at Meg Waite Clayton LLC",
+          "source_ids": [
+            "S1"
+          ]
+        },
+        {
+          "criterion": "Poet, fiction writer, nonfiction writer, or genre‑specific writer",
+          "status": "unknown",
+          "note": "Writes literary fiction novels",
+          "source_ids": [
+            "S1"
+          ]
+        },
+        {
+          "criterion": "Recent book or project release",
+          "status": "unknown",
+          "note": "Upcoming book TYPEWRITER BEACH scheduled for July 2025",
+          "source_ids": [
+            "S1"
+          ]
+        },
+        {
+          "criterion": "Active in literary communities or competitions",
+          "status": "unknown",
+          "note": "Member of National Book Critics Circle, PEN, JAWS",
+          "source_ids": [
+            "S1"
+          ]
+        },
+        {
+          "criterion": "Public professional presence",
+          "status": "unknown",
+          "note": "Website, LinkedIn, Facebook, Instagram",
+          "source_ids": [
+            "S1"
+          ]
+        }
+      ],
+      "reason_for_relevance": "Meg Waite Clayton meets all qualification criteria for the Maya Book Awards, with a strong publication record, active authorship, recent project, literary community involvement, and a robust public professional presence.",
+      "fit": {
+        "score": 1,
+        "band": "irrelevant",
+        "rationale": "Meg Waite Clayton meets all qualification criteria for the Maya Book Awards, with a strong publication record, active authorship, recent project, literary community involvement, and a robust public professional presence."
+      },
+      "summary": "Meg Waite Clayton is a highly qualified, active novelist based in the United States, with a forthcoming book and significant literary credentials, making her an ideal prospect for the Maya Book Awards.",
+      "evidence": [
+        {
+          "claim": "Meg Waite Clayton is a published author",
+          "field": "Published author",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "New York Times, USA Today, and internationally bestselling author of TYPEWRITER BEACH; GMA Buzz Pick THE POSTMISTRESS OF PARIS; THE LAST TRAIN TO LONDON; and THE WEDNESDAY SISTERS",
+          "confidence": "uncertain"
+        },
+        {
+          "claim": "Meg is an active author",
+          "field": "Active author",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "Novelist - Meg Waite Clayton LLC (Current) Jan 2003 - Present",
+          "confidence": "uncertain"
+        },
+        {
+          "claim": "Meg writes literary fiction",
+          "field": "Genre",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "Genre: Literary fiction",
+          "confidence": "uncertain"
+        },
+        {
+          "claim": "Upcoming book TYPEWRITER BEACH scheduled July 1, 2025",
+          "field": "Recent book or project release",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "forthcoming TYPEWRITER BEACH (Harper, July 1, 2025)",
+          "confidence": "uncertain"
+        },
+        {
+          "claim": "Member of National Book Critics Circle, PEN, JAWS, California bar",
+          "field": "Industry involvement",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "member of the National Book Critics Circle, PEN, JAWS, and the California bar",
+          "confidence": "uncertain"
+        },
+        {
+          "claim": "Public professional presence includes website, LinkedIn, Facebook, Instagram",
+          "field": "Public presence",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "Website: megwaiteclayton.com ... facebook.com/novelistmeg, and on instagram at @megwaiteclayto",
+          "confidence": "uncertain"
+        }
+      ],
+      "sources": [
+        {
+          "id": "S1",
+          "url": "https://www.linkedin.com/in/megclayton",
+          "title": "Meg Waite Clayton",
+          "source_type": "LinkedIn",
+          "retrieved_at": "2026-10-07T12:23:22.257Z"
+        }
+      ],
+      "unknowns": [
+        {
+          "field": "contact",
+          "reason": "No legitimate public contact route was verified."
+        }
+      ],
+      "contradictions": [],
+      "research_confidence": "low",
+      "matched_prospect_id": null,
+      "researched_at": "2026-10-07T12:23:22.257Z",
+      "research_agent_version": "research-agent/0.1.0"
+    },
+    "seed": {
+      "name": "Meg Waite Clayton",
+      "entity_kind": "person"
+    },
+    "qa": {
+      "status": "passed",
+      "issues": []
+    },
+    "relationship_status": null,
+    "model": "openai/gpt-oss-20b",
+    "searches": [
+      "Meg Waite Clayton Authors",
+      "Meg Waite Clayton email contact linkedin"
+    ],
+    "search_provider": "exa"
+  },
+  {
+    "record": {
+      "research_record_version": "1.1",
+      "record_id": "r-stephen-booth-muy2w7g6",
+      "project_id": "proj-1791362899812",
+      "brief_target_id": "target-1",
+      "identity": {
+        "name": "Stephen Booth",
+        "entity_kind": "person",
+        "identity_verified": false
+      },
+      "target_type": "Authors",
+      "role": "Writer",
+      "organisation": "Stephen Booth",
+      "country": "United Kingdom",
+      "location": "Laxton, England, United Kingdom",
+      "website": "http://stephen-booth.com/index.htm",
+      "linkedin": "https://uk.linkedin.com/in/stephenboothbooks",
+      "instagram": null,
+      "other_public_profiles": [],
+      "public_contact": [],
+      "relevant_experience": [
+        "Crime novelist; author of the Derbyshire-set Cooper and Fry series; published by Little, Brown (UK) and William Morrow (USA); independent publishing via Westlea Books imprint."
+      ],
+      "relevant_projects": [
+        "Cooper and Fry series"
+      ],
+      "achievements": [
+        "International award‑winning crime novelist"
+      ],
+      "industry_involvement": [],
+      "qualification_assessment": [
+        {
+          "criterion": "Published author",
+          "status": "met",
+          "note": "Author of multiple books",
+          "source_ids": [
+            "S1"
+          ]
+        },
+        {
+          "criterion": "Active author (currently writing or publishing)",
+          "status": "met",
+          "note": "Writer role listed Jan 2001 – Present",
+          "source_ids": [
+            "S1"
+          ]
+        },
+        {
+          "criterion": "Poet, fiction writer, nonfiction writer, or genre‑specific writer",
+          "status": "met",
+          "note": "Crime fiction writer",
+          "source_ids": [
+            "S1"
+          ]
+        },
+        {
+          "criterion": "Recent book or project release",
+          "status": "unknown",
+          "note": "No recent release date provided",
+          "source_ids": [
+            "S1"
+          ]
+        },
+        {
+          "criterion": "Active in literary communities or competitions",
+          "status": "unknown",
+          "note": "No evidence of community activity",
+          "source_ids": [
+            "S1"
+          ]
+        },
+        {
+          "criterion": "Public professional presence (website, social media, interviews)",
+          "status": "met",
+          "note": "Website and LinkedIn profile present",
+          "source_ids": [
+            "S1"
+          ]
+        }
+      ],
+      "reason_for_relevance": "Stephen Booth meets all core author criteria (published, active, genre‑specific, public presence). Lack of evidence for recent release and community activity slightly reduces fit.",
+      "fit": {
+        "score": 1,
+        "band": "irrelevant",
+        "rationale": "Stephen Booth meets all core author criteria (published, active, genre‑specific, public presence). Lack of evidence for recent release and community activity slightly reduces fit."
+      },
+      "summary": "Stephen Booth is a UK crime novelist with an established publishing record and an active LinkedIn profile, fitting the Maya Book Awards target of published, active authors with public presence.",
+      "evidence": [
+        {
+          "claim": "Stephen Booth is a crime novelist",
+          "field": "role",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "\"Crime novelist\"",
+          "confidence": "uncertain"
+        },
+        {
+          "claim": "He is the author of the Cooper and Fry series",
+          "field": "background",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "\"author of the Ben Cooper and Diane Fry series\"",
+          "confidence": "uncertain"
+        },
+        {
+          "claim": "Published in the UK by Little, Brown and in the USA by William Morrow",
+          "field": "background",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "\"Published in the UK by Little, Brown and in the USA by William Morrow\"",
+          "confidence": "uncertain"
+        }
+      ],
+      "sources": [
+        {
+          "id": "S1",
+          "url": "https://uk.linkedin.com/in/stephenboothbooks",
+          "title": "Stephen Booth",
+          "source_type": "LinkedIn profile",
+          "retrieved_at": "2026-10-07T12:23:12.054Z"
+        }
+      ],
+      "unknowns": [
+        {
+          "field": "contact",
+          "reason": "No legitimate public contact route was verified."
+        },
+        {
+          "field": "recent book release",
+          "reason": "No evidence of a recent publication date"
+        },
+        {
+          "field": "active literary community involvement",
+          "reason": "No evidence of community activity"
+        }
+      ],
+      "contradictions": [],
+      "research_confidence": "low",
+      "matched_prospect_id": null,
+      "researched_at": "2026-10-07T12:23:12.054Z",
+      "research_agent_version": "research-agent/0.1.0"
+    },
+    "seed": {
+      "name": "Stephen Booth",
+      "entity_kind": "person"
+    },
+    "qa": {
+      "status": "needs_review",
+      "issues": [
+        {
+          "severity": "warning",
+          "code": "identity_unverified",
+          "message": "Identity could not be confirmed from reliable sources — human review needed."
+        }
+      ]
+    },
+    "relationship_status": null,
+    "model": "openai/gpt-oss-20b",
+    "searches": [
+      "Stephen Booth Authors",
+      "Stephen Booth email contact linkedin"
+    ],
+    "search_provider": "exa"
+  },
+  {
+    "record": {
+      "research_record_version": "1.1",
+      "record_id": "r-tony-bradman-muy2vy8i",
+      "project_id": "proj-1791362899812",
+      "brief_target_id": "target-1",
+      "identity": {
+        "name": "Tony Bradman",
+        "entity_kind": "person",
+        "identity_verified": true
+      },
+      "target_type": "Authors",
+      "role": "Writer",
+      "organisation": "Freelance writer",
+      "country": "United Kingdom",
+      "location": "London Area, United Kingdom",
+      "website": null,
+      "linkedin": "https://uk.linkedin.com/in/tony-bradman-85824326",
+      "instagram": null,
+      "other_public_profiles": [],
+      "public_contact": [],
+      "relevant_experience": [
+        "Author of more than 50 children’s books, including the Dilly the Dinosaur series; over 200 titles published; active writer of speculative fiction."
+      ],
+      "relevant_projects": [
+        "Freelance writer, editor and reviewer; Fellow of the Royal Society of Literature; Honorary Fellow of the Historical Association."
+      ],
+      "achievements": [
+        "Fellow of the Royal Society of Literature; Honorary Fellow of the Historical Association."
+      ],
+      "industry_involvement": [
+        "Royal Society of Literature; Historical Association."
+      ],
+      "qualification_assessment": [
+        {
+          "criterion": "Published author",
+          "status": "met",
+          "note": "Author of more than 50 books for young people.",
+          "source_ids": [
+            "S1"
+          ]
+        },
+        {
+          "criterion": "Active author",
+          "status": "met",
+          "note": "Freelance writer, editor and reviewer (Current).",
+          "source_ids": [
+            "S1"
+          ]
+        },
+        {
+          "criterion": "Poet, fiction writer, nonfiction writer, or genre‑specific writer",
+          "status": "met",
+          "note": "Writes children’s books and speculative fiction.",
+          "source_ids": [
+            "S1"
+          ]
+        },
+        {
+          "criterion": "Recent book or project release",
+          "status": "unknown",
+          "note": "No evidence of a recent release.",
+          "source_ids": [
+            "S1"
+          ]
+        },
+        {
+          "criterion": "Active in literary communities or competitions",
+          "status": "met",
+          "note": "Fellow of the Royal Society of Literature; Honorary Fellow of the Historical Association.",
+          "source_ids": [
+            "S1"
+          ]
+        },
+        {
+          "criterion": "Public professional presence (website, social media, interviews)",
+          "status": "met",
+          "note": "LinkedIn profile present.",
+          "source_ids": [
+            "S1"
+          ]
+        }
+      ],
+      "reason_for_relevance": "Tony Bradman is a published and active author with a strong presence in literary communities, meeting most qualification criteria for the Maya Book Awards. However, lack of evidence for a recent book or project release and the focus on children’s literature may reduce his likelihood of submitting for an award that may prioritize adult fiction or recent works.",
+      "fit": {
+        "score": 1,
+        "band": "irrelevant",
+        "rationale": "Tony Bradman is a published and active author with a strong presence in literary communities, meeting most qualification criteria for the Maya Book Awards. However, lack of evidence for a recent book or project release and the focus on children’s literature may reduce his likelihood of submitting for an award that may prioritize adult fiction or recent works."
+      },
+      "summary": "Tony Bradman is a UK-based freelance writer with extensive experience in children’s and speculative fiction, recognized as a Fellow of the Royal Society of Literature and an Honorary Fellow of the Historical Association. He meets most Maya Book Awards qualification criteria but lacks evidence of a recent publication, which may affect his fit for the award’s target group.",
+      "evidence": [
+        {
+          "claim": "Author of more than 50 children’s books, including the Dilly the Dinosaur series.",
+          "field": "background",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "He is the author of more than 50 books for young people published by multiple houses including Alfred A. Knopf, Methuen Publishing, Puffin Books, and HarperCollins.",
+          "confidence": "uncertain"
+        },
+        {
+          "claim": "Fellow of the Royal Society of Literature.",
+          "field": "industry_involvement",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "Fellow of the Royal Society of Literature - The Royal Society of Literature (Current).",
+          "confidence": "uncertain"
+        },
+        {
+          "claim": "Honorary Fellow of the Historical Association.",
+          "field": "industry_involvement",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "Honorary Fellow - Historical Association (Current).",
+          "confidence": "uncertain"
+        },
+        {
+          "claim": "Freelance writer, editor and reviewer (Current).",
+          "field": "projects_or_work",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "Writing editing reviewing - Freelance writer, editor and reviewer (Current).",
+          "confidence": "uncertain"
+        },
+        {
+          "claim": "LinkedIn profile present.",
+          "field": "public presence",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "LinkedIn profile URL: https://uk.linkedin.com/in/tony-bradman-85824326.",
+          "confidence": "uncertain"
+        },
+        {
+          "claim": "No evidence of a recent book or project release.",
+          "field": "unknowns",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "No mention of a recent release in the profile.",
+          "confidence": "uncertain"
+        }
+      ],
+      "sources": [
+        {
+          "id": "S1",
+          "url": "https://uk.linkedin.com/in/tony-bradman-85824326",
+          "title": "Tony Bradman",
+          "source_type": "LinkedIn profile",
+          "retrieved_at": "2026-10-07T12:23:00.114Z"
+        },
+        {
+          "id": "S6",
+          "url": "https://uk.linkedin.com/in/tony-bradman-728953b6",
+          "title": "Tony Bradman - I can reduce costs for you",
+          "source_type": "LinkedIn profile",
+          "retrieved_at": "2026-10-07T12:23:00.114Z"
+        }
+      ],
+      "unknowns": [
+        {
+          "field": "contact",
+          "reason": "No legitimate public contact route was verified."
+        },
+        {
+          "field": "website",
+          "reason": "No official website verified."
+        },
+        {
+          "field": "Recent book or project release",
+          "reason": "No evidence of a recent release."
+        },
+        {
+          "field": "Public professional presence beyond LinkedIn",
+          "reason": "No website or social media provided."
+        }
+      ],
+      "contradictions": [],
+      "research_confidence": "low",
+      "matched_prospect_id": null,
+      "researched_at": "2026-10-07T12:23:00.114Z",
+      "research_agent_version": "research-agent/0.1.0"
+    },
+    "seed": {
+      "name": "Tony Bradman",
+      "entity_kind": "person"
+    },
+    "qa": {
+      "status": "passed",
+      "issues": []
+    },
+    "relationship_status": null,
+    "model": "openai/gpt-oss-20b",
+    "searches": [
+      "Tony Bradman Authors",
+      "Tony Bradman email contact linkedin"
+    ],
+    "search_provider": "exa"
+  },
+  {
+    "record": {
+      "research_record_version": "1.1",
+      "record_id": "r-james-patterson-muy2vq1y",
+      "project_id": "proj-1791362899812",
+      "brief_target_id": "target-1",
+      "identity": {
+        "name": "James Patterson",
+        "entity_kind": "person",
+        "identity_verified": true
+      },
+      "target_type": "Authors",
+      "role": "Author",
+      "organisation": "Little, Brown and Company",
+      "country": "United States",
+      "location": "Palm Beach County, Florida, United States",
+      "website": "http://www.jamespatterson.com/",
+      "linkedin": "https://www.linkedin.com/in/james-patterson-author",
+      "instagram": null,
+      "other_public_profiles": [],
+      "public_contact": [],
+      "relevant_experience": [
+        "American author born in 1947, prolific writer of mystery, thriller, young adult, romance, and other genres. Published numerous series including Alex Cross, Women's Murder Club, and Middle School. Known for high commercial success and industry recognition."
+      ],
+      "relevant_projects": [
+        "Alex Cross series",
+        "Michael Bennett series",
+        "Women's Murder Club",
+        "Maximum Ride",
+        "Daniel X",
+        "NYPD Red",
+        "Witch & Wizard",
+        "Private",
+        "Middle School series"
+      ],
+      "achievements": [
+        "Sold over 425 million copies worldwide",
+        "First author to sell one million e‑books",
+        "Topped Forbes' list of highest‑paid authors in 2016"
+      ],
+      "industry_involvement": [],
+      "qualification_assessment": [
+        {
+          "criterion": "Published author",
+          "status": "unknown",
+          "note": "Has published numerous books across multiple series",
+          "source_ids": [
+            "S1"
+          ]
+        },
+        {
+          "criterion": "Active author",
+          "status": "unknown",
+          "note": "Employment record shows author role from 1976 to present",
+          "source_ids": [
+            "S1"
+          ]
+        },
+        {
+          "criterion": "Poet, fiction writer, nonfiction writer, or genre‑specific writer",
+          "status": "unknown",
+          "note": "Writes fiction, thriller, young adult, romance, etc.",
+          "source_ids": [
+            "S1"
+          ]
+        },
+        {
+          "criterion": "Recent book or project release",
+          "status": "unknown",
+          "note": "No recent release information provided in evidence",
+          "source_ids": [
+            "S1"
+          ]
+        },
+        {
+          "criterion": "Active in literary communities or competitions",
+          "status": "unknown",
+          "note": "No evidence of community or competition activity",
+          "source_ids": [
+            "S1"
+          ]
+        },
+        {
+          "criterion": "Public professional presence",
+          "status": "unknown",
+          "note": "Website and LinkedIn profile present",
+          "source_ids": [
+            "S1"
+          ]
+        }
+      ],
+      "reason_for_relevance": "James Patterson meets most Maya Book Awards qualification criteria, with strong publication record and public presence. Lack of recent release and community activity slightly reduces fit.",
+      "fit": {
+        "score": 1,
+        "band": "irrelevant",
+        "rationale": "James Patterson meets most Maya Book Awards qualification criteria, with strong publication record and public presence. Lack of recent release and community activity slightly reduces fit."
+      },
+      "summary": "James Patterson is a prolific, active American author with extensive publication record and significant commercial success, meeting most Maya Book Awards qualification criteria.",
+      "evidence": [
+        {
+          "claim": "James Patterson is a published author",
+          "field": "Published author",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "\"Author at Little, Brown and Company\" and list of works",
+          "confidence": "uncertain"
+        },
+        {
+          "claim": "James Patterson is an active author",
+          "field": "Active author",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "\"Jan 1976 - Present\"",
+          "confidence": "uncertain"
+        },
+        {
+          "claim": "James Patterson has sold over 425 million copies",
+          "field": "Sales",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "\"Patterson's books have sold more than 425 million copies\"",
+          "confidence": "uncertain"
+        },
+        {
+          "claim": "James Patterson was first to sell one million e‑books",
+          "field": "e‑book milestone",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "\"first person to sell one million e‑books\"",
+          "confidence": "uncertain"
+        },
+        {
+          "claim": "James Patterson topped Forbes list in 2016",
+          "field": "Forbes ranking",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "\"In 2016, Patterson topped Forbes' list of highest‑paid authors\"",
+          "confidence": "uncertain"
+        }
+      ],
+      "sources": [
+        {
+          "id": "S1",
+          "url": "https://www.linkedin.com/in/james-patterson-author",
+          "title": "James Patterson",
+          "source_type": "LinkedIn profile",
+          "retrieved_at": "2026-10-07T12:22:49.510Z"
+        }
+      ],
+      "unknowns": [
+        {
+          "field": "contact",
+          "reason": "No legitimate public contact route was verified."
+        },
+        {
+          "field": "Recent book or project release",
+          "reason": "No recent release information provided in evidence"
+        },
+        {
+          "field": "Active in literary communities or competitions",
+          "reason": "No evidence of community or competition activity"
+        },
+        {
+          "field": "Contact information",
+          "reason": "No email, phone, or contact form provided in evidence"
+        }
+      ],
+      "contradictions": [],
+      "research_confidence": "low",
+      "matched_prospect_id": null,
+      "researched_at": "2026-10-07T12:22:49.510Z",
+      "research_agent_version": "research-agent/0.1.0"
+    },
+    "seed": {
+      "name": "James Patterson",
+      "entity_kind": "person",
+      "organisation": "Little, Brown and Company"
+    },
+    "qa": {
+      "status": "passed",
+      "issues": []
+    },
+    "relationship_status": null,
+    "model": "openai/gpt-oss-20b",
+    "searches": [
+      "James Patterson Little, Brown and Company Authors",
+      "James Patterson Little, Brown and Company email contact linkedin"
+    ],
+    "search_provider": "exa"
+  },
+  {
+    "record": {
+      "research_record_version": "1.1",
+      "record_id": "r-jennifer-l-holm-muy2vh37",
+      "project_id": "proj-1791362899812",
+      "brief_target_id": "target-1",
+      "identity": {
+        "name": "Jennifer L. Holm",
+        "entity_kind": "person",
+        "identity_verified": false
+      },
+      "target_type": "Authors",
+      "role": "Children's Author",
+      "organisation": "Scholastic",
+      "country": "United States",
+      "location": "Costa Mesa, California, United States",
+      "website": "http://jenniferholm.com",
+      "linkedin": "https://www.linkedin.com/in/jennifer-holm-33297754",
+      "instagram": null,
+      "other_public_profiles": [],
+      "public_contact": [],
+      "relevant_experience": [
+        "American children's writer and illustrator born in 1968. Co‑creator of the BABYMOUSE, SQUISH, and SUNNY SIDE UP series. Has received three Newbery Honors and an Eisner Award, with nearly 10 million books in print."
+      ],
+      "relevant_projects": [
+        "Babymouse, Squish, The Stink Files, Our Only May Amelia, Middle School is Worse Than Meatloaf, Turtle in Paradise, The Fourteenth Goldfish, and the SUNNY SIDE UP graphic novel series."
+      ],
+      "achievements": [
+        "Three Newbery Honors, Eisner Award, and millions of books in print."
+      ],
+      "industry_involvement": [],
+      "qualification_assessment": [
+        {
+          "criterion": "Published author",
+          "status": "unknown",
+          "note": "Evidence of multiple published works.",
+          "source_ids": [
+            "S1"
+          ]
+        },
+        {
+          "criterion": "Active author",
+          "status": "unknown",
+          "note": "Current employment as author at Scholastic and Penguin Random House.",
+          "source_ids": [
+            "S1"
+          ]
+        },
+        {
+          "criterion": "Poet, fiction writer, nonfiction writer, or genre‑specific writer",
+          "status": "unknown",
+          "note": "Genre‑specific writer of children's literature.",
+          "source_ids": [
+            "S1"
+          ]
+        },
+        {
+          "criterion": "Recent book or project release",
+          "status": "unknown",
+          "note": "No explicit evidence of a release within the last 12 months.",
+          "source_ids": [
+            "S1"
+          ]
+        },
+        {
+          "criterion": "Active in literary communities or competitions",
+          "status": "unknown",
+          "note": "No evidence of community or competition participation.",
+          "source_ids": [
+            "S1"
+          ]
+        },
+        {
+          "criterion": "Public professional presence (website, social media, interviews)",
+          "status": "unknown",
+          "note": "Website and LinkedIn profile present.",
+          "source_ids": [
+            "S1"
+          ]
+        }
+      ],
+      "reason_for_relevance": "Jennifer L. Holm is a published, active children's author based in the United States, meeting the core qualification criteria for the Maya Book Awards. Her extensive publication record, awards, and current professional roles align closely with the target group of authors in the UK and USA.",
+      "fit": {
+        "score": 1,
+        "band": "irrelevant",
+        "rationale": "Jennifer L. Holm is a published, active children's author based in the United States, meeting the core qualification criteria for the Maya Book Awards. Her extensive publication record, awards, and current professional roles align closely with the target group of authors in the UK and USA."
+      },
+      "summary": "Jennifer L. Holm is a highly qualified, active children's author with a strong publication record and industry recognition, making her an excellent fit for the Maya Book Awards.",
+      "evidence": [
+        {
+          "claim": "Published author",
+          "field": "Published author",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "\"Notable works: Babymouse, Squish, The Stink Files, Our Only May Amelia, Middle School is Worse Than Meatloaf, Turtle in Paradise, The Fourteenth Goldfish\"",
+          "confidence": "uncertain"
+        },
+        {
+          "claim": "Active author",
+          "field": "Active author",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "\"Children's Author - Scholastic (Current) Jan 2014 - Present\"",
+          "confidence": "uncertain"
+        },
+        {
+          "claim": "Genre‑specific writer",
+          "field": "Genre‑specific writer",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "\"Co‑creator of the BABYMOUSE, SQUISH and SUNNY SIDE UP series\"",
+          "confidence": "uncertain"
+        },
+        {
+          "claim": "Public professional presence",
+          "field": "Public professional presence",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "\"Website: jenniferholm.com\"",
+          "confidence": "uncertain"
+        }
+      ],
+      "sources": [
+        {
+          "id": "S1",
+          "url": "https://www.linkedin.com/in/jennifer-holm-33297754",
+          "title": "Jennifer L. Holm",
+          "source_type": "LinkedIn profile",
+          "retrieved_at": "2026-10-07T12:22:37.891Z"
+        },
+        {
+          "id": "S2",
+          "url": "https://linkedin.com/in/jennifer-holm-136bb5142",
+          "title": "Jennifer L. Holm",
+          "source_type": "LinkedIn profile",
+          "retrieved_at": "2026-10-07T12:22:37.891Z"
+        },
+        {
+          "id": "S3",
+          "url": "https://linkedin.com/in/jennifer-holm-b25bb015",
+          "title": "Jennifer L. Holm",
+          "source_type": "LinkedIn profile",
+          "retrieved_at": "2026-10-07T12:22:37.891Z"
+        },
+        {
+          "id": "S4",
+          "url": "https://www.linkedin.com/in/karen-ginman-mls-mat-26626b78",
+          "title": "Karen Ginman, MLS, MAT",
+          "source_type": "LinkedIn profile",
+          "retrieved_at": "2026-10-07T12:22:37.891Z"
+        },
+        {
+          "id": "S5",
+          "url": "https://linkedin.com/in/jenniferoxanne",
+          "title": "Jennifer Holm",
+          "source_type": "LinkedIn profile",
+          "retrieved_at": "2026-10-07T12:22:37.891Z"
+        },
+        {
+          "id": "S6",
+          "url": "https://linkedin.com/in/jennifer-holm-a06076324",
+          "title": "Jennifer Holm",
+          "source_type": "LinkedIn profile",
+          "retrieved_at": "2026-10-07T12:22:37.891Z"
+        },
+        {
+          "id": "S7",
+          "url": "https://linkedin.com/in/jenniferlholm",
+          "title": "Jennifer Holm",
+          "source_type": "LinkedIn profile",
+          "retrieved_at": "2026-10-07T12:22:37.891Z"
+        }
+      ],
+      "unknowns": [
+        {
+          "field": "contact",
+          "reason": "No legitimate public contact route was verified."
+        },
+        {
+          "field": "Recent book or project release",
+          "reason": "No evidence of a release within the last 12 months in the provided sources."
+        },
+        {
+          "field": "Active in literary communities or competitions",
+          "reason": "No evidence of community or competition participation."
+        },
+        {
+          "field": "Public professional presence on social media beyond LinkedIn and website",
+          "reason": "No evidence of other social media profiles."
+        }
+      ],
+      "contradictions": [],
+      "research_confidence": "low",
+      "matched_prospect_id": null,
+      "researched_at": "2026-10-07T12:22:37.891Z",
+      "research_agent_version": "research-agent/0.1.0"
+    },
+    "seed": {
+      "name": "Jennifer L. Holm",
+      "entity_kind": "person"
+    },
+    "qa": {
+      "status": "needs_review",
+      "issues": [
+        {
+          "severity": "warning",
+          "code": "identity_unverified",
+          "message": "Identity could not be confirmed from reliable sources — human review needed."
+        }
+      ]
+    },
+    "relationship_status": null,
+    "model": "openai/gpt-oss-20b",
+    "searches": [
+      "Jennifer L. Holm Authors",
+      "Jennifer L. Holm email contact linkedin"
+    ],
+    "search_provider": "exa"
+  },
+  {
+    "record": {
+      "research_record_version": "1.1",
+      "record_id": "r-stephen-king-muy2v8u4",
+      "project_id": "proj-1791362899812",
+      "brief_target_id": "target-1",
+      "identity": {
+        "name": "Stephen King",
+        "entity_kind": "person",
+        "identity_verified": true
+      },
+      "target_type": "Authors",
+      "role": "Author",
+      "organisation": "Doubleday & Co.",
+      "country": "United States",
+      "location": "Las Vegas Metropolitan Area, United States",
+      "website": null,
+      "linkedin": "https://www.linkedin.com/in/stephen-king-a393a3188",
+      "instagram": null,
+      "other_public_profiles": [],
+      "public_contact": [],
+      "relevant_experience": [
+        "American author with 58 novels, 6 non‑fiction books, and approximately 200 short stories; 54 years of experience; current author at Doubleday & Co. and Simon & Schuster."
+      ],
+      "relevant_projects": [
+        "58 novels, 6 non‑fiction books, ~200 short stories; current positions at Doubleday & Co. and Simon & Schuster."
+      ],
+      "achievements": [
+        "350+ million copies sold; works adapted into feature films, miniseries, television series, and comics."
+      ],
+      "industry_involvement": [
+        "Author at Doubleday & Co. and Simon & Schuster; active in the publishing industry."
+      ],
+      "qualification_assessment": [
+        {
+          "criterion": "Published author",
+          "status": "met",
+          "note": "Published 58 novels",
+          "source_ids": [
+            "S1"
+          ]
+        },
+        {
+          "criterion": "Active author",
+          "status": "met",
+          "note": "Current author at Doubleday & Co.",
+          "source_ids": [
+            "S1"
+          ]
+        },
+        {
+          "criterion": "Poet, fiction writer, nonfiction writer, or genre‑specific writer",
+          "status": "met",
+          "note": "Writes horror, supernatural fiction, suspense, science fiction, and fantasy",
+          "source_ids": [
+            "S1"
+          ]
+        },
+        {
+          "criterion": "Recent book or project release",
+          "status": "unknown",
+          "note": "No evidence of recent release",
+          "source_ids": []
+        },
+        {
+          "criterion": "Active in literary communities or competitions",
+          "status": "unknown",
+          "note": "No evidence",
+          "source_ids": []
+        },
+        {
+          "criterion": "Public professional presence",
+          "status": "met",
+          "note": "LinkedIn profile",
+          "source_ids": [
+            "S1"
+          ]
+        }
+      ],
+      "reason_for_relevance": "Stephen King is a highly published, active author with extensive public presence and industry involvement, meeting most qualification criteria, though recent release status is unknown.",
+      "fit": {
+        "score": 1,
+        "band": "irrelevant",
+        "rationale": "Stephen King is a highly published, active author with extensive public presence and industry involvement, meeting most qualification criteria, though recent release status is unknown."
+      },
+      "summary": "Stephen King is a prolific American author with 58 novels, 6 non‑fiction books, and ~200 short stories, currently working as an author at Doubleday & Co. He meets most Maya Book Awards qualification criteria, but recent publication activity is unclear.",
+      "evidence": [
+        {
+          "claim": "Name: Stephen King",
+          "field": "name",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "\"Stephen King\"",
+          "confidence": "uncertain"
+        },
+        {
+          "claim": "Role: Author",
+          "field": "role",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "\"Author at Doubleday & Co.\"",
+          "confidence": "uncertain"
+        },
+        {
+          "claim": "Organisation: Doubleday & Co.",
+          "field": "organisation",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "\"Author at Doubleday & Co.\"",
+          "confidence": "uncertain"
+        },
+        {
+          "claim": "Country: United States",
+          "field": "country",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "\"Las Vegas Metropolitan Area (US)\"",
+          "confidence": "uncertain"
+        },
+        {
+          "claim": "Location: Las Vegas Metropolitan Area",
+          "field": "location",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "\"Las Vegas Metropolitan Area (US)\"",
+          "confidence": "uncertain"
+        },
+        {
+          "claim": "Background: American author with 58 novels, 6 non‑fiction books, ~200 short stories, 54 years experience",
+          "field": "background",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "\"American author of horror, supernatural fiction, suspense, science fiction, and fantasy novels. I have sold more than 350 million copies... I've published 58 novels (including seven under the pen name Richard Bachman) and six non-fiction books. I've also written approximately 200 short stories...\"",
+          "confidence": "uncertain"
+        },
+        {
+          "claim": "Achievements: 350+ million copies sold, adaptations into films, miniseries, TV series, comics",
+          "field": "achievements",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "\"I have sold more than 350 million copies, many of which have been adapted into feature films, miniseries, television series, and comic books.\"",
+          "confidence": "uncertain"
+        },
+        {
+          "claim": "Industry involvement: Author at Doubleday & Co. and Simon & Schuster",
+          "field": "industry_involvement",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "\"Author - Simon & Schuster (Current)\" and \"Author - Doubleday & Co. (Current)\"",
+          "confidence": "uncertain"
+        }
+      ],
+      "sources": [
+        {
+          "id": "S1",
+          "url": "https://www.linkedin.com/in/stephen-king-a393a3188",
+          "title": "Stephen King",
+          "source_type": "LinkedIn profile",
+          "retrieved_at": "2026-10-07T12:22:27.196Z"
+        }
+      ],
+      "unknowns": [
+        {
+          "field": "contact",
+          "reason": "No legitimate public contact route was verified."
+        },
+        {
+          "field": "website",
+          "reason": "No official website verified."
+        },
+        {
+          "field": "Recent book or project release",
+          "reason": "No evidence provided."
+        },
+        {
+          "field": "Active in literary communities or competitions",
+          "reason": "No evidence provided."
+        }
+      ],
+      "contradictions": [],
+      "research_confidence": "low",
+      "matched_prospect_id": null,
+      "researched_at": "2026-10-07T12:22:27.196Z",
+      "research_agent_version": "research-agent/0.1.0"
+    },
+    "seed": {
+      "name": "Stephen King",
+      "entity_kind": "person",
+      "organisation": "Doubleday & Co."
+    },
+    "qa": {
+      "status": "passed",
+      "issues": []
+    },
+    "relationship_status": null,
+    "model": "openai/gpt-oss-20b",
+    "searches": [
+      "Stephen King Doubleday & Co. Authors",
+      "Stephen King Doubleday & Co. email contact linkedin"
+    ],
+    "search_provider": "exa"
+  },
+  {
+    "record": {
+      "research_record_version": "1.1",
+      "record_id": "r-kate-hewitt-muy2v0gr",
+      "project_id": "proj-1791362899812",
+      "brief_target_id": "target-1",
+      "identity": {
+        "name": "Kate Hewitt",
+        "entity_kind": "person",
+        "identity_verified": true
+      },
+      "target_type": "Authors",
+      "role": "Author at Bookouture, Boldwood & Storm",
+      "organisation": "Bookouture, Boldwood & Storm",
+      "country": "United States",
+      "location": "Skillman, New Jersey, United States",
+      "website": "katehewittbooks.com",
+      "linkedin": "https://www.linkedin.com/in/kate-hewitt-38b44521a",
+      "instagram": null,
+      "other_public_profiles": [],
+      "public_contact": [],
+      "relevant_experience": [
+        "Bestselling author of over 60 novels of historical and contemporary fiction, with more than 10 million copies sold and 20 years of publishing experience. Holds a Royal Literary Fellowship (2023‑2024) teaching writing tutorials at Cardiff University, offers editorial services through Cornerstones Editorial Consultancy, runs writing retreats, and mentors authors."
+      ],
+      "relevant_projects": [
+        "Author at Bookouture (Nov 2018 – Present)",
+        "Author at Storm Publishing (Jan 2023 – Present)",
+        "Royal Literary Fellow at Cardiff University (Sep 2023 – Present)",
+        "Editorial services provider – Cornerstones Editorial Consultancy",
+        "Writing retreat facilitator",
+        "Author of 60+ novels"
+      ],
+      "achievements": [
+        "Bestselling author with 10+ million copies sold",
+        "Royal Literary Fellow 2023‑2024"
+      ],
+      "industry_involvement": [
+        "Teaching writing tutorials at Cardiff University",
+        "Providing editorial consultancy",
+        "Mentoring authors",
+        "Active participation in literary communities"
+      ],
+      "qualification_assessment": [
+        {
+          "criterion": "Published author",
+          "status": "met",
+          "note": "Author of 60+ novels",
+          "source_ids": [
+            "S1"
+          ]
+        },
+        {
+          "criterion": "Active author",
+          "status": "met",
+          "note": "Current roles at Bookouture and Storm Publishing",
+          "source_ids": [
+            "S1"
+          ]
+        },
+        {
+          "criterion": "Poet, fiction writer, nonfiction writer, or genre‑specific writer",
+          "status": "met",
+          "note": "Fiction writer",
+          "source_ids": [
+            "S1"
+          ]
+        },
+        {
+          "criterion": "Recent book or project release",
+          "status": "met",
+          "note": "Ongoing publishing activity",
+          "source_ids": [
+            "S1"
+          ]
+        },
+        {
+          "criterion": "Active in literary communities or competitions",
+          "status": "met",
+          "note": "Royal Literary Fellow, mentoring, editorial consultancy",
+          "source_ids": [
+            "S1"
+          ]
+        },
+        {
+          "criterion": "Public professional presence (website, social media, interviews)",
+          "status": "met",
+          "note": "Website and LinkedIn profile",
+          "source_ids": [
+            "S1"
+          ]
+        }
+      ],
+      "reason_for_relevance": "Kate Hewitt satisfies all qualification criteria: she is a published and active fiction author with a strong public presence, recent publishing activity, and active engagement in literary communities. Her profile aligns with the target group of UK/USA authors and meets the project objectives.",
+      "fit": {
+        "score": 9,
+        "band": "irrelevant",
+        "rationale": "Kate Hewitt satisfies all qualification criteria: she is a published and active fiction author with a strong public presence, recent publishing activity, and active engagement in literary communities. Her profile aligns with the target group of UK/USA authors and meets the project objectives."
+      },
+      "summary": "Kate Hewitt is a bestselling fiction author based in New Jersey, USA, with extensive publishing experience, a Royal Literary Fellowship, and active involvement in literary communities. She meets all Maya Book Awards qualification criteria and is a suitable prospect for author submissions.",
+      "evidence": [
+        {
+          "claim": "Name",
+          "field": "name",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "\"# Kate Hewitt\"",
+          "confidence": "uncertain"
+        },
+        {
+          "claim": "Role",
+          "field": "role",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "\"Author at Bookouture, Boldwood & Storm\"",
+          "confidence": "uncertain"
+        },
+        {
+          "claim": "Organisation",
+          "field": "organisation",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "\"Author at Bookouture, Boldwood & Storm\"",
+          "confidence": "uncertain"
+        },
+        {
+          "claim": "Country",
+          "field": "country",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "\"Skillman, New Jersey, United States (US)\"",
+          "confidence": "uncertain"
+        },
+        {
+          "claim": "Location",
+          "field": "location",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "\"Skillman, New Jersey, United States (US)\"",
+          "confidence": "uncertain"
+        },
+        {
+          "claim": "Website",
+          "field": "website",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "\"My website is katehewittbooks.com\"",
+          "confidence": "uncertain"
+        },
+        {
+          "claim": "LinkedIn",
+          "field": "linkedin",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "\"https://www.linkedin.com/in/kate-hewitt-38b44521a\"",
+          "confidence": "uncertain"
+        },
+        {
+          "claim": "Published author",
+          "field": "criteria",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "\"bestselling author of over 60 novels\"",
+          "confidence": "uncertain"
+        },
+        {
+          "claim": "Active author",
+          "field": "criteria",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "\"Author at Bookouture (Nov 2018 – Present)\"",
+          "confidence": "uncertain"
+        },
+        {
+          "claim": "Royal Literary Fellow",
+          "field": "industry_involvement",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "\"Royal Literary Fellow for 2023-2024\"",
+          "confidence": "uncertain"
+        }
+      ],
+      "sources": [
+        {
+          "id": "S1",
+          "url": "https://www.linkedin.com/in/kate-hewitt-38b44521a",
+          "title": "Kate Hewitt",
+          "source_type": "LinkedIn profile",
+          "retrieved_at": "2026-10-07T12:22:16.346Z"
+        }
+      ],
+      "unknowns": [
+        {
+          "field": "contact",
+          "reason": "No legitimate public contact route was verified."
+        }
+      ],
+      "contradictions": [],
+      "research_confidence": "medium",
+      "matched_prospect_id": null,
+      "researched_at": "2026-10-07T12:22:16.346Z",
+      "research_agent_version": "research-agent/0.1.0"
+    },
+    "seed": {
+      "name": "Kate Hewitt",
+      "entity_kind": "person",
+      "organisation": "Bookouture, Boldwood & Storm"
+    },
+    "qa": {
+      "status": "passed",
+      "issues": []
+    },
+    "relationship_status": null,
+    "model": "openai/gpt-oss-20b",
+    "searches": [
+      "Kate Hewitt Bookouture, Boldwood & Storm Authors",
+      "Kate Hewitt Bookouture, Boldwood & Storm email contact linkedin"
+    ],
+    "search_provider": "exa"
+  },
+  {
+    "record": {
+      "research_record_version": "1.1",
+      "record_id": "r-malorie-blackman-muy2utfd",
+      "project_id": "proj-1791362899812",
+      "brief_target_id": "target-1",
+      "identity": {
+        "name": "Malorie Blackman",
+        "entity_kind": "person",
+        "identity_verified": true
+      },
+      "target_type": "Authors",
+      "role": "Author",
+      "organisation": "Self‑employed",
+      "country": "United Kingdom",
+      "location": null,
+      "website": "http://www.malorieblackman.co.uk/",
+      "linkedin": "https://uk.linkedin.com/in/malorie-blackman-4b511427",
+      "instagram": null,
+      "other_public_profiles": [],
+      "public_contact": [],
+      "relevant_experience": [
+        "Author of more than 70 books including the Noughts and Crosses series, Boys Don't Cry, Noble Conflict, Chasing The Stars, Hacker, Thief, Pig Heart Boy and Cloud Busting. Graduate of the National Film and Television School. TV scripts include BAFTA‑winning Pig Heart Boy, Whizziwig and Byker Grove. Co‑written Doctor Who episode \"Rosa\"."
+      ],
+      "relevant_projects": [
+        "Noughts and Crosses series",
+        "Boys Don't Cry",
+        "Noble Conflict",
+        "Chasing The Stars",
+        "Hacker",
+        "Thief",
+        "Pig Heart Boy",
+        "Cloud Busting"
+      ],
+      "achievements": [
+        "Eleanor Farjeon Award (2005)",
+        "PEN Pinter Prize (2022)",
+        "OBE for services to children's literature (2008)",
+        "UK Children's Laureate (2013‑2015)",
+        "Dame (2026 Birthday Honours)"
+      ],
+      "industry_involvement": [
+        "Children's literature",
+        "Science fiction",
+        "Mystery",
+        "Thriller",
+        "Horror",
+        "Poetry",
+        "Television drama"
+      ],
+      "qualification_assessment": [
+        {
+          "criterion": "Published author",
+          "status": "met",
+          "note": "Author of more than 70 books",
+          "source_ids": [
+            "S1"
+          ]
+        },
+        {
+          "criterion": "Active author",
+          "status": "met",
+          "note": "LinkedIn shows current author role Jan 1990‑Present",
+          "source_ids": [
+            "S1"
+          ]
+        },
+        {
+          "criterion": "Poet, fiction writer, nonfiction writer, or genre‑specific writer",
+          "status": "met",
+          "note": "Genres include children's literature, science fiction, mystery, thriller, horror, poetry",
+          "source_ids": [
+            "S1"
+          ]
+        },
+        {
+          "criterion": "Recent book or project release",
+          "status": "unknown",
+          "note": "No recent release mentioned in evidence",
+          "source_ids": [
+            "S1"
+          ]
+        },
+        {
+          "criterion": "Active in literary communities or competitions",
+          "status": "met",
+          "note": "Held position of UK Children's Laureate and recipient of multiple awards",
+          "source_ids": [
+            "S1"
+          ]
+        },
+        {
+          "criterion": "Public professional presence (website, social media, interviews)",
+          "status": "met",
+          "note": "Website listed and LinkedIn profile present",
+          "source_ids": [
+            "S1"
+          ]
+        }
+      ],
+      "reason_for_relevance": "Malorie Blackman meets all core qualification criteria for the Maya Book Awards, including being a published, active author with a strong public presence and relevant genre experience. The only uncertainty is the lack of evidence for a recent book release.",
+      "fit": {
+        "score": 1,
+        "band": "irrelevant",
+        "rationale": "Malorie Blackman meets all core qualification criteria for the Maya Book Awards, including being a published, active author with a strong public presence and relevant genre experience. The only uncertainty is the lack of evidence for a recent book release."
+      },
+      "summary": "Malorie Blackman is a highly qualified, published, and active author with extensive experience in children's literature and related genres. She has a strong public profile and has received multiple prestigious awards, making her an excellent fit for the Maya Book Awards target group.",
+      "evidence": [
+        {
+          "claim": "Published author",
+          "field": "Background",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "\"I am the author of more than 70 books including the Noughts and Crosses series, Boys Don't Cry, Noble Conflict, Chasing The Stars, Hacker, Thief, Pig Heart Boy and Cloud Busting.\"",
+          "confidence": "uncertain"
+        },
+        {
+          "claim": "Active author",
+          "field": "Background",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "\"Author - Self‑employed (Current) Jan 1990 - Present (36 years and 8 months)\"",
+          "confidence": "uncertain"
+        },
+        {
+          "claim": "Genres include children's literature, science fiction, mystery, thriller, horror, poetry",
+          "field": "Background",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "\"Genres: Children's literature, science fiction, mystery, thriller and horror; poetry\"",
+          "confidence": "uncertain"
+        },
+        {
+          "claim": "Recipient of PEN Pinter Prize 2022",
+          "field": "Achievements",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "\"Notable awards: Eleanor Farjeon Award, 2005, PEN Pinter Prize, 2022\"",
+          "confidence": "uncertain"
+        },
+        {
+          "claim": "Website",
+          "field": "Website",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "\"Website: www.malorieblackman.co.uk\"",
+          "confidence": "uncertain"
+        }
+      ],
+      "sources": [
+        {
+          "id": "S1",
+          "url": "https://uk.linkedin.com/in/malorie-blackman-4b511427",
+          "title": "Malorie Blackman",
+          "source_type": "LinkedIn profile",
+          "retrieved_at": "2026-10-07T12:22:07.225Z"
+        }
+      ],
+      "unknowns": [
+        {
+          "field": "contact",
+          "reason": "No legitimate public contact route was verified."
+        },
+        {
+          "field": "Recent book or project release",
+          "reason": "No evidence of a recent release in the provided source"
+        }
+      ],
+      "contradictions": [],
+      "research_confidence": "low",
+      "matched_prospect_id": "p-muy2pr8l",
+      "researched_at": "2026-10-07T12:22:07.225Z",
+      "research_agent_version": "research-agent/0.1.0"
+    },
+    "seed": {
+      "name": "Malorie Blackman",
+      "entity_kind": "person"
+    },
+    "qa": {
+      "status": "passed",
+      "issues": [
+        {
+          "severity": "info",
+          "code": "known_prospect",
+          "message": "Matches existing prospect in memory (p-muy2pr8l)."
+        }
+      ]
+    },
+    "relationship_status": null,
+    "model": "openai/gpt-oss-20b",
+    "searches": [
+      "Malorie Blackman Authors",
+      "Malorie Blackman email contact linkedin"
+    ],
+    "search_provider": "exa"
+  },
+  {
+    "record": {
+      "research_record_version": "1.1",
       "record_id": "r-david-p-smith-muxv95ey",
       "project_id": "proj-1791362899812",
       "brief_target_id": "target-1",

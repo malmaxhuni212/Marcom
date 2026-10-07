@@ -34,3 +34,24 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+
+## Search Providers
+MARCOM uses a provider-neutral search architecture.
+You can switch search providers via the `.env.local` file:
+
+```env
+SEARCH_PROVIDER=exa
+EXA_API_KEY=your-exa-key
+SEARCH_MAX_RESULTS=25
+SEARCH_TIMEOUT_MS=15000
+```
+
+### Available Providers
+- `exa`: Uses the Exa Neural Search API (requires EXA_API_KEY). Highly recommended for production.
+- `groq-browser`: Uses the legacy Groq built-in browser search.
+- `fake`: Uses deterministic fake results for testing.
+
+### Developer Scripts
+- **Smoke Test:** `npm run search:smoke` (Tests the configured search provider without hitting the database)
+- **Tests:** `npm run test`

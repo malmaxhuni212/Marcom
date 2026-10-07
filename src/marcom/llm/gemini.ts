@@ -1,6 +1,7 @@
 import { LLMProvider, LLMRequest } from './provider';
 
 export class GeminiProvider implements LLMProvider {
+  model = 'gemini-pro';
   readonly name = 'gemini';
   
   constructor(private apiKey: string = process.env.GEMINI_API_KEY || '') {

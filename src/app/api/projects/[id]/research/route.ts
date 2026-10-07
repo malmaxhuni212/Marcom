@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { JsonFileMemoryStore } from '@/marcom/memory/store';
 import { GroqProvider } from '@/marcom/llm/groq-provider';
+import { getSearchProvider } from '@/marcom/search/registry';
+import { discoverProspects } from '@/marcom/agents/research/discovery';
 import { runResearchAgent, type ResearchProgress } from '@/marcom/agents/research/agent';
 import { deleteResearch, findDuplicate, listResearch, saveResearch, upsertProspectMemory } from '@/marcom/memory/research-store';
 import type { ProspectSeed } from '@/marcom/schemas/research-record';
@@ -67,30 +69,10 @@ export async function POST(req: Request, { params }: RouteCtx) {
         if (!actualSeed.name) {
           onProgress({ stage: 'resolving', message: 'Discovering a new prospect from the web...' });
           
-          const target = project.structured_brief!.targets.find((t: any) => t.id === clean(body.target_id, 100));
-          const targetName = target ? target.target_type : 'relevant professionals';
-          
-          // Use provider to generate a name
-          const discoveryQuery = `Find ONE highly specific real-world example of a ${targetName} relevant to: ${project.structured_brief!.project.name}. Return ONLY a JSON object with {"name": "...", "organisation": "..."}. Do not use Markdown.`;
-          
-          const text = await provider.complete({
-             system: "You are a web discovery agent. Output ONLY valid JSON.",
-             user: discoveryQuery,
-             maxTokens: 500
-          });
-          
-          let parsed;
-          try {
-            parsed = JSON.parse(text);
-          } catch(e) {
-             const m = text.match(/\{[\s\S]*\}/);
-             if (m) parsed = JSON.parse(m[0]);
-          }
-          if (parsed && parsed.name) {
-             actualSeed.name = parsed.name;
-             if (parsed.organisation && !actualSeed.organisation) {
-                actualSeed.organisation = parsed.organisation;
-             }
+          const candidates = await discoverProspects(project.structured_brief!, clean(body.target_id, 100), projectId, store, getSearchProvider(), provider, 1);
+          if (candidates.length > 0) {
+             actualSeed.name = candidates[0].name;
+             if (candidates[0].organisation) actualSeed.organisation = candidates[0].organisation;
              onProgress({ stage: 'resolving', message: `Discovered: ${actualSeed.name}` });
           } else {
              throw new Error("Could not discover a prospect automatically. Please enter a name.");
@@ -103,7 +85,8 @@ export async function POST(req: Request, { params }: RouteCtx) {
           targetId: clean(body.target_id, 100),
           seed: actualSeed,
           store,
-          provider,
+          searchProvider: getSearchProvider(),
+          llmProvider: provider,
           onProgress,
         });
         onProgress({ stage: 'saving', message: 'Saving to project' });
