@@ -31,6 +31,7 @@ export async function POST(req: Request) {
 
     console.log('Analyzing brief...');
     const result = await analyzeBrief(briefText, provider, {
+      memory: memoryContext,
       maxRepairs: 0
     });
 
@@ -51,6 +52,17 @@ export async function POST(req: Request) {
     });
   } catch (error) {
     console.error('Error analyzing brief:', error);
-    return NextResponse.json({ error: (error as Error).message }, { status: 500 });
+    const message = error instanceof Error ? error.message : 'Unknown analysis error';
+    if (message === 'fetch failed' || error instanceof TypeError) {
+      return NextResponse.json(
+        {
+          error: 'The brief analyser could not reach the configured AI provider. Check the local server network connection, then try again.',
+          code: 'AI_PROVIDER_UNREACHABLE',
+          retryable: true,
+        },
+        { status: 502 },
+      );
+    }
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

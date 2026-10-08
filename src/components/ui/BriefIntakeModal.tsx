@@ -4,6 +4,7 @@ import { useState, useRef } from 'react';
 import PrimaryButton from './PrimaryButton';
 import SecondaryButton from './SecondaryButton';
 import type { StructuredBrief } from '@/marcom/schemas/structured-brief';
+import CampaignConfigurationForm from '@/components/campaign/CampaignConfigurationForm';
 
 interface BriefIntakeModalProps {
   isOpen: boolean;
@@ -28,7 +29,7 @@ export default function BriefIntakeModal({ isOpen, onClose, onSuccess }: BriefIn
 
   // Processing state
   const [extractedText, setExtractedText] = useState('');
-  const [editableJson, setEditableJson] = useState('');
+  const [structuredBrief, setStructuredBrief] = useState<StructuredBrief | null>(null);
   
   // Create Project state
   const [isCreating, setIsCreating] = useState(false);
@@ -42,6 +43,7 @@ export default function BriefIntakeModal({ isOpen, onClose, onSuccess }: BriefIn
     setFile(null);
     setUrl('');
     setError(null);
+    setStructuredBrief(null);
   };
 
   const extractAndAnalyze = async () => {
@@ -75,7 +77,7 @@ export default function BriefIntakeModal({ isOpen, onClose, onSuccess }: BriefIn
         let extractData;
         try {
           extractData = await extractRes.json();
-        } catch (e) {
+        } catch {
           throw new Error('Failed to extract file. The server returned an invalid response.');
         }
 
@@ -94,7 +96,7 @@ export default function BriefIntakeModal({ isOpen, onClose, onSuccess }: BriefIn
       let analyzeData;
       try {
         analyzeData = await analyzeRes.json();
-      } catch (e) {
+      } catch {
         throw new Error('Failed to analyze brief. The server returned an invalid response (possibly a rate limit).');
       }
       
@@ -102,7 +104,14 @@ export default function BriefIntakeModal({ isOpen, onClose, onSuccess }: BriefIn
         throw new Error(analyzeData.error || 'Failed to analyze brief.');
       }
 
-      setEditableJson(JSON.stringify(analyzeData.structured_brief, null, 2));
+      const analyzedBrief = analyzeData.structured_brief as StructuredBrief;
+      setStructuredBrief({
+        ...analyzedBrief,
+        project: {
+          ...analyzedBrief.project,
+          name: projectName.trim() || analyzedBrief.project.name,
+        },
+      });
       setStep('REVIEW');
     } catch (err: unknown) {
       setError((err as Error).message);
@@ -110,18 +119,10 @@ export default function BriefIntakeModal({ isOpen, onClose, onSuccess }: BriefIn
     }
   };
 
-  const handleCreate = async () => {
+  const handleCreate = async (finalBrief: StructuredBrief) => {
     try {
       setError(null);
       setIsCreating(true);
-      
-      // Parse the JSON they might have edited
-      let finalBrief: StructuredBrief;
-      try {
-        finalBrief = JSON.parse(editableJson);
-      } catch (e) {
-        throw new Error("Invalid JSON formatting in the edited brief. Please fix syntax errors.");
-      }
 
       const res = await fetch('/api/projects/create', {
         method: 'POST',
@@ -131,7 +132,6 @@ export default function BriefIntakeModal({ isOpen, onClose, onSuccess }: BriefIn
           original_brief: extractedText,
           source_type: inputMode,
           source_name: file?.name || 'Manual Input',
-          project_name: projectName || finalBrief.project.name
         }),
       });
       
@@ -152,14 +152,16 @@ export default function BriefIntakeModal({ isOpen, onClose, onSuccess }: BriefIn
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#08080c]/90 backdrop-blur-md p-6">
-      <div className="w-full max-w-6xl max-h-[90vh] flex flex-col bg-[#0d0d12] border border-white/[0.08] rounded-2xl shadow-2xl overflow-hidden">
+      <div className="w-full max-w-7xl h-[94vh] flex flex-col bg-[#0d0d12] border border-white/[0.08] rounded-2xl shadow-2xl overflow-hidden">
         
         {/* Header */}
         <div className="px-8 py-6 border-b border-white/[0.06] flex items-center justify-between shrink-0">
           <div>
-            <h2 className="text-xl font-semibold text-white/90">Create a new project</h2>
+            <h2 className="text-xl font-semibold text-white/90">{step === 'REVIEW' ? 'Review campaign configuration' : 'Create a new project'}</h2>
             <p className="text-[13px] text-white/40 mt-1">
-              Give MARCOM the context for what you&apos;re trying to achieve. You can paste your brief, upload a document, or import a Google Doc.
+              {step === 'REVIEW'
+                ? 'Confirm the information MARCOM will use to prepare campaign research.'
+                : 'Give MARCOM the context for what you are trying to achieve.'}
             </p>
           </div>
           <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/[0.05] text-white/40 hover:text-white transition-colors">
@@ -168,7 +170,7 @@ export default function BriefIntakeModal({ isOpen, onClose, onSuccess }: BriefIn
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto p-8 relative">
+        <div className={`flex-1 min-h-0 relative ${step === 'REVIEW' ? 'flex flex-col' : 'overflow-y-auto p-8'}`}>
           {error && (
             <div className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
               {error}
@@ -278,59 +280,28 @@ export default function BriefIntakeModal({ isOpen, onClose, onSuccess }: BriefIn
             </div>
           )}
 
-          {step === 'REVIEW' && (
-            <div className="h-full flex flex-col">
-              <div className="mb-4">
-                <h3 className="text-lg font-medium text-white/90">Review your project brief</h3>
-                <p className="text-sm text-white/50 mt-1">Check MARCOM&apos;s understanding and correct any mistakes before creating the project.</p>
-              </div>
-              <div className="flex-1 flex gap-6 min-h-0">
-                
-                {/* Original */}
-                <div className="flex-1 flex flex-col border border-white/[0.06] rounded-xl overflow-hidden bg-white/[0.01]">
-                  <div className="px-4 py-2 border-b border-white/[0.06] bg-white/[0.02]">
-                    <span className="text-[11px] font-semibold text-white/40 uppercase tracking-wider">Original Brief</span>
-                  </div>
-                  <div className="flex-1 overflow-y-auto p-4">
-                    <p className="text-[13px] text-white/60 whitespace-pre-wrap leading-relaxed">{extractedText}</p>
-                  </div>
-                </div>
-
-                {/* Structured JSON */}
-                <div className="flex-1 flex flex-col border border-white/[0.06] rounded-xl overflow-hidden bg-black/20">
-                  <div className="px-4 py-2 border-b border-white/[0.06] bg-accent-blue/5 border-b-accent-blue/10 flex items-center justify-between">
-                    <span className="text-[11px] font-semibold text-accent-blue/80 uppercase tracking-wider">MARCOM Understanding</span>
-                    <span className="text-[10px] text-white/30">Edit JSON directly</span>
-                  </div>
-                  <textarea
-                    value={editableJson}
-                    onChange={e => setEditableJson(e.target.value)}
-                    className="flex-1 w-full bg-transparent p-4 text-[13px] font-mono text-white/80 leading-relaxed focus:outline-none focus:ring-1 focus:ring-inset focus:ring-accent-blue/30 resize-none"
-                    spellCheck={false}
-                  />
-                </div>
-              </div>
-            </div>
+          {step === 'REVIEW' && structuredBrief && (
+            <CampaignConfigurationForm
+              initialBrief={structuredBrief}
+              originalBrief={extractedText}
+              submitLabel="Save campaign"
+              submitting={isCreating}
+              serverError={error}
+              onCancel={() => setStep('INPUT')}
+              onSubmit={handleCreate}
+            />
           )}
         </div>
 
         {/* Footer */}
-        <div className="px-8 py-5 border-t border-white/[0.06] flex items-center justify-end gap-3 shrink-0 bg-white/[0.01]">
+        {step === 'INPUT' && <div className="px-8 py-5 border-t border-white/[0.06] flex items-center justify-end gap-3 shrink-0 bg-white/[0.01]">
           {step === 'INPUT' && (
             <>
               <SecondaryButton onClick={onClose}>Cancel</SecondaryButton>
               <PrimaryButton onClick={extractAndAnalyze}>Analyze Brief</PrimaryButton>
             </>
           )}
-          {step === 'REVIEW' && (
-            <>
-              <SecondaryButton onClick={() => setStep('INPUT')} disabled={isCreating}>Back to Input</SecondaryButton>
-              <PrimaryButton onClick={handleCreate} disabled={isCreating}>
-                {isCreating ? 'Creating...' : 'Approve & Create Project'}
-              </PrimaryButton>
-            </>
-          )}
-        </div>
+        </div>}
 
       </div>
     </div>

@@ -2,21 +2,25 @@
 
 import { useState } from 'react';
 import PrimaryButton from '@/components/ui/PrimaryButton';
+import type { Target } from '@/marcom/schemas/structured-brief';
+import type { ResearchEntry } from '@/marcom/schemas/research-record';
 
 export default function ResearchStreamForm({ 
   projectId, 
   targetOptions,
+  defaultResultLimit,
   onComplete 
 }: { 
   projectId: string, 
-  targetOptions: any[],
-  onComplete: (entry: any) => void 
+  targetOptions: Target[],
+  defaultResultLimit?: number,
+  onComplete: (entry: ResearchEntry | null) => void
 }) {
   const [name, setName] = useState('');
   const [organisation, setOrganisation] = useState('');
   const [website, setWebsite] = useState('');
   const [targetId, setTargetId] = useState(targetOptions[0]?.id || '');
-  const [batchCount, setBatchCount] = useState<number | ''>('');
+  const [batchCount, setBatchCount] = useState<number | ''>(defaultResultLimit ?? '');
   
   const [isStreaming, setIsStreaming] = useState(false);
   const [progressStage, setProgressStage] = useState('');
@@ -127,13 +131,13 @@ export default function ResearchStreamForm({
               setError(data.error || 'An error occurred during research');
               setIsStreaming(false);
             }
-          } catch (err) {
+          } catch {
             console.error('Failed to parse NDJSON line:', line);
           }
         }
       }
-    } catch (err: any) {
-      setError(err.message || 'Stream failed');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Stream failed');
       setIsStreaming(false);
     }
   };
