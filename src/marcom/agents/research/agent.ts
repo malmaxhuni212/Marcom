@@ -111,7 +111,7 @@ function buildEvidence(candidates: SearchCandidate[]): {
     if (!unique.has(key)) unique.set(key, candidate);
   }
   let usedCharacters = 0;
-  const maximumCharacters = 12_000;
+  const maximumCharacters = 10_000;
   const seen: SeenSource[] = [];
   const pages: { url: string; text: string }[] = [];
   const sections: string[] = [];
