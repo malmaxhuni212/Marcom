@@ -3,9 +3,9 @@
  *   memory/research/<project_id>.json  -> ResearchEntry[] for that project
  *   memory/prospects.json              -> ProspectMemory (shared across projects, used for duplicate detection)
  */
-import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import type { ResearchEntry } from '../schemas/research-record';
+import type { ResearchEntry, ReviewStatus } from '../schemas/research-record';
 import type { ProspectMemory } from './types';
 import { canonicalUrl, normalizeName } from '../agents/research/qa';
 
@@ -28,7 +28,10 @@ export function listResearch(projectId: string): ResearchEntry[] {
 
 function writeResearch(projectId: string, entries: ResearchEntry[]) {
   mkdirSync(RESEARCH_DIR, { recursive: true });
-  writeFileSync(fileFor(projectId), JSON.stringify(entries, null, 2), 'utf8');
+  const file = fileFor(projectId);
+  const temporaryFile = `${file}.tmp`;
+  writeFileSync(temporaryFile, JSON.stringify(entries, null, 2), 'utf8');
+  renameSync(temporaryFile, file);
 }
 
 /** Finds an existing entry for the same prospect (by name, website or LinkedIn). */
@@ -48,8 +51,34 @@ export function findDuplicate(entries: ResearchEntry[], seed: { name: string; we
 export function saveResearch(projectId: string, entry: ResearchEntry): void {
   const entries = listResearch(projectId);
   const dup = findDuplicate(entries, entry.seed);
-  const next = dup ? entries.map((e) => (e === dup ? entry : e)) : [entry, ...entries];
+  const savedEntry: ResearchEntry = {
+    ...entry,
+    review: entry.review ?? { status: 'needs_review', note: null, reviewed_at: null },
+  };
+  const next = dup ? entries.map((e) => (e === dup ? savedEntry : e)) : [savedEntry, ...entries];
   writeResearch(projectId, next);
+}
+
+export function updateResearchReview(
+  projectId: string,
+  recordId: string,
+  status: ReviewStatus,
+  note: string | null,
+): ResearchEntry | null {
+  const entries = listResearch(projectId);
+  const index = entries.findIndex((entry) => entry.record.record_id === recordId);
+  if (index === -1) return null;
+  const updated: ResearchEntry = {
+    ...entries[index],
+    review: {
+      status,
+      note: note?.trim() || null,
+      reviewed_at: new Date().toISOString(),
+    },
+  };
+  entries[index] = updated;
+  writeResearch(projectId, entries);
+  return updated;
 }
 
 export function deleteResearch(projectId: string, recordId: string): boolean {

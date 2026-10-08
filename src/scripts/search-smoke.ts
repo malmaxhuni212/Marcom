@@ -1,47 +1,39 @@
-import { getSearchProvider } from '../marcom/search/registry';
+import { GroqProvider } from '../marcom/llm/groq-provider';
+import { readSearchConfiguration, resolveSearchProvider } from '../marcom/search/registry';
 
-async function runSmokeTest() {
-  console.log('--- Search Provider Smoke Test ---');
-  
-  try {
-    const provider = getSearchProvider();
-    console.log(`Configured Provider: ${provider.key}`);
-    
-    const capabilities = provider.capabilities();
-    console.log(`Capabilities: ${JSON.stringify(capabilities)}`);
+async function main() {
+  const config = readSearchConfiguration();
+  const provider = resolveSearchProvider(config, new GroqProvider());
+  const response = await provider.search({
+    query: 'UK independent poetry organisations literary awards',
+    resultLimit: Math.min(3, provider.capabilities().maximumResults),
+    includeDomains: [],
+    excludeDomains: [],
+  });
 
-    const query = 'test synthetic query';
-    console.log(`\nExecuting query: "${query}" (limit: 3)`);
-    
-    const start = Date.now();
-    const res = await provider.search({
-      query,
-      resultLimit: 3
-    });
-    const latency = Date.now() - start;
-
-    console.log(`\nSuccess! Latency: ${res.latencyMs || latency}ms`);
-    console.log(`Provider Request ID: ${res.providerRequestId || 'N/A'}`);
-    console.log(`Warnings: ${res.warnings?.join(', ') || 'None'}`);
-    console.log(`\nResults returned: ${res.results.length}`);
-    
-    res.results.forEach((r, i) => {
-      console.log(`\n[Result ${i+1}] ${r.title}`);
-      console.log(`URL: ${r.url}`);
-      console.log(`ID: ${r.providerResultId}`);
-      if (r.text) {
-        console.log(`Text preview: ${r.text.substring(0, 50)}...`);
-      } else if (r.highlights) {
-        console.log(`Highlights: ${r.highlights.length}`);
-      }
-    });
-
-  } catch (e: any) {
-    console.error('\nSmoke test failed with error:');
-    console.error(`Name: ${e.name}`);
-    console.error(`Message: ${e.message}`);
-    if (e.code) console.error(`Code: ${e.code}`);
-  }
+  console.log(
+    JSON.stringify(
+      {
+        provider: response.providerKey,
+        requestId: response.providerRequestId,
+        query: response.query,
+        resultCount: response.candidates.length,
+        latencyMs: response.latencyMs,
+        estimatedCostUsd: response.usage.estimatedCostUsd,
+        warnings: response.warnings,
+        results: response.candidates.map((candidate) => ({
+          title: candidate.title,
+          url: candidate.url,
+          highlights: candidate.highlights.slice(0, 2),
+        })),
+      },
+      null,
+      2,
+    ),
+  );
 }
 
-runSmokeTest();
+main().catch((error) => {
+  console.error(error instanceof Error ? error.message : String(error));
+  process.exitCode = 1;
+});

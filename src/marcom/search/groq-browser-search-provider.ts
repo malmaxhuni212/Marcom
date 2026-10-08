@@ -1,50 +1,63 @@
-import { SearchProvider, SearchRequest, SearchResponse, SearchContext, SearchResult } from './provider';
-import { GroqProvider } from '../llm/groq-provider';
-import { SearchError } from './errors';
+import type { GroqProvider } from '../llm/groq-provider';
+import {
+  SearchRequestSchema,
+  SearchResponseSchema,
+  type SearchCapabilities,
+  type SearchProvider,
+  type SearchRequest,
+  type SearchResponse,
+} from './provider';
 
 export class GroqBrowserSearchProvider implements SearchProvider {
   readonly key = 'groq-browser';
-  private groqProvider: GroqProvider;
 
-  constructor() {
-    this.groqProvider = new GroqProvider();
+  constructor(private readonly provider: GroqProvider) {}
+
+  capabilities(): SearchCapabilities {
+    return { maximumResults: 25, supportsDomainFilters: false, supportsCategory: false };
   }
 
-  capabilities() {
-    return {
-      supportsHighlights: false,
-      supportsDomains: false,
-      supportsCategories: false,
-    };
-  }
-
-  async search(request: SearchRequest, context?: SearchContext): Promise<SearchResponse> {
-    const start = Date.now();
-    try {
-      const groqRes = await this.groqProvider.browserSearch({
-        system: "You are a web search agent. Perform searches to gather information about the requested topic.",
-        user: request.query,
-        maxTokens: 3500
-      });
-
-      const results: SearchResult[] = groqRes.pages.map((p, i) => ({
-        providerResultId: `groq-${i}`,
-        url: p.url,
-        title: groqRes.seen.find(s => s.url === p.url)?.title || '',
-        text: p.text
-      }));
-
-      return {
-        providerKey: this.key,
-        query: request.query,
-        results,
-        latencyMs: Date.now() - start
-      };
-    } catch (e: any) {
-      if (e.name === 'AbortError') throw new SearchError('timeout', 'Groq request timed out');
-      if (e.message?.includes('429')) throw new SearchError('rate_limited', 'Groq rate limited');
-      if (e.message?.includes('401')) throw new SearchError('auth_failed', 'Groq auth failed');
-      throw new SearchError('invalid_response', e.message || 'Groq search failed');
+  async search(rawRequest: SearchRequest): Promise<SearchResponse> {
+    const request = SearchRequestSchema.parse(rawRequest);
+    if (request.resultLimit > this.capabilities().maximumResults) {
+      throw new Error(`Groq browser search supports at most ${this.capabilities().maximumResults} results per request.`);
     }
+    const startedAt = Date.now();
+    const domainGuidance = [
+      request.includeDomains.length ? `Prefer these domains: ${request.includeDomains.join(', ')}.` : '',
+      request.excludeDomains.length ? `Do not use these domains: ${request.excludeDomains.join(', ')}.` : '',
+    ]
+      .filter(Boolean)
+      .join(' ');
+    const result = await this.provider.browserSearch({
+      system:
+        'Search the public web for sources matching the query. Return concise notes based only on pages the browser tool actually returns.',
+      user: `${request.query}\nReturn at most ${request.resultLimit} useful results. ${domainGuidance}`.trim(),
+      maxTokens: 2_500,
+    });
+    const pageByUrl = new Map(result.pages.map((page) => [page.url, page.text]));
+    const unique = new Map<string, (typeof result.seen)[number]>();
+    for (const source of result.seen) {
+      if (!unique.has(source.url)) unique.set(source.url, source);
+    }
+
+    return SearchResponseSchema.parse({
+      providerKey: this.key,
+      providerRequestId: null,
+      query: request.query,
+      candidates: [...unique.values()].slice(0, request.resultLimit).map((source, index) => ({
+        providerResultId: `groq-${index + 1}`,
+        url: source.url,
+        title: source.title,
+        author: null,
+        publishedAt: null,
+        text: (pageByUrl.get(source.url) ?? '').slice(0, 12_000),
+        highlights: [],
+        score: null,
+      })),
+      latencyMs: Date.now() - startedAt,
+      usage: { requests: 1, estimatedCostUsd: null },
+      warnings: result.seen.length ? [] : ['Groq browser search returned no source URLs.'],
+    });
   }
 }

@@ -34,6 +34,10 @@ export function loadSystemPrompt(agent: AgentName): string {
   return read(`${agent}/system-prompt.md`);
 }
 
+export function loadResearchEvidencePrompt(): string {
+  return read('research/evidence-system-prompt.md');
+}
+
 /** Wraps a context section with clear delimiters so the model can tell sources apart. */
 export function section(title: string, body: unknown): string {
   const content = typeof body === 'string' ? body : JSON.stringify(body, null, 2);

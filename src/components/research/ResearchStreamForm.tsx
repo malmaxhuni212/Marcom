@@ -2,21 +2,31 @@
 
 import { useState } from 'react';
 import PrimaryButton from '@/components/ui/PrimaryButton';
+import type { Target } from '@/marcom/schemas/structured-brief';
+import type { ResearchEntry } from '@/marcom/schemas/research-record';
+
+export interface ResearchCompletion {
+  status: 'completed' | 'completed_with_errors';
+  message: string;
+  entry?: ResearchEntry;
+}
 
 export default function ResearchStreamForm({ 
   projectId, 
   targetOptions,
+  defaultResultLimit,
   onComplete 
 }: { 
   projectId: string, 
-  targetOptions: any[],
-  onComplete: (entry: any) => void 
+  targetOptions: Target[],
+  defaultResultLimit?: number,
+  onComplete: (result: ResearchCompletion) => void
 }) {
   const [name, setName] = useState('');
   const [organisation, setOrganisation] = useState('');
   const [website, setWebsite] = useState('');
   const [targetId, setTargetId] = useState(targetOptions[0]?.id || '');
-  const [batchCount, setBatchCount] = useState<number | ''>('');
+  const [batchCount, setBatchCount] = useState<number | ''>(defaultResultLimit ?? '');
   
   const [isStreaming, setIsStreaming] = useState(false);
   const [progressStage, setProgressStage] = useState('');
@@ -31,7 +41,7 @@ export default function ResearchStreamForm({
     if (!name.trim() && count > 1) {
       setIsStreaming(true);
       setProgressStage('resolving');
-      setProgressMsg(`Starting background queue for ${count} leads...`);
+      setProgressMsg(`Starting a bounded search for up to ${count} prospects...`);
       setError(null);
 
       try {
@@ -48,13 +58,22 @@ export default function ResearchStreamForm({
           const statusRes = await fetch(`/api/projects/${projectId}/batch-research?taskId=${taskId}`);
           if (!statusRes.ok) return;
           const statusData = await statusRes.json();
-          setProgressMsg(`Generated ${statusData.completed} of ${statusData.total} leads. KeyPool rotating...`);
-          if (statusData.status === 'completed' || statusData.status === 'error') {
+          setProgressMsg(statusData.message || `Saved ${statusData.completed} of ${statusData.total} prospects.`);
+          if (['completed', 'completed_with_errors', 'error', 'cancelled'].includes(statusData.status)) {
             clearInterval(interval);
             setIsStreaming(false);
             setProgressStage('');
             setProgressMsg('');
-            onComplete(null); 
+            if (statusData.status === 'error') {
+              setError(statusData.message || 'Research failed.');
+            } else if (statusData.status === 'cancelled') {
+              setError(statusData.message || 'Research was cancelled.');
+            } else {
+              onComplete({
+                status: statusData.status,
+                message: statusData.message || `Research finished with ${statusData.completed ?? 0} saved prospects.`,
+              });
+            }
           }
         }, 5000);
       } catch (err) {
@@ -82,6 +101,11 @@ export default function ResearchStreamForm({
         })
       });
 
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || `Research request failed with status ${res.status}.`);
+      }
+
       if (!res.body) throw new Error('No response body');
       
       const reader = res.body.getReader();
@@ -105,7 +129,11 @@ export default function ResearchStreamForm({
               setProgressStage(data.stage);
               setProgressMsg(data.message);
             } else if (data.type === 'result') {
-              onComplete(data.entry);
+              onComplete({
+                status: 'completed',
+                message: 'Research complete. The new prospect is ready for review.',
+                entry: data.entry as ResearchEntry,
+              });
               // reset form
               setName('');
               setOrganisation('');
@@ -119,13 +147,13 @@ export default function ResearchStreamForm({
               setError(data.error || 'An error occurred during research');
               setIsStreaming(false);
             }
-          } catch (err) {
+          } catch {
             console.error('Failed to parse NDJSON line:', line);
           }
         }
       }
-    } catch (err: any) {
-      setError(err.message || 'Stream failed');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Stream failed');
       setIsStreaming(false);
     }
   };
@@ -174,13 +202,13 @@ export default function ResearchStreamForm({
               <>
                 <label className="block text-[11px] text-cyan-400/80 uppercase tracking-wider mb-1.5 font-medium flex items-center gap-1.5">
                   <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
-                  Batch Mode Leads
+                  Maximum Prospects
                 </label>
                 <input 
                   type="number" 
                   min="1"
                   max="50"
-                  placeholder="e.g. 25"
+                  placeholder="e.g. 10"
                   value={batchCount === '' ? '' : batchCount} 
                   onChange={e => {
                     const val = e.target.value;
@@ -189,6 +217,9 @@ export default function ResearchStreamForm({
                   className="w-full bg-cyan-500/[0.05] border border-cyan-500/20 rounded-xl px-4 py-2.5 text-[13px] text-white/80 placeholder:text-cyan-500/30 outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50 transition-all"
                   disabled={isStreaming}
                 />
+                <p className="mt-1.5 text-[10px] leading-relaxed text-white/30">
+                  Search returns up to this number. Unsupported or duplicate results are skipped.
+                </p>
               </>
             ) : (
               <>

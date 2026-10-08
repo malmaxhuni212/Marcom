@@ -257,7 +257,6 @@ export function baselineAnalyze(brief: string): StructuredBrief {
 
 /** LLMProvider adapter so the baseline flows through the exact same pipeline as a real model. */
 export class BaselineBriefProvider implements LLMProvider {
-  model = 'baseline';
   readonly name = 'offline-baseline-heuristic';
   async complete(request: LLMRequest): Promise<string> {
     const start = request.user.indexOf(BRIEF_START);

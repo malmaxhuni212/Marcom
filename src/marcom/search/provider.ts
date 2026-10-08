@@ -1,35 +1,56 @@
-export interface SearchCapabilities {
-  supportsHighlights: boolean;
-  supportsDomains: boolean;
-  supportsCategories: boolean;
-}
+import { z } from 'zod';
 
-export interface SearchRequest {
-  query: string;
-  resultLimit?: number;
-  includeDomains?: string[];
-  excludeDomains?: string[];
-  category?: 'people' | 'company';
-}
+export const SearchCategorySchema = z.enum(['people', 'company']);
 
-export interface SearchResult {
-  providerResultId: string;
+export const SearchRequestSchema = z.strictObject({
+  query: z.string().trim().min(3).max(500),
+  resultLimit: z.number().int().min(1).max(100),
+  includeDomains: z.array(z.string().trim().min(1).max(255)).max(50).default([]),
+  excludeDomains: z.array(z.string().trim().min(1).max(255)).max(50).default([]),
+  category: SearchCategorySchema.optional(),
+});
+
+export const SearchCandidateSchema = z.strictObject({
+  providerResultId: z.string().min(1),
+  url: z.url(),
+  title: z.string(),
+  author: z.string().nullable(),
+  publishedAt: z.string().nullable(),
+  text: z.string(),
+  highlights: z.array(z.string()),
+  score: z.number().nullable(),
+});
+
+export const SearchUsageSchema = z.strictObject({
+  requests: z.number().int().min(0),
+  estimatedCostUsd: z.number().min(0).nullable(),
+});
+
+export const SearchResponseSchema = z.strictObject({
+  providerKey: z.string().min(1),
+  providerRequestId: z.string().nullable(),
+  query: z.string(),
+  candidates: z.array(SearchCandidateSchema),
+  latencyMs: z.number().int().min(0),
+  usage: SearchUsageSchema,
+  warnings: z.array(z.string()),
+});
+
+export type SearchCategory = z.infer<typeof SearchCategorySchema>;
+export type SearchRequest = z.infer<typeof SearchRequestSchema>;
+export type SearchCandidate = z.infer<typeof SearchCandidateSchema>;
+export type SearchResponse = z.infer<typeof SearchResponseSchema>;
+
+export interface SeenSource {
   url: string;
   title: string;
-  author?: string;
-  publishedAt?: string;
-  text?: string;
-  highlights?: string[];
-  score?: number;
+  via: 'search' | 'page';
 }
 
-export interface SearchResponse {
-  providerKey: string;
-  providerRequestId?: string;
-  results: SearchResult[];
-  query: string;
-  latencyMs: number;
-  warnings?: string[];
+export interface SearchCapabilities {
+  maximumResults: number;
+  supportsDomainFilters: boolean;
+  supportsCategory: boolean;
 }
 
 export interface SearchContext {

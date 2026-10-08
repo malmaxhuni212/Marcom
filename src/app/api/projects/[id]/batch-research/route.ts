@@ -1,124 +1,196 @@
 import { NextResponse } from 'next/server';
-import { JsonFileMemoryStore } from '@/marcom/memory/store';
-import { GroqProvider } from '@/marcom/llm/groq-provider';
-import { getSearchProvider } from '@/marcom/search/registry';
-import { discoverProspects } from '@/marcom/agents/research/discovery';
 import { runResearchAgent } from '@/marcom/agents/research/agent';
-import { saveResearch, upsertProspectMemory } from '@/marcom/memory/research-store';
+import { discoverProspectSeeds } from '@/marcom/agents/research/discovery';
+import { GroqProvider } from '@/marcom/llm/groq-provider';
+import {
+  findDuplicate,
+  listResearch,
+  saveResearch,
+  upsertProspectMemory,
+} from '@/marcom/memory/research-store';
+import { JsonFileMemoryStore } from '@/marcom/memory/store';
+import type { SearchProvider } from '@/marcom/search/provider';
+import { readSearchConfiguration, resolveSearchProvider } from '@/marcom/search/registry';
 
 export const runtime = 'nodejs';
 
-// Simple in-memory background queue
-const backgroundTasks = new Map<string, { total: number; completed: number; status: 'running' | 'completed' | 'error' | 'cancelled' }>();
+type TaskStatus = 'running' | 'completed' | 'completed_with_errors' | 'error' | 'cancelled';
 
-async function processBatch(projectId: string, targetId: string, count: number, taskId: string) {
+type BackgroundTask = {
+  total: number;
+  discovered: number;
+  completed: number;
+  duplicatesSkipped: number;
+  failed: number;
+  status: TaskStatus;
+  message: string;
+  searchProvider: string;
+};
+
+const backgroundTasks = new Map<string, BackgroundTask>();
+
+async function processBatch(
+  projectId: string,
+  targetId: string,
+  count: number,
+  taskId: string,
+  searchProvider: SearchProvider,
+  llmProvider: GroqProvider,
+) {
   const store = new JsonFileMemoryStore();
-  const provider = new GroqProvider();
-  
-  const project = store.projects().find((p) => p.project_id === projectId);
-  if (!project?.structured_brief) return;
+  const project = store.projects().find((candidate) => candidate.project_id === projectId);
+  const task = backgroundTasks.get(taskId);
 
-  const target = project.structured_brief.targets.find((t: any) => t.id === targetId);
-  const targetName = target ? target.target_type : 'relevant professionals';
+  if (!project?.structured_brief || !task) {
+    if (task) {
+      task.status = 'error';
+      task.message = 'Project or structured brief not found.';
+    }
+    return;
+  }
 
-  for (let i = 0; i < count; i++) {
-    const currentTask = backgroundTasks.get(taskId);
-    if (currentTask && currentTask.status === 'cancelled') {
-      console.log(`Batch task ${taskId} was cancelled.`);
-      break;
+  const target = project.structured_brief.targets.find((candidate) => candidate.id === targetId);
+  if (!target) {
+    task.status = 'error';
+    task.message = 'Selected target was not found in the structured brief.';
+    return;
+  }
+
+  task.message = 'Searching for prospect candidates...';
+  const existing = listResearch(projectId);
+  const discovery = await discoverProspectSeeds({
+    brief: project.structured_brief,
+    target,
+    desiredCount: count,
+    searchProvider,
+    llmProvider,
+    existingNames: existing.flatMap((entry) => [entry.seed.name, entry.record.identity.name ?? '']),
+    existingUrls: existing.flatMap((entry) => [entry.seed.website ?? '', entry.record.website ?? '']),
+  });
+
+  task.discovered = discovery.seeds.length;
+  task.duplicatesSkipped += discovery.duplicateCount;
+  task.message = `Found ${task.discovered} supported candidate${task.discovered === 1 ? '' : 's'}.`;
+
+  if (!discovery.seeds.length) {
+    task.status = 'error';
+    task.message = 'Search returned no new supported prospect candidates.';
+    return;
+  }
+
+  for (const seed of discovery.seeds) {
+    if (task.status === 'cancelled') break;
+
+    if (findDuplicate(listResearch(projectId), seed)) {
+      task.duplicatesSkipped += 1;
+      continue;
     }
 
+    task.message = `Researching ${seed.name}...`;
     try {
-      // 1. Auto-discover a name
-      const candidates = await discoverProspects(project.structured_brief, targetId, projectId, store, getSearchProvider(), provider, count - i);
-      
-      if (!candidates || candidates.length === 0) {
-        console.log('No candidates found by discovery.');
-        break; // Stop loop if no candidates found
-      }
-
-      for (const parsed of candidates) {
-        if (i >= count) break;
-        if (parsed && parsed.name) {
-          const seed = {
-            name: parsed.name,
-            entity_kind: target?.entity_kind === 'person' || target?.entity_kind === 'organisation' ? target.entity_kind : 'unknown' as any,
-            organisation: parsed.organisation || undefined
-          };
-
-          // 2. Run research
-          const entry = await runResearchAgent({
-            projectId,
-            brief: project.structured_brief,
-            targetId,
-            seed,
-            store,
-            searchProvider: getSearchProvider(),
-            llmProvider: provider,
-          });
-
-          saveResearch(projectId, entry);
-          upsertProspectMemory(entry);
-        }
-        
-        const task = backgroundTasks.get(taskId);
-        if (task && task.status !== 'cancelled') task.completed++;
-        i++; // advance the counter since we just completed one
-      }
-      i--; // adjust because the outer loop will do i++
-
-
-    } catch (e) {
-      console.error(`Batch research iteration ${i} failed:`, e);
-      // continue to next iteration
+      const entry = await runResearchAgent({
+        projectId,
+        brief: project.structured_brief,
+        targetId,
+        seed,
+        store,
+        searchProvider,
+        llmProvider,
+      });
+      saveResearch(projectId, entry);
+      upsertProspectMemory(entry);
+      task.completed += 1;
+    } catch (error) {
+      console.error('Batch research candidate failed:', error);
+      task.failed += 1;
     }
   }
 
-  const task = backgroundTasks.get(taskId);
-  if (task && task.status === 'running') task.status = 'completed';
+  if (task.status === 'running') {
+    task.status = task.failed ? 'completed_with_errors' : 'completed';
+    task.message = `Saved ${task.completed} of ${task.total} requested prospects.`;
+  }
 }
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id: projectId } = await params;
   const body = await req.json().catch(() => ({}));
-  const maxAppLimit = parseInt(process.env.SEARCH_MAX_RESULTS || '25', 10);
-  let count = Number(body.count) || 1;
-  if (count <= 0 || count > maxAppLimit) return NextResponse.json({ error: `Count must be between 1 and ${maxAppLimit}` }, { status: 400 });
-  const targetId = body.target_id;
+  const count = Number(body.count);
+  const targetId = typeof body.target_id === 'string' ? body.target_id.trim() : '';
+
+  let searchProvider: SearchProvider;
+  let maximumResults: number;
+  const llmProvider = new GroqProvider();
+  try {
+    const config = readSearchConfiguration();
+    maximumResults = config.SEARCH_MAX_RESULTS;
+    searchProvider = resolveSearchProvider(config, llmProvider);
+  } catch (error) {
+    return NextResponse.json({ error: (error as Error).message }, { status: 500 });
+  }
+
+  if (!Number.isInteger(count) || count < 1 || count > maximumResults) {
+    return NextResponse.json(
+      { error: `count must be an integer between 1 and ${maximumResults}.` },
+      { status: 400 },
+    );
+  }
+  if (!targetId) {
+    return NextResponse.json({ error: 'target_id is required.' }, { status: 400 });
+  }
 
   const taskId = `${projectId}-${Date.now()}`;
-  backgroundTasks.set(taskId, { total: count, completed: 0, status: 'running' });
-
-  // Start background process without awaiting it
-  processBatch(projectId, targetId, count, taskId).catch(e => {
-    console.error('Batch process crashed:', e);
-    const task = backgroundTasks.get(taskId);
-    if (task) task.status = 'error';
+  backgroundTasks.set(taskId, {
+    total: count,
+    discovered: 0,
+    completed: 0,
+    duplicatesSkipped: 0,
+    failed: 0,
+    status: 'running',
+    message: 'Planning research...',
+    searchProvider: searchProvider.key,
   });
 
-  return NextResponse.json({ success: true, taskId, message: `Started background research for ${count} leads.` });
+  processBatch(projectId, targetId, count, taskId, searchProvider, llmProvider).catch((error) => {
+    console.error('Batch process crashed:', error);
+    const task = backgroundTasks.get(taskId);
+    if (task) {
+      task.status = 'error';
+      task.message = (error as Error).message;
+    }
+  });
+
+  return NextResponse.json({
+    success: true,
+    taskId,
+    message: `Started bounded research for up to ${count} prospects.`,
+  });
 }
 
 export async function GET(req: Request) {
-  const url = new URL(req.url);
-  const taskId = url.searchParams.get('taskId');
-  if (!taskId) return NextResponse.json({ error: 'taskId required' }, { status: 400 });
+  const taskId = new URL(req.url).searchParams.get('taskId');
+  if (!taskId) {
+    return NextResponse.json({ error: 'taskId required' }, { status: 400 });
+  }
 
   const task = backgroundTasks.get(taskId);
-  if (!task) return NextResponse.json({ error: 'Task not found' }, { status: 404 });
-
-  return NextResponse.json(task);
+  return task
+    ? NextResponse.json(task)
+    : NextResponse.json({ error: 'Task not found' }, { status: 404 });
 }
 
 export async function DELETE(req: Request) {
-  const url = new URL(req.url);
-  const taskId = url.searchParams.get('taskId');
-  if (!taskId) return NextResponse.json({ error: 'taskId required' }, { status: 400 });
+  const taskId = new URL(req.url).searchParams.get('taskId');
+  if (!taskId) {
+    return NextResponse.json({ error: 'taskId required' }, { status: 400 });
+  }
 
   const task = backgroundTasks.get(taskId);
-  if (task) {
-    task.status = 'cancelled';
-    return NextResponse.json({ success: true });
+  if (!task) {
+    return NextResponse.json({ error: 'Task not found' }, { status: 404 });
   }
-  return NextResponse.json({ error: 'Task not found' }, { status: 404 });
+
+  task.status = 'cancelled';
+  task.message = 'Cancellation requested.';
+  return NextResponse.json({ success: true });
 }

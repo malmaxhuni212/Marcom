@@ -1,10 +1,21 @@
-export class SearchError extends Error {
+export type SearchErrorCode =
+  | 'authentication_failed'
+  | 'configuration_error'
+  | 'invalid_request'
+  | 'invalid_response'
+  | 'payment_required'
+  | 'rate_limited'
+  | 'timeout'
+  | 'unavailable';
+
+export class SearchProviderError extends Error {
   constructor(
-    public code: 'auth_failed' | 'rate_limited' | 'quota_exceeded' | 'timeout' | 'invalid_response' | 'unavailable' | 'configuration_error',
+    public readonly code: SearchErrorCode,
     message: string,
-    public retryAfter?: number
+    public readonly retryable: boolean,
+    options?: ErrorOptions,
   ) {
-    super(message);
-    this.name = 'SearchError';
+    super(message, options);
+    this.name = 'SearchProviderError';
   }
 }

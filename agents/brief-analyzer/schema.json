@@ -42,6 +42,10 @@
           "target_type": { "type": "string" },
           "entity_kind": { "type": "string", "enum": ["person", "organisation", "either", "unknown"] },
           "description": { "type": "string" },
+          "geography_mode": {
+            "type": "string",
+            "enum": ["specified", "unrestricted", "unspecified"]
+          },
           "geography": { "type": "array", "items": { "type": "string" } },
           "qualification_criteria": {
             "type": "array",
@@ -79,7 +83,18 @@
         "preferred_source_types": { "type": "array", "items": { "type": "string" } },
         "evidence_requirements": { "type": "array", "items": { "type": "string" } },
         "verification_requirements": { "type": "array", "items": { "type": "string" } },
-        "unknown_handling": { "type": "string" }
+        "unknown_handling": { "type": "string" },
+        "search_settings": {
+          "type": "object",
+          "required": ["keywords", "excluded_keywords", "preferred_domains", "excluded_domains", "default_result_limit"],
+          "properties": {
+            "keywords": { "type": "array", "items": { "type": "string" } },
+            "excluded_keywords": { "type": "array", "items": { "type": "string" } },
+            "preferred_domains": { "type": "array", "items": { "type": "string" } },
+            "excluded_domains": { "type": "array", "items": { "type": "string" } },
+            "default_result_limit": { "type": "integer", "minimum": 1, "maximum": 25 }
+          }
+        }
       }
     },
     "personalization": {

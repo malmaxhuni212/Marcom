@@ -28,6 +28,10 @@ export const TargetSchema = z.strictObject({
   target_type: nonEmpty.describe('What kind of entity to find, in the brief\'s own words (e.g. "film producers").'),
   entity_kind: z.enum(['person', 'organisation', 'either', 'unknown']),
   description: z.string(),
+  geography_mode: z
+    .enum(['specified', 'unrestricted', 'unspecified'])
+    .optional()
+    .describe('Human-confirmed geography choice. Optional on analyzer output, but required before research.'),
   geography: z.array(nonEmpty).describe('Empty array = not specified (should then appear in unknowns).'),
   qualification_criteria: z.array(CriterionSchema),
   exclusion_criteria: z.array(CriterionSchema),
@@ -77,6 +81,16 @@ export const StructuredBriefSchema = z.strictObject({
     evidence_requirements: z.array(nonEmpty),
     verification_requirements: z.array(nonEmpty),
     unknown_handling: nonEmpty,
+    search_settings: z
+      .strictObject({
+        keywords: z.array(nonEmpty),
+        excluded_keywords: z.array(nonEmpty),
+        preferred_domains: z.array(nonEmpty),
+        excluded_domains: z.array(nonEmpty),
+        default_result_limit: z.number().int().min(1).max(25),
+      })
+      .optional()
+      .describe('Human-reviewed defaults used to build bounded search requests.'),
   }),
 
   personalization: z.strictObject({

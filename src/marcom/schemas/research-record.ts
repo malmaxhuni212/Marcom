@@ -139,6 +139,15 @@ export interface ResearchQA {
   issues: ResearchQAIssue[];
 }
 
+export const ReviewStatusSchema = z.enum(['needs_review', 'shortlisted', 'rejected', 'enrichment_requested']);
+export type ReviewStatus = z.infer<typeof ReviewStatusSchema>;
+
+export interface ProspectReview {
+  status: ReviewStatus;
+  note: string | null;
+  reviewed_at: string | null;
+}
+
 /** One saved research run for a prospect inside a project (memory/research/<project_id>.json). */
 export interface ResearchEntry {
   record: ResearchRecord;
@@ -149,4 +158,12 @@ export interface ResearchEntry {
   model: string;
   searches: string[];
   search_provider?: string;
+  search_request_ids?: string[];
+  search_usage?: {
+    requests: number;
+    estimated_cost_usd: number | null;
+    latency_ms: number;
+  };
+  search_warnings?: string[];
+  review?: ProspectReview;
 }

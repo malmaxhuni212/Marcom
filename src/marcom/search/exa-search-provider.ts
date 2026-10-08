@@ -1,109 +1,180 @@
-import { SearchProvider, SearchRequest, SearchResponse, SearchContext, SearchResult } from './provider';
-import { SearchError } from './errors';
+import { z } from 'zod';
+import { SearchProviderError } from './errors';
+import {
+  SearchRequestSchema,
+  SearchResponseSchema,
+  type SearchCapabilities,
+  type SearchContext,
+  type SearchProvider,
+  type SearchRequest,
+  type SearchResponse,
+} from './provider';
+
+const EXA_SEARCH_URL = 'https://api.exa.ai/search';
+
+const ExaResponseSchema = z.object({
+  results: z.array(
+    z.object({
+      id: z.string().min(1),
+      url: z.string().min(1),
+      title: z.string().nullish(),
+      author: z.string().nullish(),
+      publishedDate: z.string().nullish(),
+      text: z.string().nullish(),
+      highlights: z.array(z.string()).nullish(),
+      score: z.number().nullish(),
+    }),
+  ),
+  requestId: z.string().nullish(),
+  searchTime: z.number().nullish(),
+  costDollars: z.object({ total: z.number().nonnegative().nullish() }).nullish(),
+});
+
+export interface ExaSearchProviderOptions {
+  apiKey: string;
+  maximumResults: number;
+  timeoutMs: number;
+  fetchImplementation?: typeof fetch;
+}
 
 export class ExaSearchProvider implements SearchProvider {
   readonly key = 'exa';
+  readonly #apiKey: string;
+  readonly #maximumResults: number;
+  readonly #timeoutMs: number;
+  readonly #fetch: typeof fetch;
 
-  private get apiKey() {
-    return process.env.EXA_API_KEY || '';
+  constructor(options: ExaSearchProviderOptions) {
+    this.#apiKey = options.apiKey;
+    this.#maximumResults = Math.min(100, Math.max(1, options.maximumResults));
+    this.#timeoutMs = options.timeoutMs;
+    this.#fetch = options.fetchImplementation ?? fetch;
   }
 
-  capabilities() {
-    return {
-      supportsHighlights: true,
-      supportsDomains: true,
-      supportsCategories: true,
-    };
+  capabilities(): SearchCapabilities {
+    return { maximumResults: this.#maximumResults, supportsDomainFilters: true, supportsCategory: true };
   }
 
-  async search(request: SearchRequest, context?: SearchContext): Promise<SearchResponse> {
-    if (!this.apiKey) {
-      throw new SearchError('configuration_error', 'EXA_API_KEY is not configured');
+  async search(rawRequest: SearchRequest, context: SearchContext = {}): Promise<SearchResponse> {
+    const request = SearchRequestSchema.parse(rawRequest);
+    if (request.resultLimit > this.#maximumResults) {
+      throw new SearchProviderError(
+        'invalid_request',
+        `Requested ${request.resultLimit} results, but the configured maximum is ${this.#maximumResults}.`,
+        false,
+      );
+    }
+    if (request.category && request.excludeDomains.length) {
+      throw new SearchProviderError(
+        'invalid_request',
+        'Exa does not support excludeDomains with the people or company category.',
+        false,
+      );
     }
 
-    const start = Date.now();
-    const maxAppLimit = parseInt(process.env.SEARCH_MAX_RESULTS || '25', 10);
-    let numResults = request.resultLimit ? Math.min(request.resultLimit, maxAppLimit, 100) : maxAppLimit;
-
-    const payload: any = {
+    const warnings: string[] = [];
+    const body: Record<string, unknown> = {
       query: request.query,
       type: 'auto',
-      numResults,
-      contents: {
-        text: true,
-        highlights: true
-      }
+      numResults: request.resultLimit,
+      moderation: true,
+      contents: { highlights: true },
     };
+    if (request.includeDomains.length) body.includeDomains = request.includeDomains;
+    if (request.excludeDomains.length) body.excludeDomains = request.excludeDomains;
+    if (request.category) body.category = request.category;
 
-    if (request.category) {
-      payload.category = request.category;
-    } else {
-      if (request.includeDomains && request.includeDomains.length > 0) {
-        payload.includeDomains = request.includeDomains;
-      }
-      if (request.excludeDomains && request.excludeDomains.length > 0) {
-        payload.excludeDomains = request.excludeDomains;
-      }
-    }
+    const timeoutSignal = AbortSignal.timeout(this.#timeoutMs);
+    const signal = context.signal ? AbortSignal.any([context.signal, timeoutSignal]) : timeoutSignal;
+    const startedAt = Date.now();
+    let response: Response;
 
     try {
-      const response = await fetch('https://api.exa.ai/search', {
+      response = await this.#fetch(EXA_SEARCH_URL, {
         method: 'POST',
-        headers: {
-          'x-api-key': this.apiKey,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload),
-        signal: context?.signal
+        headers: { 'content-type': 'application/json', 'x-api-key': this.#apiKey },
+        body: JSON.stringify(body),
+        signal,
       });
-
-      if (!response.ok) {
-        if (response.status === 401 || response.status === 403) {
-          throw new SearchError('auth_failed', 'Exa API authentication failed');
-        }
-        if (response.status === 429) {
-          throw new SearchError('rate_limited', 'Exa API rate limit exceeded');
-        }
-        if (response.status === 402) {
-          throw new SearchError('quota_exceeded', 'Exa API quota exceeded');
-        }
-        if (response.status >= 500) {
-          throw new SearchError('unavailable', 'Exa API is currently unavailable');
-        }
-        throw new SearchError('invalid_response', `Exa API returned ${response.status}`);
+    } catch (error) {
+      if (signal.aborted) {
+        throw new SearchProviderError('timeout', 'Exa search exceeded its deadline.', true, { cause: error });
       }
-
-      const data = await response.json();
-
-      if (!data || !Array.isArray(data.results)) {
-        throw new SearchError('invalid_response', 'Malformed response from Exa API');
-      }
-
-      const results: SearchResult[] = data.results.map((r: any) => ({
-        providerResultId: String(r.id),
-        url: String(r.url),
-        title: String(r.title || ''),
-        author: r.author ? String(r.author) : undefined,
-        publishedAt: r.publishedDate ? String(r.publishedDate) : undefined,
-        text: r.text ? String(r.text) : undefined,
-        highlights: Array.isArray(r.highlights) ? r.highlights.map(String) : undefined,
-        score: typeof r.score === 'number' ? r.score : undefined
-      }));
-
-      return {
-        providerKey: this.key,
-        providerRequestId: data.requestId,
-        query: request.query,
-        results,
-        latencyMs: Date.now() - start
-      };
-
-    } catch (e: any) {
-      if (e.name === 'AbortError') {
-        throw new SearchError('timeout', 'Exa API request timed out');
-      }
-      if (e instanceof SearchError) throw e;
-      throw new SearchError('invalid_response', 'Failed to communicate with Exa API');
+      throw new SearchProviderError('unavailable', 'Exa search could not be reached.', true, { cause: error });
     }
+
+    if (!response.ok) throw mapExaHttpError(response.status);
+
+    let raw: unknown;
+    try {
+      raw = await response.json();
+    } catch (error) {
+      throw new SearchProviderError('invalid_response', 'Exa returned invalid JSON.', false, { cause: error });
+    }
+
+    const parsed = ExaResponseSchema.safeParse(raw);
+    if (!parsed.success) {
+      throw new SearchProviderError('invalid_response', 'Exa returned an unexpected response shape.', false);
+    }
+
+    const candidates = parsed.data.results.flatMap((result) => {
+      if (!isSafePublicUrl(result.url)) {
+        warnings.push(`Discarded an unsafe result URL from Exa result ${result.id}.`);
+        return [];
+      }
+      return [
+        {
+          providerResultId: result.id,
+          url: result.url,
+          title: result.title ?? '',
+          author: result.author ?? null,
+          publishedAt: result.publishedDate ?? null,
+          text: (result.text ?? '').slice(0, 12_000),
+          highlights: (result.highlights ?? []).slice(0, 12).map((value) => value.slice(0, 2_000)),
+          score: result.score ?? null,
+        },
+      ];
+    });
+
+    return SearchResponseSchema.parse({
+      providerKey: this.key,
+      providerRequestId: parsed.data.requestId ?? null,
+      query: request.query,
+      candidates,
+      latencyMs: Date.now() - startedAt,
+      usage: { requests: 1, estimatedCostUsd: parsed.data.costDollars?.total ?? null },
+      warnings,
+    });
+  }
+}
+
+function mapExaHttpError(status: number): SearchProviderError {
+  if (status === 401 || status === 403) {
+    return new SearchProviderError('authentication_failed', 'Exa rejected the configured API key.', false);
+  }
+  if (status === 402) {
+    return new SearchProviderError('payment_required', 'Exa has no available credit for this request.', false);
+  }
+  if (status === 429) {
+    return new SearchProviderError('rate_limited', 'Exa search rate limit was reached.', true);
+  }
+  if (status >= 500) {
+    return new SearchProviderError('unavailable', 'Exa search is temporarily unavailable.', true);
+  }
+  return new SearchProviderError('invalid_request', `Exa rejected the search request with status ${status}.`, false);
+}
+
+function isSafePublicUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) return false;
+    const host = url.hostname.toLowerCase();
+    if (host === 'localhost' || host === '::1' || host.endsWith('.local')) return false;
+    if (/^(127|10|0)\./.test(host) || /^192\.168\./.test(host) || /^169\.254\./.test(host)) return false;
+    const match = host.match(/^172\.(\d+)\./);
+    if (match && Number(match[1]) >= 16 && Number(match[1]) <= 31) return false;
+    return true;
+  } catch {
+    return false;
   }
 }

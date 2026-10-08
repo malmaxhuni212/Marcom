@@ -33,10 +33,12 @@ export interface ProjectMemory {
   name: string;
   aliases: string[];
   summary: string;
-  status: 'draft' | 'active' | 'paused' | 'completed';
+  status: 'draft' | 'READY_FOR_RESEARCH' | 'active' | 'paused' | 'completed';
   structured_brief: StructuredBrief | null;
   target_definitions: TargetDefinition[];
   notes: string[];
+  configuration_revision?: number;
+  configuration_updated_at?: string;
 }
 
 export interface ProspectMemory {
