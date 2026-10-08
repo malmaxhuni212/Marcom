@@ -96,6 +96,8 @@ export async function discoverProspectSeeds(input: {
       output_shape: {
         candidates: [
           { name: 'string', organisation: 'string|null', website: 'url|null', source_url: 'url', entity_kind: 'person|organisation' },
+          { name: 'string', organisation: 'string|null', website: 'url|null', source_url: 'url', entity_kind: 'person|organisation' },
+          '... (extract all valid prospects)'
         ],
       },
     }),
@@ -109,6 +111,7 @@ export async function discoverProspectSeeds(input: {
   const seenUrls = new Set<string>();
   const seeds: ProspectSeed[] = [];
   let rejectedCount = 0;
+  require('fs').writeFileSync('C:/Users/v_199/.gemini/antigravity/scratch/discovery-debug.log', JSON.stringify({ parsed, allowedUrls: Array.from(allowedUrls), existingNames: Array.from(existingNames) }, null, 2));
   for (const candidate of parsed.candidates) {
     const sourceUrl = canonicalUrl(candidate.source_url);
     const website = candidate.website ? canonicalUrl(candidate.website) : '';
@@ -140,6 +143,10 @@ export async function discoverProspectSeeds(input: {
     warnings: response.warnings,
   };
 }
+
+
+
+
 
 
 
