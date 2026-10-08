@@ -11,7 +11,7 @@ const CandidateListSchema = z.strictObject({
     z.strictObject({
       name: z.string().trim().min(1).max(200),
       organisation: z.string().trim().max(200).nullable(),
-      website: z.url(),
+      website: z.string().nullable(),
       source_url: z.url(),
       entity_kind: z.enum(['person', 'organisation']),
     }),
@@ -95,7 +95,7 @@ export async function discoverProspectSeeds(input: {
       search_results: sourcePayload,
       output_shape: {
         candidates: [
-          { name: 'string', organisation: 'string|null', website: 'url', source_url: 'url', entity_kind: 'person|organisation' },
+          { name: 'string', organisation: 'string|null', website: 'url|null', source_url: 'url', entity_kind: 'person|organisation' },
         ],
       },
     }),
@@ -112,14 +112,14 @@ export async function discoverProspectSeeds(input: {
 
   for (const candidate of parsed.candidates) {
     const sourceUrl = canonicalUrl(candidate.source_url);
-    const website = canonicalUrl(candidate.website);
+    const website = candidate.website ? canonicalUrl(candidate.website) : '';
     const name = normalizeName(candidate.name);
-    if (!allowedUrls.has(sourceUrl) || existingNames.has(name) || existingUrls.has(website) || seenNames.has(name) || seenUrls.has(website)) {
+    if (!allowedUrls.has(sourceUrl) || existingNames.has(name) || (website && existingUrls.has(website)) || seenNames.has(name) || (website && seenUrls.has(website))) {
       rejectedCount += 1;
       continue;
     }
     seenNames.add(name);
-    seenUrls.add(website);
+    if (website) seenUrls.add(website);
     seeds.push({
       name: candidate.name,
       organisation: candidate.organisation ?? undefined,
@@ -141,3 +141,4 @@ export async function discoverProspectSeeds(input: {
     warnings: response.warnings,
   };
 }
+
