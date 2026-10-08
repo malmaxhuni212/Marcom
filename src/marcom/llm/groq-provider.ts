@@ -2,7 +2,13 @@ import { LLMProvider, LLMRequest } from './provider';
 import { KeyPool } from './key-pool';
 
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
-export const GROQ_MODEL = 'openai/gpt-oss-20b';
+export const GROQ_MODELS = [
+  'llama-3.3-70b-versatile',
+  'llama-3.1-70b-versatile',
+  'llama3-70b-8192',
+  'mixtral-8x7b-32768',
+  'llama-3.1-8b-instant'
+];
 
 /** A page or search hit the Groq browser tool actually returned. Used to verify citations. */
 export interface SeenSource {
@@ -39,34 +45,32 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export class GroqProvider implements LLMProvider {
   readonly name = 'groq';
-  readonly model = GROQ_MODEL;
+  readonly model = GROQ_MODELS[0];
 
   constructor() {}
 
   /** POST with automatic wait-and-retry on 429 using KeyPool. */
   private async post(payload: Record<string, unknown>, opts: GroqCallOptions = {}): Promise<any> {
-    const maxRetries = opts.maxRetries ?? 10; // higher retries because we rotate keys
+    const maxRetries = opts.maxRetries ?? 15;
+    let modelIndex = 0;
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       const apiKey = await KeyPool.getAvailableKey(opts.onWait);
-      
+      const currentModel = GROQ_MODELS[modelIndex % GROQ_MODELS.length];
+      const body = { ...payload, model: currentModel };
       const response = await fetch(GROQ_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${apiKey}`
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(body),
       });
-
       if (response.ok) return response.json();
-
       const errorText = await response.text();
-      
-      // 429 = rate limited
-      if (response.status === 429) {
-        const wait = Math.min(parseRetrySeconds(response, errorText), 65);
+      if (response.status === 429 || response.status === 413) {
+        const wait = response.status === 413 ? 60 : Math.min(parseRetrySeconds(response, errorText), 65);
         KeyPool.markRateLimited(apiKey, wait);
-        // Continue to next loop iteration, which will grab the next available key (or sleep if all are cooling down)
+        modelIndex++;
         continue;
       }
       throw new Error(`Groq API Error (${response.status}): ${errorText}`);
@@ -77,7 +81,7 @@ export class GroqProvider implements LLMProvider {
   async complete(request: LLMRequest, opts?: GroqCallOptions): Promise<string> {
     for (let attempt = 1; attempt <= 3; attempt++) {
       const data = await this.post({
-        model: GROQ_MODEL,
+        
         messages: [
           { role: 'system', content: request.system },
           { role: 'user', content: request.user }
@@ -103,7 +107,7 @@ export class GroqProvider implements LLMProvider {
    */
   async browserSearch(request: LLMRequest, opts?: GroqCallOptions): Promise<BrowserSearchResult> {
     const data = await this.post({
-      model: GROQ_MODEL,
+      
       messages: [
         { role: 'system', content: request.system },
         { role: 'user', content: request.user }
@@ -155,3 +159,4 @@ export class GroqProvider implements LLMProvider {
     };
   }
 }
+
