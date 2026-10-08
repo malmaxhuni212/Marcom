@@ -3,10 +3,10 @@ import { KeyPool } from './key-pool';
 
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 export const GROQ_MODELS = [
-  'llama-3.3-70b-versatile',
   'llama-3.1-70b-versatile',
   'llama3-70b-8192',
   'mixtral-8x7b-32768',
+  'gemma2-9b-it',
   'llama-3.1-8b-instant'
 ];
 
@@ -67,9 +67,9 @@ export class GroqProvider implements LLMProvider {
       });
       if (response.ok) return response.json();
       const errorText = await response.text();
-      if (response.status === 429 || response.status === 413) {
+      if (response.status === 429 || response.status === 413 || response.status === 404) {
         const wait = response.status === 413 ? 60 : Math.min(parseRetrySeconds(response, errorText), 65);
-        KeyPool.markRateLimited(apiKey, wait);
+        if (response.status !== 404) KeyPool.markRateLimited(apiKey, wait);
         modelIndex++;
         continue;
       }
@@ -159,4 +159,5 @@ export class GroqProvider implements LLMProvider {
     };
   }
 }
+
 
