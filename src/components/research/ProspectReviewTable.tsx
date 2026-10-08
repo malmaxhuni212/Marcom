@@ -223,8 +223,7 @@ export default function ProspectReviewTable({ projectId, initialProspectId }: { 
             </select>
             <select aria-label="Sort results" value={sort} onChange={(event) => updateFilter(setSort, event.target.value)} className="rounded-xl border border-white/[0.08] bg-[#111118] px-3 py-2 text-xs text-white/60 outline-none">
               <option value="newest">Newest first</option>
-              <option value="fit_desc">Highest fit</option>
-              <option value="evidence_desc">Best evidence coverage</option>
+                            <option value="evidence_desc">Best evidence coverage</option>
               <option value="name_asc">Name A to Z</option>
             </select>
             {summary.possible_duplicates > 0 && <span className="self-center rounded-full bg-amber-300/[0.07] px-3 py-1.5 text-xs text-amber-200/75">{summary.possible_duplicates} possible duplicate{summary.possible_duplicates === 1 ? '' : 's'}</span>}
@@ -251,8 +250,7 @@ export default function ProspectReviewTable({ projectId, initialProspectId }: { 
                 <th className="px-3 py-3 font-medium">Type</th>
                 <th className="px-3 py-3 font-medium">Location</th>
                 <th className="px-3 py-3 font-medium">Role or organisation</th>
-                <th className="px-3 py-3 font-medium">Fit</th>
-                <th className="px-3 py-3 font-medium">Evidence</th>
+                                <th className="px-3 py-3 font-medium">Evidence</th>
                 <th className="px-3 py-3 font-medium">Contact</th>
                 <th className="px-3 py-3 font-medium">Status</th>
               </tr>
@@ -293,9 +291,22 @@ export default function ProspectReviewTable({ projectId, initialProspectId }: { 
                     <td className="px-3 py-4 align-top text-xs capitalize text-white/45">{record.identity.entity_kind}</td>
                     <td className="px-3 py-4 align-top text-xs text-white/45">{record.location ?? record.country ?? <span className="italic text-white/25">Unknown</span>}</td>
                     <td className="max-w-48 px-3 py-4 align-top text-xs text-white/45">{[record.role, record.organisation].filter(Boolean).join(' · ') || <span className="italic text-white/25">Unknown</span>}</td>
-                    <td className="px-3 py-4 align-top"><span className="text-xs capitalize text-white/55">{record.fit.band.replace(/_/g, ' ')}</span><span className="mt-1 block text-[10px] text-white/25">Score {record.fit.score}</span></td>
-                    <td className="px-3 py-4 align-top"><span className="text-xs text-white/55">{evidence.supported}/{evidence.total || 0}</span><span className="mt-1 block text-[10px] text-white/25">{evidence.percent}% supported</span></td>
-                    <td className="px-3 py-4 align-top text-xs text-white/45">{hasContact ? 'Available' : <span className="italic text-white/25">Unknown</span>}</td>
+                                        <td className="px-3 py-4 align-top"><span className="text-xs text-white/55">{evidence.supported}/{evidence.total || 0}</span><span className="mt-1 block text-[10px] text-white/25">{evidence.percent}% supported</span></td>
+                    <td className="px-3 py-4 align-top flex flex-col gap-1.5">
+  {record.public_contact?.find(c => c.kind === "email") && (
+    <a href={"mailto:" + record.public_contact.find(c => c.kind === "email")?.value} className="text-[11px] text-blue-400 hover:underline flex items-center gap-1.5"><span className="opacity-50 text-[10px]">?</span> Email</a>
+  )}
+  {record.social_profiles?.find(p => p.platform === "linkedin") && (
+    <a href={record.social_profiles.find(p => p.platform === "linkedin")?.profile_url} target="_blank" className="text-[11px] text-blue-400 hover:underline flex items-center gap-1.5"><span className="opacity-50 font-bold text-[10px]">in</span> LinkedIn</a>
+  )}
+  {record.websites?.[0]?.url && (
+    <a href={record.websites[0]?.url} target="_blank" className="text-[11px] text-blue-400 hover:underline flex items-center gap-1.5"><span className="opacity-50 text-[10px]">??</span> Website</a>
+  )}
+  {!(record.public_contact?.find(c => c.kind === "email") || record.social_profiles?.find(p => p.platform === "linkedin") || record.websites?.[0]?.url) && (
+    <span className="italic text-white/25 text-[11px]">Unknown</span>
+  )}
+</td>
+
                     <td className="px-3 py-4 align-top"><StatusPill status={reviewStatus(entry)} /></td>
                   </tr>
                 );

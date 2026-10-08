@@ -63,24 +63,40 @@ export default function ProspectEvidenceDrawer({
           </div>
           <div className="mt-4 flex flex-wrap items-center gap-2 text-xs">
             <span className="rounded-full bg-white/[0.05] px-2.5 py-1 capitalize text-white/55">{record.identity.entity_kind}</span>
-            <span className="rounded-full bg-cyan-300/[0.07] px-2.5 py-1 capitalize text-cyan-200/75">{record.fit.band.replace(/_/g, ' ')} fit</span>
-            <span className="rounded-full bg-white/[0.05] px-2.5 py-1 text-white/55">Evidence {evidence.supported}/{evidence.total || 0}</span>
+                        <span className="rounded-full bg-white/[0.05] px-2.5 py-1 text-white/55">Evidence {evidence.supported}/{evidence.total || 0}</span>
             <span className="rounded-full bg-white/[0.05] px-2.5 py-1 capitalize text-white/55">{status.replace(/_/g, ' ')}</span>
             {record.matched_prospect_id && <span className="rounded-full bg-amber-300/10 px-2.5 py-1 text-amber-200">Possible duplicate</span>}
           </div>
         </header>
 
         <div className="flex-1 space-y-7 overflow-y-auto px-6 py-6">
-          <section>
-            <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/40">Profile summary</h3>
-            <p className="mt-3 text-sm leading-6 text-white/65">{record.summary || 'No profile summary is available.'}</p>
+          \n
+          <section className="rounded-2xl border border-white/[0.07] bg-[#111118] p-4 flex flex-col gap-3">
+            <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/40">Contact & Links</h3>
+            <div className="flex flex-wrap gap-4">
+              {record.public_contact?.find(c => c.kind === "email") && (
+                <a href={"mailto:" + record.public_contact.find(c => c.kind === "email")?.value} className="flex items-center gap-2 rounded-lg bg-blue-500/10 px-3 py-1.5 text-sm font-medium text-blue-400 hover:bg-blue-500/20 transition">
+                  ? {record.public_contact.find(c => c.kind === "email")?.value}
+                </a>
+              )}
+              {record.social_profiles?.find(p => p.platform === "linkedin") && (
+                <a href={record.social_profiles.find(p => p.platform === "linkedin")?.profile_url} target="_blank" className="flex items-center gap-2 rounded-lg bg-blue-500/10 px-3 py-1.5 text-sm font-medium text-blue-400 hover:bg-blue-500/20 transition">
+                  in LinkedIn Profile
+                </a>
+              )}
+              {record.websites?.[0]?.url && (
+                <a href={record.websites[0]?.url} target="_blank" className="flex items-center gap-2 rounded-lg bg-blue-500/10 px-3 py-1.5 text-sm font-medium text-blue-400 hover:bg-blue-500/20 transition">
+                  ?? Website
+                </a>
+              )}
+              {!(record.public_contact?.find(c => c.kind === "email") || record.social_profiles?.find(p => p.platform === "linkedin") || record.websites?.[0]?.url) && (
+                <span className="text-sm text-white/30 italic">No contact information available.</span>
+              )}
+            </div>
           </section>
 
-          <section className="rounded-2xl border border-cyan-300/10 bg-cyan-300/[0.035] p-4">
-            <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-cyan-200/65">Campaign relevance</h3>
-            <p className="mt-2 text-sm leading-6 text-white/65">{record.fit.rationale}</p>
-          </section>
 
+          
           {record.qualification_assessment.length > 0 && (
             <section>
               <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/40">Qualification checks</h3>

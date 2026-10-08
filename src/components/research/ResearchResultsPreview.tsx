@@ -83,19 +83,22 @@ export default function ResearchResultsPreview({
 
   return (
     <section className="space-y-4" aria-labelledby="result-preview-title">
-      <div className="flex flex-wrap items-end justify-between gap-4">
+      <div>
+        <h3 id="result-preview-title" className="text-sm font-medium text-white/90">Latest Research Results</h3>
+      </div>
+      
+      <article className="rounded-2xl border border-white/[0.07] bg-[#111118] p-6 transition hover:border-white/[0.12] flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h3 id="result-preview-title" className="text-sm font-medium text-white/90">Newest results</h3>
-          <p className="mt-1 text-xs text-white/35">A preview of the latest evidence-backed prospects.</p>
+          <h4 className="text-base font-semibold text-white/90">Research Batch Finished</h4>
+          <p className="mt-1 text-sm text-white/40">
+            Successfully processed latest prospects. Your database now contains {summary.total} evidence-backed records.
+          </p>
         </div>
-        <Link href={`/projects/${projectId}/research`} className="rounded-xl border border-white/[0.09] bg-white/[0.03] px-4 py-2 text-xs font-medium text-white/65 transition hover:bg-white/[0.06] hover:text-white">
+        <Link href={`/projects/${projectId}/research`} className="shrink-0 rounded-xl bg-white text-black px-6 py-2.5 text-sm font-medium transition hover:bg-white/90 hover:scale-[1.02]">
           View all {summary.total} results
         </Link>
-      </div>
-
-      <div className="grid gap-3">
-        {entries.slice(0, 3).map((entry) => <PreviewCard key={entry.record.record_id} projectId={projectId} entry={entry} />)}
-      </div>
+      </article>
     </section>
   );
 }
+
