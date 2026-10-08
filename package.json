@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "tsx --test src/marcom/search/provider.test.ts",
+    "search:smoke": "node --env-file=.env.local --import tsx src/scripts/search-smoke.ts"
   },
   "dependencies": {
     "mammoth": "^1.13.0",

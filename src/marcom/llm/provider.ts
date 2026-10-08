@@ -3,12 +3,13 @@
  *
  * Agents never call a vendor SDK directly. They receive an `LLMProvider`.
  * Real providers (Anthropic, OpenAI, Gemini, ...) will be added here later; per the
- * current phase, NO real AI API calls are implemented.
+ * provider implementation may be replaced without changing agent workflows.
  *
  * Available now:
  *  - `UnconfiguredProvider`: throws, so nothing silently pretends to be an LLM.
  *  - Offline baselines (see agents/*\/baseline-provider.ts): deterministic rule-based
  *    stand-ins used to exercise the full pipeline (prompt -> parse -> validate -> evaluate).
+ *  - `GroqProvider`: the currently configured live implementation.
  */
 
 export interface LLMRequest {
@@ -22,6 +23,7 @@ export interface LLMRequest {
 
 export interface LLMProvider {
   readonly name: string;
+  readonly model?: string;
   /** Returns the raw text response. Callers are responsible for parsing and validation. */
   complete(request: LLMRequest): Promise<string>;
 }

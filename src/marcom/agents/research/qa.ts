@@ -25,7 +25,7 @@ import {
   type ResearchRecord,
   type Source,
 } from '../../schemas/research-record';
-import type { SeenSource } from '../../llm/groq-provider';
+import type { SeenSource } from '../../search/provider';
 
 export const RESEARCH_AGENT_VERSION = 'research-agent/0.1.0';
 

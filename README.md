@@ -1,36 +1,74 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# MARCOM automation prototype
 
-## Getting Started
+This Next.js prototype analyses campaign briefs, stores structured campaign data, discovers prospects, and builds evidence-backed research records for human review.
 
-First, run the development server:
+The brief analyser remains separate from prospect search:
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+1. Groq analyses the uploaded campaign brief.
+2. The selected search provider finds public web results.
+3. Groq extracts candidate identities and research facts only from those supplied results.
+4. Deterministic validation checks sources, evidence, duplicates, and unknown values before a record is saved.
+
+## Local setup
+
+Install dependencies:
+
+```powershell
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Copy the environment template:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```powershell
+Copy-Item -LiteralPath '.env.example' -Destination '.env.local'
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Add the existing Groq key and an Exa key to `.env.local`:
 
-## Learn More
+```text
+GROQ_API_KEY=your_groq_key
+SEARCH_PROVIDER=exa
+EXA_API_KEY=your_exa_key
+SEARCH_MAX_RESULTS=25
+SEARCH_TIMEOUT_MS=15000
+```
 
-To learn more about Next.js, take a look at the following resources:
+Do not commit `.env.local`.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Run a small Exa search before starting the interface:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```powershell
+npm run search:smoke
+```
 
-## Deploy on Vercel
+The command prints the provider, request ID, cost reported by the provider, and up to three normalized results. It does not print credentials.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Start the application:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```powershell
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000).
+
+## Switching search providers
+
+Set `SEARCH_PROVIDER` in `.env.local`, then restart the development server.
+
+| Value | Purpose |
+| --- | --- |
+| `exa` | Live Exa web search. Requires `EXA_API_KEY`. |
+| `fake` | Deterministic local results for UI and integration development. Uses no network or credits. |
+| `groq-browser` | Compatibility adapter for the previous Groq browser-search implementation. |
+
+The application routes and research agent depend on the shared `SearchProvider` contract. Vendor response types remain inside their adapters, so adding another provider does not require changes to campaign or research code.
+
+## Verification
+
+```powershell
+npm test
+npx tsc --noEmit
+npm run build
+```
+
+`npm test` runs the provider contract tests without calling a live provider.

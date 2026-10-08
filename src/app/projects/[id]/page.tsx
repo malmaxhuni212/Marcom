@@ -33,7 +33,11 @@ export default function ProjectDetailClient({ params }: { params: Promise<{ id: 
   }, [id]);
 
   const handleResearchComplete = (entry: any) => {
-    setResearchEntries((prev) => [entry, ...prev]);
+    if (entry) {
+      setResearchEntries((prev) => [entry, ...prev]);
+    } else {
+      loadData();
+    }
   };
 
   if (loading) {

@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server';
 import { JsonFileMemoryStore } from '@/marcom/memory/store';
 import { GroqProvider } from '@/marcom/llm/groq-provider';
-import { runResearchAgent, type ResearchProgress } from '@/marcom/agents/research/agent';
+import { pickTarget, runResearchAgent, type ResearchProgress } from '@/marcom/agents/research/agent';
+import { discoverProspectSeeds } from '@/marcom/agents/research/discovery';
+import { resolveSearchProvider } from '@/marcom/search/registry';
+import type { SearchProvider } from '@/marcom/search/provider';
 import { deleteResearch, findDuplicate, listResearch, saveResearch, upsertProspectMemory } from '@/marcom/memory/research-store';
 import type { ProspectSeed } from '@/marcom/schemas/research-record';
 
@@ -49,11 +52,13 @@ export async function POST(req: Request, { params }: RouteCtx) {
     }
   }
 
-  let provider: GroqProvider;
+  let llmProvider: GroqProvider;
+  let searchProvider: SearchProvider;
   try {
-    provider = new GroqProvider();
-  } catch {
-    return NextResponse.json({ error: 'Failed to instantiate GroqProvider' }, { status: 500 });
+    llmProvider = new GroqProvider();
+    searchProvider = resolveSearchProvider(undefined, llmProvider);
+  } catch (error) {
+    return NextResponse.json({ error: (error as Error).message }, { status: 500 });
   }
 
   const encoder = new TextEncoder();
@@ -65,36 +70,22 @@ export async function POST(req: Request, { params }: RouteCtx) {
         let actualSeed = seed;
 
         if (!actualSeed.name) {
-          onProgress({ stage: 'resolving', message: 'Discovering a new prospect from the web...' });
-          
-          const target = project.structured_brief!.targets.find((t: any) => t.id === clean(body.target_id, 100));
-          const targetName = target ? target.target_type : 'relevant professionals';
-          
-          // Use provider to generate a name
-          const discoveryQuery = `Find ONE highly specific real-world example of a ${targetName} relevant to: ${project.structured_brief!.project.name}. Return ONLY a JSON object with {"name": "...", "organisation": "..."}. Do not use Markdown.`;
-          
-          const text = await provider.complete({
-             system: "You are a web discovery agent. Output ONLY valid JSON.",
-             user: discoveryQuery,
-             maxTokens: 500
+          onProgress({ stage: 'resolving', message: 'Searching for a supported prospect candidate...' });
+          const existing = listResearch(projectId);
+          const target = pickTarget(project.structured_brief!, actualSeed, clean(body.target_id, 100));
+          const discovery = await discoverProspectSeeds({
+            brief: project.structured_brief!,
+            target,
+            desiredCount: 1,
+            searchProvider,
+            llmProvider,
+            existingNames: existing.flatMap((entry) => [entry.seed.name, entry.record.identity.name ?? '']),
+            existingUrls: existing.flatMap((entry) => [entry.seed.website ?? '', entry.record.website ?? '']),
           });
-          
-          let parsed;
-          try {
-            parsed = JSON.parse(text);
-          } catch(e) {
-             const m = text.match(/\{[\s\S]*\}/);
-             if (m) parsed = JSON.parse(m[0]);
-          }
-          if (parsed && parsed.name) {
-             actualSeed.name = parsed.name;
-             if (parsed.organisation && !actualSeed.organisation) {
-                actualSeed.organisation = parsed.organisation;
-             }
-             onProgress({ stage: 'resolving', message: `Discovered: ${actualSeed.name}` });
-          } else {
-             throw new Error("Could not discover a prospect automatically. Please enter a name.");
-          }
+          const discovered = discovery.seeds[0];
+          if (!discovered) throw new Error('Search found no new supported prospect. Refine the brief or enter a name.');
+          actualSeed = discovered;
+          onProgress({ stage: 'resolving', message: `Discovered: ${actualSeed.name}` });
         }
 
         const entry = await runResearchAgent({
@@ -103,7 +94,8 @@ export async function POST(req: Request, { params }: RouteCtx) {
           targetId: clean(body.target_id, 100),
           seed: actualSeed,
           store,
-          provider,
+          searchProvider,
+          llmProvider,
           onProgress,
         });
         onProgress({ stage: 'saving', message: 'Saving to project' });
