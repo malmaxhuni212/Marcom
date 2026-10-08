@@ -73,20 +73,20 @@ export default function ProspectEvidenceDrawer({
           \n
           <section className="rounded-2xl border border-white/[0.07] bg-[#111118] p-4 flex flex-col gap-3">
             <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/40">Contact & Links</h3>
-            <div className="flex flex-wrap gap-4">
+                        <div className="flex flex-wrap gap-4">
               {record.public_contact?.find(c => c.kind === "email") && (
                 <a href={"mailto:" + record.public_contact.find(c => c.kind === "email")?.value} className="flex items-center gap-2 rounded-lg bg-blue-500/10 px-3 py-1.5 text-sm font-medium text-blue-400 hover:bg-blue-500/20 transition">
-                  ? {record.public_contact.find(c => c.kind === "email")?.value}
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-75"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg> {record.public_contact.find(c => c.kind === "email")?.value}
                 </a>
               )}
               {record.social_profiles?.find(p => p.platform === "linkedin") && (
                 <a href={record.social_profiles.find(p => p.platform === "linkedin")?.profile_url} target="_blank" className="flex items-center gap-2 rounded-lg bg-blue-500/10 px-3 py-1.5 text-sm font-medium text-blue-400 hover:bg-blue-500/20 transition">
-                  in LinkedIn Profile
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-75"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect width="4" height="12" x="2" y="9"/><circle cx="4" cy="4" r="2"/></svg> LinkedIn Profile
                 </a>
               )}
               {record.websites?.[0]?.url && (
                 <a href={record.websites[0]?.url} target="_blank" className="flex items-center gap-2 rounded-lg bg-blue-500/10 px-3 py-1.5 text-sm font-medium text-blue-400 hover:bg-blue-500/20 transition">
-                  ?? Website
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-75"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/><path d="M2 12h20"/></svg> Website
                 </a>
               )}
               {!(record.public_contact?.find(c => c.kind === "email") || record.social_profiles?.find(p => p.platform === "linkedin") || record.websites?.[0]?.url) && (
