@@ -44,7 +44,7 @@ export interface NormalizeContext {
 // ---------- small coercion helpers ----------
 const str = (v: unknown): string | null => {
   if (v === null || v === undefined) return null;
-  const s = String(v).trim();
+  const s = typeof v === 'object' ? JSON.stringify(v) : String(v).trim();
   return s && !/^(null|n\/a|unknown|none|not found|-)$/i.test(s) ? s : null;
 };
 const strArr = (v: unknown): string[] =>

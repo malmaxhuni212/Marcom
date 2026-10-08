@@ -163,7 +163,7 @@ export default function ProspectEvidenceDrawer({
               <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-200/70">Review warnings</h3>
               <ul className="mt-3 space-y-2 text-xs leading-5 text-amber-100/65">
                 {record.unknowns.map((item) => <li key={item.field}>Unknown {item.field}: {item.reason}</li>)}
-                {record.contradictions.map((item) => <li key={item}>Contradiction: {item}</li>)}
+                {record.contradictions.map((item, index) => <li key={index}>Contradiction: {String(item)}</li>)}
                 {entry.qa.issues.map((item, index) => <li key={`${item.code}-${index}`}>{item.message}</li>)}
               </ul>
             </section>
