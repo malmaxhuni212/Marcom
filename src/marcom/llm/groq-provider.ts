@@ -2,13 +2,7 @@ import { LLMProvider, LLMRequest } from './provider';
 import { KeyPool } from './key-pool';
 
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
-export const GROQ_MODELS = [
-  'llama-3.1-70b-versatile',
-  'llama3-70b-8192',
-  'mixtral-8x7b-32768',
-  'gemma2-9b-it',
-  'llama-3.1-8b-instant'
-];
+export const GROQ_MODEL = 'openai/gpt-oss-20b';
 
 /** A page or search hit the Groq browser tool actually returned. Used to verify citations. */
 export interface SeenSource {
@@ -45,18 +39,16 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export class GroqProvider implements LLMProvider {
   readonly name = 'groq';
-  readonly model = GROQ_MODELS[0];
+  readonly model = GROQ_MODEL;
 
   constructor() {}
 
   /** POST with automatic wait-and-retry on 429 using KeyPool. */
   private async post(payload: Record<string, unknown>, opts: GroqCallOptions = {}): Promise<any> {
     const maxRetries = opts.maxRetries ?? 15;
-    let modelIndex = 0;
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       const apiKey = await KeyPool.getAvailableKey(opts.onWait);
-      const currentModel = GROQ_MODELS[modelIndex % GROQ_MODELS.length];
-      const body = { ...payload, model: currentModel };
+      const body = payload;
       const response = await fetch(GROQ_URL, {
         method: 'POST',
         headers: {
@@ -67,10 +59,9 @@ export class GroqProvider implements LLMProvider {
       });
       if (response.ok) return response.json();
       const errorText = await response.text();
-      if (response.status === 429 || response.status === 413 || response.status === 404) {
+      if (response.status === 429 || response.status === 413) {
         const wait = response.status === 413 ? 60 : Math.min(parseRetrySeconds(response, errorText), 65);
-        if (response.status !== 404) KeyPool.markRateLimited(apiKey, wait);
-        modelIndex++;
+        KeyPool.markRateLimited(apiKey, wait);
         continue;
       }
       throw new Error(`Groq API Error (${response.status}): ${errorText}`);
@@ -81,6 +72,7 @@ export class GroqProvider implements LLMProvider {
   async complete(request: LLMRequest, opts?: GroqCallOptions): Promise<string> {
     for (let attempt = 1; attempt <= 3; attempt++) {
       const data = await this.post({
+        model: GROQ_MODEL,
         
         messages: [
           { role: 'system', content: request.system },
@@ -107,6 +99,7 @@ export class GroqProvider implements LLMProvider {
    */
   async browserSearch(request: LLMRequest, opts?: GroqCallOptions): Promise<BrowserSearchResult> {
     const data = await this.post({
+        model: GROQ_MODEL,
       
       messages: [
         { role: 'system', content: request.system },
@@ -159,5 +152,6 @@ export class GroqProvider implements LLMProvider {
     };
   }
 }
+
 
 
