@@ -45,28 +45,23 @@ export class GroqProvider implements LLMProvider {
 
   /** POST with automatic wait-and-retry on 429 using KeyPool. */
   private async post(payload: Record<string, unknown>, opts: GroqCallOptions = {}): Promise<any> {
-    const maxRetries = opts.maxRetries ?? 10; // higher retries because we rotate keys
+    const maxRetries = opts.maxRetries ?? 15;
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       const apiKey = await KeyPool.getAvailableKey(opts.onWait);
-      
+      const body = payload;
       const response = await fetch(GROQ_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${apiKey}`
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(body),
       });
-
       if (response.ok) return response.json();
-
       const errorText = await response.text();
-      
-      // 429 = rate limited
-      if (response.status === 429) {
-        const wait = Math.min(parseRetrySeconds(response, errorText), 65);
+      if (response.status === 429 || response.status === 413) {
+        const wait = response.status === 413 ? 60 : Math.min(parseRetrySeconds(response, errorText), 65);
         KeyPool.markRateLimited(apiKey, wait);
-        // Continue to next loop iteration, which will grab the next available key (or sleep if all are cooling down)
         continue;
       }
       throw new Error(`Groq API Error (${response.status}): ${errorText}`);
@@ -78,6 +73,7 @@ export class GroqProvider implements LLMProvider {
     for (let attempt = 1; attempt <= 3; attempt++) {
       const data = await this.post({
         model: GROQ_MODEL,
+        
         messages: [
           { role: 'system', content: request.system },
           { role: 'user', content: request.user }
@@ -103,7 +99,8 @@ export class GroqProvider implements LLMProvider {
    */
   async browserSearch(request: LLMRequest, opts?: GroqCallOptions): Promise<BrowserSearchResult> {
     const data = await this.post({
-      model: GROQ_MODEL,
+        model: GROQ_MODEL,
+      
       messages: [
         { role: 'system', content: request.system },
         { role: 'user', content: request.user }
@@ -155,3 +152,6 @@ export class GroqProvider implements LLMProvider {
     };
   }
 }
+
+
+

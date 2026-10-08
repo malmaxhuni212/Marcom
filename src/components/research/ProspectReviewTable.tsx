@@ -173,7 +173,7 @@ export default function ProspectReviewTable({ projectId, initialProspectId }: { 
             <h1 className="mt-2 text-3xl font-semibold text-white/90">{data?.project.name ?? 'Campaign research'}</h1>
             <p className="mt-2 text-sm text-white/40">Filter the evidence-backed results, inspect each profile, and record a human decision.</p>
           </div>
-        </div>
+        <button type="button" onClick={async () => { if (confirm('Are you sure you want to delete ALL researched prospects for this project? This cannot be undone.')) { await fetch(`/api/projects/${projectId}/research?all=true`, { method: 'DELETE' }); window.location.reload(); } }} className="rounded-xl border border-red-500/20 bg-red-500/[0.05] px-4 py-2 text-xs font-medium text-red-400 transition hover:bg-red-500/10">Delete Database</button></div>
       </header>
 
       <section className="grid grid-cols-2 gap-3 md:grid-cols-5" aria-label="Research result summary">
@@ -340,3 +340,4 @@ export default function ProspectReviewTable({ projectId, initialProspectId }: { 
     </div>
   );
 }
+

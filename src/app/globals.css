@@ -4,7 +4,7 @@
    MARCOM Design System — Global Styles
    ============================================ */
 
-@theme inline {
+@theme {
   --color-background: #08080c;
   --color-foreground: rgba(255, 255, 255, 0.9);
   --color-surface: rgba(255, 255, 255, 0.03);

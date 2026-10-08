@@ -111,7 +111,7 @@ function buildEvidence(candidates: SearchCandidate[]): {
     if (!unique.has(key)) unique.set(key, candidate);
   }
   let usedCharacters = 0;
-  const maximumCharacters = 30_000;
+  const maximumCharacters = 10_000;
   const seen: SeenSource[] = [];
   const pages: { url: string; text: string }[] = [];
   const sections: string[] = [];
@@ -188,7 +188,7 @@ export async function runResearchAgent(input: RunResearchInput): Promise<Researc
   let draft: unknown;
   let rawCompletion = '';
   try {
-    rawCompletion = await llmProvider.complete({ system, user, maxTokens: 3_500 });
+    rawCompletion = await llmProvider.complete({ system, user, maxTokens: 2_500 });
     draft = extractJson(rawCompletion);
   } catch (error) {
     if (!evidence.bundle.trim()) throw new Error('Research returned no evidence. Please try again.');

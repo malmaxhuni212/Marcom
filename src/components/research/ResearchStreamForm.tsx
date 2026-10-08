@@ -32,6 +32,7 @@ export default function ResearchStreamForm({
   const [progressStage, setProgressStage] = useState('');
   const [progressMsg, setProgressMsg] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,6 +55,7 @@ export default function ResearchStreamForm({
         if (!res.ok) throw new Error(data.error);
 
         const taskId = data.taskId;
+        setActiveTaskId(taskId);
         const interval = setInterval(async () => {
           const statusRes = await fetch(`/api/projects/${projectId}/batch-research?taskId=${taskId}`);
           if (!statusRes.ok) return;
@@ -63,6 +65,7 @@ export default function ResearchStreamForm({
             clearInterval(interval);
             setIsStreaming(false);
             setProgressStage('');
+            setActiveTaskId(null);
             setProgressMsg('');
             if (statusData.status === 'error') {
               setError(statusData.message || 'Research failed.');
@@ -158,6 +161,16 @@ export default function ResearchStreamForm({
     }
   };
 
+  const handleStop = async () => {
+    if (!activeTaskId) return;
+    try {
+      await fetch(`/api/projects/${projectId}/batch-research?taskId=${activeTaskId}`, { method: 'DELETE' });
+      setProgressMsg('Stopping...');
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   return (
     <div>
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -207,7 +220,7 @@ export default function ResearchStreamForm({
                 <input 
                   type="number" 
                   min="1"
-                  max="25"
+                  max="50"
                   placeholder="e.g. 10"
                   value={batchCount === '' ? '' : batchCount} 
                   onChange={e => {
@@ -256,7 +269,18 @@ export default function ResearchStreamForm({
                 <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
                 <span className="text-[12px] font-medium text-cyan-400 capitalize">{progressStage.replace(/_/g, ' ')}...</span>
               </div>
-              <span className="text-[11px] text-white/40">{progressMsg}</span>
+              <div className="flex items-center gap-3">
+                <span className="text-[11px] text-white/40">{progressMsg}</span>
+                {activeTaskId && (
+                  <button
+                    type="button"
+                    onClick={handleStop}
+                    className="text-[11px] font-medium text-red-400 hover:text-red-300 transition-colors"
+                  >
+                    Stop
+                  </button>
+                )}
+              </div>
             </div>
             <div className="h-1.5 w-full bg-white/[0.05] rounded-full overflow-hidden">
               <div className="h-full bg-gradient-to-r from-cyan-600 to-cyan-400 w-full animate-[progress_2s_ease-in-out_infinite]" style={{ transformOrigin: 'left' }} />
