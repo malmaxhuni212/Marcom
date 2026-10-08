@@ -79,12 +79,12 @@ export async function discoverProspectSeeds(input: {
     };
   }
 
-  const sourcePayload = uniqueCandidates.slice(0, 10).map((candidate, index) => ({
+  const sourcePayload = uniqueCandidates.slice(0, input.desiredCount + 5).map((candidate, index) => ({
     id: `R${index + 1}`,
     url: candidate.url,
     title: candidate.title,
     highlights: candidate.highlights,
-    text: candidate.text.slice(0, 1_000),
+    text: candidate.text.slice(0, 400),
   }));
   const raw = await llmProvider.complete({
     system:
