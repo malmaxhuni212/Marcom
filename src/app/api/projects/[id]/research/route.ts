@@ -6,7 +6,7 @@ import { pickTarget, runResearchAgent, type ResearchProgress } from '@/marcom/ag
 import { discoverProspectSeeds } from '@/marcom/agents/research/discovery';
 import { resolveSearchProvider } from '@/marcom/search/registry';
 import type { SearchProvider } from '@/marcom/search/provider';
-import { deleteResearch, findDuplicate, listResearch, saveResearch, updateResearchReview, upsertProspectMemory } from '@/marcom/memory/research-store';
+import { deleteResearch, deleteProjectResearch, findDuplicate, listResearch, saveResearch, updateResearchReview, upsertProspectMemory } from '@/marcom/memory/research-store';
 import { ReviewStatusSchema, type ProspectSeed, type ResearchEntry } from '@/marcom/schemas/research-record';
 import { evidenceCoverage, reviewStatus, summarizeResearch } from '@/marcom/research/review';
 
@@ -217,8 +217,17 @@ export async function PATCH(req: Request, { params }: RouteCtx) {
 
 export async function DELETE(req: Request, { params }: RouteCtx) {
   const { id: projectId } = await params;
-  const recordId = new URL(req.url).searchParams.get('recordId');
-  if (!recordId) return NextResponse.json({ error: 'recordId is required' }, { status: 400 });
+  const url = new URL(req.url);
+  const recordId = url.searchParams.get('recordId');
+  const all = url.searchParams.get('all') === 'true';
+
+  if (all) {
+    deleteProjectResearch(projectId);
+    return NextResponse.json({ success: true, message: 'All research deleted' });
+  }
+
+  if (!recordId) return NextResponse.json({ error: 'recordId or all=true is required' }, { status: 400 });
+  
   const ok = deleteResearch(projectId, recordId);
   return ok ? NextResponse.json({ success: true }) : NextResponse.json({ error: 'Record not found' }, { status: 404 });
 }

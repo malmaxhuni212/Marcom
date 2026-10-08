@@ -87,8 +87,6 @@ export function deleteResearch(projectId: string, recordId: string): boolean {
   if (next.length === entries.length) return false;
   writeResearch(projectId, next);
   return true;
-}
-
 export function deleteProjectResearch(projectId: string): void {
   const f = fileFor(projectId);
   if (existsSync(f)) unlinkSync(f);
