@@ -81,7 +81,7 @@ export async function discoverProspectSeeds(input: {
     };
   }
 
-  const sourcePayload = uniqueCandidates.slice(0, Math.min(input.desiredCount + 5, 30)).map((candidate, index) => ({
+  const sourcePayload = uniqueCandidates.slice(0, Math.min(input.desiredCount + 5, 60)).map((candidate, index) => ({
     id: `R${index + 1}`,
     url: candidate.url,
     title: candidate.title,
@@ -102,7 +102,7 @@ export async function discoverProspectSeeds(input: {
         ],
       },
     }),
-    maxTokens: 2_000,
+    maxTokens: 4_000,
   });
   const parsed = CandidateListSchema.parse(extractJson(raw));
   const allowedUrls = new Set(uniqueCandidates.map((candidate) => canonicalUrl(candidate.url)));
