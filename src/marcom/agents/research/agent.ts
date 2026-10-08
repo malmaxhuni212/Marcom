@@ -137,7 +137,7 @@ function buildEvidence(candidates: SearchCandidate[]): {
 }
 
 const NORMALIZER_SYSTEM = `Convert the research notes into ONE JSON object with exactly these keys:
-{"name","entity_kind","identity_verified","role","organisation","country","location","website","linkedin","other_profiles","contacts":[{"kind","value","source","confidence"}],"background","projects_or_work","achievements","industry_involvement","criteria":[{"criterion","status","note","sources"}],"evidence":[{"claim","field","sources","confidence","quote"}],"sources":[{"id","url","title","type"}],"unknowns":[{"field","reason"}],"contradictions","fit_score","fit_rationale","summary","confidence"}
+{"name","entity_kind","identity_verified","role","organisation","country","location","websites":[{"url","type","title"}],"social_profiles":[{"platform","profile_url","username","display_name","verified_status","confidence","source_ids"}],"public_contact":[{"kind","value","is_professional","source_ids","confidence"}],"background":["string"],"work_and_projects":["string"],"achievements":["string"],"industry_activity":["string"],"criteria":[{"criterion","status","note","sources"}],"evidence":[{"claim","field","sources","confidence","quote"}],"sources":[{"id","url","title","type"}],"unknowns":[{"field","reason"}],"contradictions","fit_score","fit_rationale","summary","confidence"}
 Use ONLY information present in the notes. Never add facts, URLs or contacts. Missing = null or []. Output JSON only.`;
 
 export async function runResearchAgent(input: RunResearchInput): Promise<ResearchEntry> {
@@ -231,4 +231,6 @@ export async function runResearchAgent(input: RunResearchInput): Promise<Researc
     search_warnings: search.warnings,
   };
 }
+
+
 
