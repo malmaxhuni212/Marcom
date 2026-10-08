@@ -262,7 +262,7 @@ export default function ProspectReviewTable({ projectId, initialProspectId }: { 
                 const record = entry.record;
                 const id = record.record_id;
                 const evidence = evidenceCoverage(entry);
-                const hasContact = Boolean(record.website || record.linkedin || record.instagram || record.public_contact.length);
+                const hasContact = Boolean((record.websites?.[0]?.url) || (record.social_profiles?.find(p => p.platform === 'linkedin')?.profile_url) || (record.social_profiles?.find(p => p.platform === 'instagram')?.profile_url) || record.public_contact.length);
                 return (
                   <tr key={id} className="group hover:bg-white/[0.025]">
                     <td className="px-4 py-4 align-top">
@@ -340,4 +340,5 @@ export default function ProspectReviewTable({ projectId, initialProspectId }: { 
     </div>
   );
 }
+
 

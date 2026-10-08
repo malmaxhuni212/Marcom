@@ -16,15 +16,7 @@ function makeEntry(status?: ReviewStatus, duplicate = false): ResearchEntry {
       organisation: null,
       country: 'United Kingdom',
       location: 'London',
-      website: null,
-      linkedin: null,
-      instagram: null,
-      other_public_profiles: [],
-      public_contact: [],
-      relevant_experience: [],
-      relevant_projects: [],
-      achievements: [],
-      industry_involvement: [],
+      websites: [], social_profiles: [], public_contact: [], background: [], work_and_projects: [], achievements: [], industry_activity: [],
       qualification_assessment: [],
       reason_for_relevance: null,
       fit: { score: 70, band: 'strong', rationale: 'Matches the approved target.' },
@@ -48,8 +40,8 @@ function makeEntry(status?: ReviewStatus, duplicate = false): ResearchEntry {
     qa: { status: 'passed', issues: [] },
     relationship_status: null,
     model: 'test-model',
-    searches: [],
-    review: status ? { status, note: null, reviewed_at: '2026-10-08T12:00:00.000Z' } : undefined,
+    searches: [], search_provider: 'exa', search_request_ids: [], search_usage: { requests: 1, estimated_cost_usd: 0, latency_ms: 100 }, search_warnings: [],
+    review: status ? { project_id: 'p1', record_id: 'r1', reviewed_by: 'system', status, note: null, reviewed_at: '2026-10-08T12:00:00.000Z' } : undefined,
   };
 }
 
@@ -84,3 +76,9 @@ test('research summary counts review states and duplicate flags', () => {
     },
   );
 });
+
+
+
+
+
+

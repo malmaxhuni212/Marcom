@@ -141,7 +141,7 @@ export function normalizeAndQA(raw: unknown, ctx: NormalizeContext): { record: R
 
   // ---------- contacts (verbatim check) ----------
   const contacts: PublicContact[] = [];
-  const kinds = ['email', 'contact_form', 'phone', 'agent_or_representative', 'social_profile', 'other'] as const;
+  const kinds = ['email', 'contact_form', 'phone', 'agent_or_representative', 'other'] as const;
   for (const c of Array.isArray(d.contacts) ? d.contacts : []) {
     const value = str(c?.value);
     if (!value) continue;
@@ -280,15 +280,13 @@ export function normalizeAndQA(raw: unknown, ctx: NormalizeContext): { record: R
     organisation: str(d.organisation),
     country: str(d.country),
     location: str(d.location),
-    website,
-    linkedin,
-    instagram: otherProfiles.find((u) => /instagram\.com/i.test(u)) ?? null,
-    other_public_profiles: otherProfiles,
+    websites: [],
+    social_profiles: [],
     public_contact: contacts,
-    relevant_experience: strArr(d.background),
-    relevant_projects: strArr(d.projects_or_work),
+    background: strArr(d.background),
+    work_and_projects: strArr(d.projects_or_work),
     achievements: strArr(d.achievements),
-    industry_involvement: strArr(d.industry_involvement),
+    industry_activity: strArr(d.industry_involvement),
     qualification_assessment: criteria,
     reason_for_relevance: rationale,
     fit: { score, band: fitBand(score), rationale },
@@ -318,3 +316,5 @@ export function normalizeAndQA(raw: unknown, ctx: NormalizeContext): { record: R
 }
 
 export { hostOf };
+
+

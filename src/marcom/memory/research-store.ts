@@ -41,7 +41,7 @@ export function findDuplicate(entries: ResearchEntry[], seed: { name: string; we
   return (
     entries.find((e) => {
       if (normalizeName(e.seed.name) === n || normalizeName(e.record.identity.name ?? '') === n) return true;
-      const theirs = [e.record.website, e.record.linkedin, e.seed.website, e.seed.linkedin].filter(Boolean).map((u) => canonicalUrl(u!));
+      const theirs = [e.record.websites?.[0]?.url, e.record.social_profiles?.find(p => p.platform === 'linkedin')?.profile_url, e.seed.website, e.seed.linkedin].filter(Boolean).map((u) => canonicalUrl(u!));
       return urls.some((u) => theirs.includes(u));
     }) ?? null
   );
@@ -53,7 +53,7 @@ export function saveResearch(projectId: string, entry: ResearchEntry): void {
   const dup = findDuplicate(entries, entry.seed);
   const savedEntry: ResearchEntry = {
     ...entry,
-    review: entry.review ?? { status: 'needs_review', note: null, reviewed_at: null },
+    review: entry.review ?? { project_id: projectId, record_id: entry.record.record_id, status: 'needs_review', note: null, reviewed_at: new Date().toISOString(), reviewed_by: 'system' },
   };
   const next = dup ? entries.map((e) => (e === dup ? savedEntry : e)) : [savedEntry, ...entries];
   writeResearch(projectId, next);
@@ -70,11 +70,7 @@ export function updateResearchReview(
   if (index === -1) return null;
   const updated: ResearchEntry = {
     ...entries[index],
-    review: {
-      status,
-      note: note?.trim() || null,
-      reviewed_at: new Date().toISOString(),
-    },
+    review: { project_id: projectId, record_id: recordId, status, note: note?.trim() || null, reviewed_at: new Date().toISOString(), reviewed_by: 'user' },
   };
   entries[index] = updated;
   writeResearch(projectId, entries);
@@ -125,8 +121,8 @@ export function upsertProspectMemory(entry: ResearchEntry): void {
     role: r.role ?? base.role,
     organisation: r.organisation ?? base.organisation,
     country: r.country ?? base.country,
-    website: r.website ?? base.website,
-    linkedin: r.linkedin ?? base.linkedin,
+    website: r.websites?.[0]?.url ?? base.website,
+    linkedin: r.social_profiles?.find(p => p.platform === 'linkedin')?.profile_url ?? base.linkedin,
     project_ids: base.project_ids.includes(r.project_id) ? base.project_ids : [...base.project_ids, r.project_id],
     last_researched_at: r.researched_at,
     summary: r.summary.slice(0, 300) || base.summary,
@@ -134,3 +130,8 @@ export function upsertProspectMemory(entry: ResearchEntry): void {
   const next = existing ? prospects.map((p) => (p === existing ? updated : p)) : [...prospects, updated];
   writeFileSync(PROSPECTS_FILE, JSON.stringify(next, null, 2), 'utf8');
 }
+
+
+
+
+

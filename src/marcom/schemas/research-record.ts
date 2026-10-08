@@ -1,54 +1,55 @@
-/**
- * ResearchRecord contract — output of the Research Agent.
- *
- * The field set is stable across projects. Which fields MATTER is decided by the
- * active StructuredBrief (research.required_fields + database.fields), not by this schema.
- *
- * `agents/research/schema.json` is generated from this file via `npm run schemas`.
- */
 import { z } from 'zod';
 
 export const RESEARCH_RECORD_VERSION = '1.1' as const;
 
 const nonEmpty = z.string().trim().min(1);
 
-/**
- * Confidence of a single claim:
- *  verified  = stated by an official/primary source (or 2+ independent credible sources)
- *  likely    = credible source(s) agree but not official
- *  uncertain = weak / single third-party / possibly outdated source
- * ("unknown" is never a claim — it goes into `unknowns`.)
- */
 export const ClaimConfidenceSchema = z.enum(['verified', 'likely', 'uncertain']);
 
 export const SourceSchema = z.strictObject({
-  id: nonEmpty.describe('Local id referenced by evidence items, e.g. "src-1".'),
+  id: nonEmpty,
   url: nonEmpty,
   title: z.string().nullable(),
-  source_type: z.string().describe('e.g. "official website", "industry database", "press article".'),
+  source_type: z.string(),
   retrieved_at: z.string().nullable(),
 });
 
 export const EvidenceSchema = z.strictObject({
-  claim: nonEmpty.describe('The claim being supported, e.g. "Produced the feature film X (2021)".'),
-  field: nonEmpty.describe('ResearchRecord field this evidence supports, e.g. "relevant_projects".'),
+  claim: nonEmpty,
+  field: nonEmpty,
   source_ids: z.array(nonEmpty).min(1),
-  quote: z.string().nullable().describe('Short verbatim excerpt from the source, if available.'),
+  quote: z.string().nullable(),
   confidence: ClaimConfidenceSchema,
 });
 
+export const WebsiteSchema = z.strictObject({
+  url: nonEmpty,
+  type: z.enum(['personal', 'company', 'author', 'portfolio', 'project', 'official_profile', 'other']),
+  title: z.string().nullable(),
+});
+
+export const SocialProfileSchema = z.strictObject({
+  platform: z.enum(['linkedin', 'instagram', 'facebook', 'x', 'tiktok', 'youtube', 'threads', 'bluesky', 'goodreads', 'substack', 'medium', 'other']),
+  profile_url: nonEmpty,
+  username: z.string().nullable(),
+  display_name: z.string().nullable(),
+  verified_status: z.boolean(),
+  confidence: ClaimConfidenceSchema,
+  source_ids: z.array(nonEmpty).min(1),
+});
+
 export const PublicContactSchema = z.strictObject({
-  kind: z.enum(['email', 'contact_form', 'phone', 'agent_or_representative', 'social_profile', 'other']),
+  kind: z.enum(['email', 'contact_form', 'phone', 'agent_or_representative', 'other']),
   value: nonEmpty,
   is_professional: z.boolean(),
-  source_ids: z.array(nonEmpty).min(1).describe('A contact route MUST be backed by a source where it appears verbatim.'),
+  source_ids: z.array(nonEmpty).min(1),
   confidence: ClaimConfidenceSchema,
 });
 
 export const FitAssessmentSchema = z.strictObject({
   score: z.number().int().min(0).max(100),
   band: z.enum(['irrelevant', 'weak', 'possible', 'strong', 'highly_relevant']),
-  rationale: z.string().describe('Evidence-based explanation of fit against the project brief.'),
+  rationale: z.string(),
 });
 
 export const UnknownFieldSchema = z.strictObject({
@@ -67,7 +68,7 @@ export const ResearchRecordSchema = z.strictObject({
   research_record_version: z.literal(RESEARCH_RECORD_VERSION),
   record_id: nonEmpty,
   project_id: nonEmpty,
-  brief_target_id: nonEmpty.describe('Which StructuredBrief target group this record belongs to.'),
+  brief_target_id: nonEmpty,
 
   identity: z.strictObject({
     name: z.string().nullable(),
@@ -80,21 +81,19 @@ export const ResearchRecordSchema = z.strictObject({
   country: z.string().nullable(),
   location: z.string().nullable(),
 
-  website: z.string().nullable(),
-  linkedin: z.string().nullable(),
-  instagram: z.string().nullable(),
-  other_public_profiles: z.array(nonEmpty),
+  websites: z.array(WebsiteSchema),
+  social_profiles: z.array(SocialProfileSchema),
   public_contact: z.array(PublicContactSchema),
 
-  relevant_experience: z.array(nonEmpty),
-  relevant_projects: z.array(nonEmpty),
+  background: z.array(nonEmpty),
+  work_and_projects: z.array(nonEmpty),
   achievements: z.array(nonEmpty),
-  industry_involvement: z.array(nonEmpty),
+  industry_activity: z.array(nonEmpty),
 
   qualification_assessment: z.array(QualificationAssessmentSchema),
   reason_for_relevance: z.string().nullable(),
   fit: FitAssessmentSchema,
-  summary: z.string().describe('Neutral factual research summary. Never outreach copy.'),
+  summary: z.string(),
 
   evidence: z.array(EvidenceSchema),
   sources: z.array(SourceSchema),
@@ -102,21 +101,20 @@ export const ResearchRecordSchema = z.strictObject({
   contradictions: z.array(nonEmpty),
   research_confidence: z.enum(['high', 'medium', 'low']),
 
-  /** Set by duplicate detection when the record matches an existing prospect in memory. */
   matched_prospect_id: z.string().nullable(),
-
   researched_at: nonEmpty,
   research_agent_version: nonEmpty,
 });
 
 export type Source = z.infer<typeof SourceSchema>;
 export type Evidence = z.infer<typeof EvidenceSchema>;
+export type Website = z.infer<typeof WebsiteSchema>;
+export type SocialProfile = z.infer<typeof SocialProfileSchema>;
 export type PublicContact = z.infer<typeof PublicContactSchema>;
 export type ClaimConfidence = z.infer<typeof ClaimConfidenceSchema>;
 export type FitAssessment = z.infer<typeof FitAssessmentSchema>;
 export type ResearchRecord = z.infer<typeof ResearchRecordSchema>;
 
-/** What the user gives the Research Agent. Any field except `name` may be missing. */
 export interface ProspectSeed {
   name: string;
   entity_kind?: 'person' | 'organisation' | 'unknown';
@@ -143,27 +141,28 @@ export const ReviewStatusSchema = z.enum(['needs_review', 'shortlisted', 'reject
 export type ReviewStatus = z.infer<typeof ReviewStatusSchema>;
 
 export interface ProspectReview {
+  project_id: string;
+  record_id: string;
   status: ReviewStatus;
   note: string | null;
-  reviewed_at: string | null;
+  reviewed_at: string;
+  reviewed_by: string;
 }
 
-/** One saved research run for a prospect inside a project (memory/research/<project_id>.json). */
 export interface ResearchEntry {
   record: ResearchRecord;
   seed: ProspectSeed;
   qa: ResearchQA;
-  /** Relationship status from memory, surfaced so humans see do_not_contact etc. */
   relationship_status: string | null;
   model: string;
   searches: string[];
-  search_provider?: string;
-  search_request_ids?: string[];
-  search_usage?: {
+  search_provider: string;
+  search_request_ids: string[];
+  search_usage: {
     requests: number;
-    estimated_cost_usd: number | null;
+    estimated_cost_usd: number;
     latency_ms: number;
   };
-  search_warnings?: string[];
+  search_warnings: string[];
   review?: ProspectReview;
 }
