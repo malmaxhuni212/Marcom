@@ -5,6 +5,7 @@ import { listResearch } from '@/marcom/memory/research-store';
 import { StructuredBriefSchema } from '@/marcom/schemas/structured-brief';
 import { validateResearchReadyConfiguration } from '@/marcom/validation/campaign-configuration';
 import { updateProject } from '@/marcom/memory/project-store';
+import { summarizeResearch } from '@/marcom/research/review';
 
 const UpdateConfigurationSchema = z.strictObject({
   structured_brief: StructuredBriefSchema,
@@ -18,7 +19,12 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   if (!project) {
     return NextResponse.json({ error: 'Project not found' }, { status: 404 });
   }
-  return NextResponse.json({ project, research: listResearch(id) });
+  const research = listResearch(id);
+  return NextResponse.json({
+    project,
+    research: research.slice(0, 3),
+    research_summary: summarizeResearch(research),
+  });
 }
 
 /** Replace the human-reviewed campaign configuration using optimistic concurrency. */

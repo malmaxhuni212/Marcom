@@ -4,17 +4,29 @@ import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import GlassCard from '@/components/ui/GlassCard';
 import StatusBadge from '@/components/ui/StatusBadge';
-import ResearchStreamForm from '@/components/research/ResearchStreamForm';
-import ResearchRecordCard from '@/components/research/ResearchRecordCard';
+import ResearchStreamForm, { type ResearchCompletion } from '@/components/research/ResearchStreamForm';
+import ResearchResultsPreview from '@/components/research/ResearchResultsPreview';
 import CampaignConfigurationForm from '@/components/campaign/CampaignConfigurationForm';
 import type { StructuredBrief } from '@/marcom/schemas/structured-brief';
 import type { ProjectMemory } from '@/marcom/memory/types';
 import type { ResearchEntry } from '@/marcom/schemas/research-record';
+import type { ResearchReviewSummary } from '@/marcom/research/review';
+
+const emptyResearchSummary: ResearchReviewSummary = {
+  total: 0,
+  needs_review: 0,
+  shortlisted: 0,
+  rejected: 0,
+  enrichment_requested: 0,
+  possible_duplicates: 0,
+};
 
 export default function ProjectDetailClient({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const [project, setProject] = useState<ProjectMemory | null>(null);
   const [researchEntries, setResearchEntries] = useState<ResearchEntry[]>([]);
+  const [researchSummary, setResearchSummary] = useState<ResearchReviewSummary>(emptyResearchSummary);
+  const [researchNotice, setResearchNotice] = useState<{ message: string; recordId?: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [editingConfiguration, setEditingConfiguration] = useState(false);
   const [savingConfiguration, setSavingConfiguration] = useState(false);
@@ -27,6 +39,7 @@ export default function ProjectDetailClient({ params }: { params: Promise<{ id: 
         const data = await res.json();
         setProject(data.project);
         setResearchEntries(data.research || []);
+        setResearchSummary(data.research_summary || emptyResearchSummary);
       }
     } catch (e) {
       console.error('Error fetching project:', e);
@@ -39,10 +52,11 @@ export default function ProjectDetailClient({ params }: { params: Promise<{ id: 
     let cancelled = false;
     fetch(`/api/projects/${id}`)
       .then((response) => response.ok ? response.json() : Promise.reject(new Error('Project could not be loaded.')))
-      .then((data: { project: ProjectMemory; research?: ResearchEntry[] }) => {
+      .then((data: { project: ProjectMemory; research?: ResearchEntry[]; research_summary?: ResearchReviewSummary }) => {
         if (cancelled) return;
         setProject(data.project);
         setResearchEntries(data.research || []);
+        setResearchSummary(data.research_summary || emptyResearchSummary);
       })
       .catch((error: unknown) => console.error('Error fetching project:', error))
       .finally(() => {
@@ -53,12 +67,12 @@ export default function ProjectDetailClient({ params }: { params: Promise<{ id: 
     };
   }, [id]);
 
-  const handleResearchComplete = (entry: ResearchEntry | null) => {
-    if (entry) {
-      setResearchEntries((prev) => [entry, ...prev]);
-    } else {
-      loadData();
-    }
+  const handleResearchComplete = (result: ResearchCompletion) => {
+    setResearchNotice({
+      message: result.message,
+      recordId: result.entry?.record.record_id,
+    });
+    void loadData();
   };
 
   const saveConfiguration = async (structuredBrief: StructuredBrief) => {
@@ -201,34 +215,20 @@ export default function ProjectDetailClient({ params }: { params: Promise<{ id: 
             <ResearchStreamForm projectId={id} targetOptions={targetProspects} defaultResultLimit={searchSettings?.default_result_limit} onComplete={handleResearchComplete} />
           </GlassCard>
 
-          <div className="space-y-4">
-            <h3 className="text-sm font-medium text-white/90 flex items-center justify-between">
-              Research Results
-              <span className="text-xs bg-white/10 px-2.5 py-1 rounded-full text-white/60">{researchEntries.length}</span>
-            </h3>
-            
-            {researchEntries.length === 0 ? (
-              <div className="text-center py-12 bg-white/[0.01] border border-white/[0.03] rounded-2xl border-dashed">
-                <p className="text-sm text-white/40">No prospects researched yet.</p>
-                <p className="text-[12px] text-white/30 mt-1">Use the Research Agent above to find and verify contacts.</p>
+          {researchNotice && (
+            <div role="status" className="flex flex-wrap items-center gap-3 rounded-2xl border border-green-300/15 bg-green-300/[0.045] px-4 py-3">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-green-100/85">Search finished</p>
+                <p className="mt-0.5 text-xs text-green-100/50">{researchNotice.message}</p>
               </div>
-            ) : (
-              <div className="space-y-4">
-                {researchEntries.map((entry) => (
-                  <ResearchRecordCard 
-                    key={entry.record.record_id} 
-                    entry={entry} 
-                    onDelete={async () => {
-                      const res = await fetch(`/api/projects/${id}/research?recordId=${entry.record.record_id}`, { method: 'DELETE' });
-                      if (res.ok) {
-                        setResearchEntries(prev => prev.filter(e => e.record.record_id !== entry.record.record_id));
-                      }
-                    }}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
+              <Link href={`/projects/${id}/research${researchNotice.recordId ? `?prospect=${encodeURIComponent(researchNotice.recordId)}` : ''}`} className="rounded-lg bg-green-200 px-3 py-2 text-xs font-medium text-[#07110d] hover:bg-green-100">
+                Review results
+              </Link>
+              <button type="button" aria-label="Dismiss search completion notice" onClick={() => setResearchNotice(null)} className="rounded-lg p-2 text-green-100/45 hover:bg-white/[0.05] hover:text-green-100">✕</button>
+            </div>
+          )}
+
+          <ResearchResultsPreview projectId={id} entries={researchEntries} summary={researchSummary} />
         </div>
       </div>
 

@@ -5,6 +5,12 @@ import PrimaryButton from '@/components/ui/PrimaryButton';
 import type { Target } from '@/marcom/schemas/structured-brief';
 import type { ResearchEntry } from '@/marcom/schemas/research-record';
 
+export interface ResearchCompletion {
+  status: 'completed' | 'completed_with_errors';
+  message: string;
+  entry?: ResearchEntry;
+}
+
 export default function ResearchStreamForm({ 
   projectId, 
   targetOptions,
@@ -14,7 +20,7 @@ export default function ResearchStreamForm({
   projectId: string, 
   targetOptions: Target[],
   defaultResultLimit?: number,
-  onComplete: (entry: ResearchEntry | null) => void
+  onComplete: (result: ResearchCompletion) => void
 }) {
   const [name, setName] = useState('');
   const [organisation, setOrganisation] = useState('');
@@ -60,8 +66,14 @@ export default function ResearchStreamForm({
             setProgressMsg('');
             if (statusData.status === 'error') {
               setError(statusData.message || 'Research failed.');
+            } else if (statusData.status === 'cancelled') {
+              setError(statusData.message || 'Research was cancelled.');
+            } else {
+              onComplete({
+                status: statusData.status,
+                message: statusData.message || `Research finished with ${statusData.completed ?? 0} saved prospects.`,
+              });
             }
-            onComplete(null);
           }
         }, 5000);
       } catch (err) {
@@ -117,7 +129,11 @@ export default function ResearchStreamForm({
               setProgressStage(data.stage);
               setProgressMsg(data.message);
             } else if (data.type === 'result') {
-              onComplete(data.entry);
+              onComplete({
+                status: 'completed',
+                message: 'Research complete. The new prospect is ready for review.',
+                entry: data.entry as ResearchEntry,
+              });
               // reset form
               setName('');
               setOrganisation('');
