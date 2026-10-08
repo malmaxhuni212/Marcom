@@ -39,9 +39,22 @@ function PreviewCard({ projectId, entry }: { projectId: string; entry: ResearchE
         <span className="capitalize">{record.fit.band.replace(/_/g, ' ')} fit</span>
         <span>{evidence.supported}/{evidence.total || 0} evidence fields</span>
         <span className="capitalize">{record.research_confidence} confidence</span>
+        <button 
+          type="button"
+          onClick={async (e) => {
+            e.preventDefault();
+            if (confirm('Are you sure you want to delete this prospect?')) {
+              await fetch(`/api/projects/${projectId}/research?recordId=${encodeURIComponent(record.record_id)}`, { method: 'DELETE' });
+              window.location.reload();
+            }
+          }}
+          className="ml-auto font-medium text-red-400 transition hover:text-red-300"
+        >
+          Delete
+        </button>
         <Link
           href={`/projects/${projectId}/research?prospect=${encodeURIComponent(record.record_id)}`}
-          className="ml-auto font-medium text-cyan-300 transition hover:text-cyan-200"
+          className="font-medium text-cyan-300 transition hover:text-cyan-200"
         >
           Review profile →
         </Link>
