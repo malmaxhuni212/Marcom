@@ -178,3 +178,4 @@ function isSafePublicUrl(value: string): boolean {
     return false;
   }
 }
+
