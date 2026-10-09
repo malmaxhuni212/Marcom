@@ -11,7 +11,7 @@ interface ReviewResponse {
   items: ResearchEntry[];
   pagination: { page: number; page_size: number; total: number; page_count: number };
   summary: ResearchReviewSummary;
-  facets: { locations: string[]; targets: string[] };
+  facets: { locations: string[]; targets: string[]; batches?: { id: string; number: number; count: number }[] };
 }
 
 const emptySummary: ResearchReviewSummary = {
@@ -61,6 +61,7 @@ export default function ProspectReviewTable({ projectId, initialProspectId }: { 
   const [location, setLocation] = useState('');
   const [confidence, setConfidence] = useState('all');
   const [coverage, setCoverage] = useState('all');
+  const [batch, setBatch] = useState('all');
   const [sort, setSort] = useState('newest');
   const [page, setPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -213,6 +214,14 @@ export default function ProspectReviewTable({ projectId, initialProspectId }: { 
             </select>
           </div>
           <div className="mt-3 flex flex-wrap gap-3">
+            <select aria-label="Research batch" value={batch} onChange={(event) => updateFilter(setBatch, event.target.value)} className="rounded-xl border border-cyan-500/30 bg-cyan-500/[0.06] px-3 py-2 text-xs font-medium text-cyan-300 outline-none">
+              <option value="all" className="bg-[#111118] text-white">All batches ({summary.total})</option>
+              {(data?.facets.batches ?? []).map((b) => (
+                <option key={b.id} value={b.id} className="bg-[#111118] text-white">
+                  Batch {b.number} ({b.count} prospects)
+                </option>
+              ))}
+            </select>
             <select aria-label="Target group" value={target} onChange={(event) => updateFilter(setTarget, event.target.value)} className="rounded-xl border border-white/[0.08] bg-[#111118] px-3 py-2 text-xs text-white/60 outline-none">
               <option value="">All target groups</option>
               {(data?.facets.targets ?? []).map((value) => <option key={value} value={value}>{value}</option>)}

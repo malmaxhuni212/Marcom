@@ -6,6 +6,7 @@ import {
   findDuplicate,
   listResearch,
   saveResearch,
+  getNextBatchInfo,
   upsertProspectMemory,
 } from '@/marcom/memory/research-store';
 import { JsonFileMemoryStore } from '@/marcom/memory/store';
@@ -56,6 +57,7 @@ async function processBatch(
     return;
   }
 
+  const batchInfo = getNextBatchInfo(projectId);
   let consecutiveEmptyDiscoveries = 0;
 
   while (task.status === 'running' && task.completed < task.total) {
@@ -114,6 +116,8 @@ async function processBatch(
           searchProvider,
           llmProvider,
         });
+        entry.batch_id = batchInfo.batch_id;
+        entry.batch_number = batchInfo.batch_number;
         saveResearch(projectId, entry);
         upsertProspectMemory(entry);
         task.completed += 1;

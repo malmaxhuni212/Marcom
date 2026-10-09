@@ -50,6 +50,7 @@ export async function GET(req: Request, { params }: RouteCtx) {
   const location = search.get('location')?.trim().toLowerCase() ?? '';
   const confidence = search.get('confidence') ?? 'all';
   const coverage = search.get('coverage') ?? 'all';
+  const batch = search.get('batch') ?? 'all';
   const sort = search.get('sort') ?? 'newest';
   const page = Math.max(1, Number.parseInt(search.get('page') ?? '1', 10) || 1);
   const pageSize = Math.min(50, Math.max(5, Number.parseInt(search.get('pageSize') ?? '20', 10) || 20));
@@ -57,6 +58,16 @@ export async function GET(req: Request, { params }: RouteCtx) {
   const allEntries = listResearch(projectId);
   const locations = [...new Set(allEntries.flatMap((entry) => [entry.record.location, entry.record.country]).filter((value): value is string => Boolean(value)))].sort();
   const targets = [...new Set(allEntries.map((entry) => entry.record.target_type).filter(Boolean))].sort();
+
+  const batchMap = new Map<number, { id: string; number: number; count: number }>();
+  for (const entry of allEntries) {
+    const num = entry.batch_number ?? 1;
+    const bId = entry.batch_id ?? `batch-${num}`;
+    const cur = batchMap.get(num) ?? { id: bId, number: num, count: 0 };
+    cur.count += 1;
+    batchMap.set(num, cur);
+  }
+  const batches = [...batchMap.values()].sort((a, b) => b.number - a.number);
 
   const filtered = allEntries.filter((entry) => {
     if (query && !searchableText(entry).includes(query)) return false;
@@ -68,6 +79,7 @@ export async function GET(req: Request, { params }: RouteCtx) {
     const evidence = evidenceCoverage(entry);
     if (coverage === 'complete' && (evidence.unsupported > 0 || evidence.supported === 0)) return false;
     if (coverage === 'incomplete' && evidence.unsupported === 0 && evidence.supported > 0) return false;
+    if (batch !== 'all' && (entry.batch_id !== batch && String(entry.batch_number) !== batch)) return false;
     return true;
   });
 
@@ -88,7 +100,7 @@ export async function GET(req: Request, { params }: RouteCtx) {
     items: filtered.slice(start, start + pageSize),
     pagination: { page: safePage, page_size: pageSize, total, page_count: pageCount },
     summary: summarizeResearch(allEntries),
-    facets: { locations, targets },
+    facets: { locations, targets, batches },
   });
 }
 
