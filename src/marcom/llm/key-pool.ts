@@ -6,8 +6,7 @@ export class KeyPool {
     const envKeys = [
       process.env.GROQ_RESEARCH_API_KEY_1,
       process.env.GROQ_RESEARCH_API_KEY_2,
-      process.env.GROQ_RESEARCH_API_KEY,
-      process.env.GROQ_API_KEY
+      process.env.GROQ_RESEARCH_API_KEY
     ].filter(Boolean) as string[];
 
     // Remove duplicates
