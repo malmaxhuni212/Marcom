@@ -14,15 +14,22 @@ export class KeyPool {
     this.keys = uniqueKeys.map(key => ({ key, availableAt: 0 }));
   }
 
+  private static cursor = 0;
+
   static async getAvailableKey(onWait?: (seconds: number) => void): Promise<string> {
     this.initialize();
     
-    // Find the key that is available the soonest
     const now = Date.now();
+    const n = this.keys.length;
     let bestKey = this.keys[0];
-    for (const k of this.keys) {
+
+    // Round-robin selection among immediately available keys
+    for (let i = 0; i < n; i++) {
+      const idx = (this.cursor + i) % n;
+      const k = this.keys[idx];
       if (k.availableAt <= now) {
-        return k.key; // immediately available
+        this.cursor = (idx + 1) % n;
+        return k.key;
       }
       if (k.availableAt < bestKey.availableAt) {
         bestKey = k;
