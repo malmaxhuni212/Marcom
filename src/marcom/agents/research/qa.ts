@@ -142,7 +142,8 @@ export function normalizeAndQA(raw: unknown, ctx: NormalizeContext): { record: R
   // ---------- contacts (verbatim check) ----------
   const contacts: PublicContact[] = [];
   const kinds = ['email', 'contact_form', 'phone', 'agent_or_representative', 'other'] as const;
-  for (const c of Array.isArray(d.contacts) ? d.contacts : []) {
+  const rawContacts = Array.isArray(d.public_contact) ? d.public_contact : Array.isArray(d.contacts) ? d.contacts : [];
+  for (const c of rawContacts) {
     const value = str(c?.value);
     if (!value) continue;
     const kind = oneOf(c?.kind, kinds, 'other');

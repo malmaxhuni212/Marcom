@@ -86,13 +86,14 @@ function buildUserPrompt(
 }
 
 function buildSearchQuery(brief: StructuredBrief, plan: ReturnType<typeof planResearch>, seed: ProspectSeed): string {
+  // Omit brief.project.name so it doesn't force matches to the project!
+  // Append a targeted keyword to find official websites and contact pages.
   return [
     seed.name,
     seed.organisation,
     seed.website,
     plan.target.target_type,
-    plan.target.geography.slice(0, 3).join(' '),
-    brief.project.name,
+    'official website OR contact OR email OR about'
   ]
     .filter(Boolean)
     .join(' ')
@@ -111,7 +112,7 @@ function buildEvidence(candidates: SearchCandidate[]): {
     if (!unique.has(key)) unique.set(key, candidate);
   }
   let usedCharacters = 0;
-  const maximumCharacters = 28_000;
+  const maximumCharacters = 16_000;
   const seen: SeenSource[] = [];
   const pages: { url: string; text: string }[] = [];
   const sections: string[] = [];
@@ -169,7 +170,7 @@ export async function runResearchAgent(input: RunResearchInput): Promise<Researc
       resultLimit: Math.min(10, searchProvider.capabilities().maximumResults),
       includeDomains: [],
       excludeDomains: [],
-      category: target.entity_kind === 'person' ? 'people' : target.entity_kind === 'organisation' ? 'company' : undefined,
+      category: target.entity_kind === 'organisation' ? 'company' : undefined, // Remove 'people' category constraint so it finds personal websites instead of just LinkedIn
     });
   } catch (e) {
     // Never fabricate to compensate for unavailable search.
