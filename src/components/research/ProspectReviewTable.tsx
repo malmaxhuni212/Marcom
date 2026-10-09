@@ -251,7 +251,8 @@ export default function ProspectReviewTable({ projectId, initialProspectId }: { 
                 <th className="px-3 py-3 font-medium">Location</th>
                 <th className="px-3 py-3 font-medium">Role or organisation</th>
                                 <th className="px-3 py-3 font-medium">Evidence</th>
-                <th className="px-3 py-3 font-medium">Contact</th>
+                <th className="px-3 py-3 font-medium">Email</th>
+                <th className="px-3 py-3 font-medium">Links</th>
                 <th className="px-3 py-3 font-medium">Status</th>
               </tr>
             </thead>
@@ -292,19 +293,25 @@ export default function ProspectReviewTable({ projectId, initialProspectId }: { 
                     <td className="px-3 py-4 align-top text-xs text-white/45">{record.location ?? record.country ?? <span className="italic text-white/25">Unknown</span>}</td>
                     <td className="max-w-48 px-3 py-4 align-top text-xs text-white/45">{[record.role, record.organisation].filter(Boolean).join(' · ') || <span className="italic text-white/25">Unknown</span>}</td>
                                         <td className="px-3 py-4 align-top"><span className="text-xs text-white/55">{evidence.supported}/{evidence.total || 0}</span><span className="mt-1 block text-[10px] text-white/25">{evidence.percent}% supported</span></td>
-                    <td className="px-3 py-4 align-top flex flex-col gap-1.5">
-  {record.public_contact?.find(c => c.kind === "email") && (
-    <a href={"mailto:" + record.public_contact.find(c => c.kind === "email")?.value} className="text-[11px] text-blue-400 hover:underline flex items-center gap-1.5"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-50"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg> Email</a>
+                    <td className="px-3 py-4 align-top text-xs text-white/60">
+  {record.public_contact?.find(c => c.kind === "email")?.value ? (
+    <a href={"mailto:" + record.public_contact.find(c => c.kind === "email").value} className="text-[11px] text-blue-400 hover:underline">{record.public_contact.find(c => c.kind === "email").value}</a>
+  ) : (
+    <span className="italic text-white/25">Not found</span>
   )}
-  {record.social_profiles?.find(p => p.platform === "linkedin") && (
-    <a href={record.social_profiles.find(p => p.platform === "linkedin")?.profile_url} target="_blank" className="text-[11px] text-blue-400 hover:underline flex items-center gap-1.5"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-50"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect width="4" height="12" x="2" y="9"/><circle cx="4" cy="4" r="2"/></svg> LinkedIn</a>
-  )}
-  {record.websites?.[0]?.url && (
-    <a href={record.websites[0]?.url} target="_blank" className="text-[11px] text-blue-400 hover:underline flex items-center gap-1.5"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-50"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/><path d="M2 12h20"/></svg> Website</a>
-  )}
-  {!(record.public_contact?.find(c => c.kind === "email") || record.social_profiles?.find(p => p.platform === "linkedin") || record.websites?.[0]?.url) && (
-    <span className="italic text-white/25 text-[11px]">Unknown</span>
-  )}
+</td>
+<td className="px-3 py-4 align-top">
+  <div className="flex flex-col gap-1.5">
+    {record.social_profiles?.find(p => p.platform === "linkedin")?.profile_url && (
+      <a href={record.social_profiles.find(p => p.platform === "linkedin").profile_url} target="_blank" className="text-[11px] text-blue-400 hover:underline flex items-center gap-1.5"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-50"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect width="4" height="12" x="2" y="9"/><circle cx="4" cy="4" r="2"/></svg> LinkedIn</a>
+    )}
+    {record.websites?.[0]?.url && (
+      <a href={record.websites[0]?.url} target="_blank" className="text-[11px] text-blue-400 hover:underline flex items-center gap-1.5"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-50"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/><path d="M2 12h20"/></svg> Website</a>
+    )}
+    {!(record.social_profiles?.find(p => p.platform === "linkedin") || record.websites?.[0]?.url) && (
+      <span className="italic text-white/25 text-[11px]">Unknown</span>
+    )}
+  </div>
 </td>
 
                     <td className="px-3 py-4 align-top"><StatusPill status={reviewStatus(entry)} /></td>
