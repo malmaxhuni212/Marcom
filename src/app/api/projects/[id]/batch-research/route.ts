@@ -56,54 +56,71 @@ async function processBatch(
     return;
   }
 
-  task.message = 'Searching for prospect candidates...';
-  const existing = listResearch(projectId);
-  const discovery = await discoverProspectSeeds({
-    brief: project.structured_brief,
-    target,
-    desiredCount: count,
-    searchProvider,
-    llmProvider,
-    existingNames: existing.flatMap((entry) => [entry.seed.name, entry.record.identity.name ?? '']),
-    existingUrls: existing.flatMap((entry) => [entry.seed.website ?? '', entry.record.websites?.[0]?.url ?? '']),
-  });
+  let consecutiveEmptyDiscoveries = 0;
 
-  task.discovered = discovery.seeds.length;
-  task.duplicatesSkipped += discovery.duplicateCount;
-  task.message = `Found ${task.discovered} supported candidate${task.discovered === 1 ? '' : 's'}.`;
-
-  if (!discovery.seeds.length) {
-    task.status = 'error';
-    task.message = 'Search returned no new supported prospect candidates.';
-    return;
-  }
-
-  for (const seed of discovery.seeds) {
-    if (task.status === 'cancelled') break;
-    if (task.completed >= task.total) break;
-
-    if (findDuplicate(listResearch(projectId), seed)) {
-      task.duplicatesSkipped += 1;
-      continue;
-    }
-
-    task.message = `Researching ${seed.name}...`;
+  while (task.status === 'running' && task.completed < task.total) {
+    const remainingToFind = task.total - task.completed;
+    task.message = `Searching for ${remainingToFind} more prospect candidates...`;
+    const existing = listResearch(projectId);
+    
+    let discovery;
     try {
-      const entry = await runResearchAgent({
-        projectId,
+      discovery = await discoverProspectSeeds({
         brief: project.structured_brief,
-        targetId,
-        seed,
-        store,
+        target,
+        desiredCount: remainingToFind,
         searchProvider,
         llmProvider,
+        existingNames: existing.flatMap((entry) => [entry.seed.name, entry.record.identity.name ?? '']),
+        existingUrls: existing.flatMap((entry) => [entry.seed.website ?? '', entry.record.websites?.[0]?.url ?? '']),
       });
-      saveResearch(projectId, entry);
-      upsertProspectMemory(entry);
-      task.completed += 1;
-    } catch (error) {
-      console.error('Batch research candidate failed:', error);
-      task.failed += 1;
+    } catch (e) {
+      task.status = 'error';
+      task.message = `Discovery failed: ${(e as Error).message}`;
+      return;
+    }
+
+    if (!discovery.seeds.length) {
+      consecutiveEmptyDiscoveries++;
+      if (consecutiveEmptyDiscoveries >= 2) {
+        task.status = task.failed ? 'completed_with_errors' : 'completed';
+        task.message = `Search exhausted. Saved ${task.completed} of ${task.total} prospects.`;
+        return;
+      }
+      continue;
+    }
+    consecutiveEmptyDiscoveries = 0;
+    
+    task.discovered += discovery.seeds.length;
+    task.duplicatesSkipped += discovery.duplicateCount;
+
+    for (const seed of discovery.seeds) {
+      if ((task.status as TaskStatus) === 'cancelled') break;
+      if (task.completed >= task.total) break;
+
+      if (findDuplicate(listResearch(projectId), seed)) {
+        task.duplicatesSkipped += 1;
+        continue;
+      }
+
+      task.message = `Researching ${seed.name}...`;
+      try {
+        const entry = await runResearchAgent({
+          projectId,
+          brief: project.structured_brief,
+          targetId,
+          seed,
+          store,
+          searchProvider,
+          llmProvider,
+        });
+        saveResearch(projectId, entry);
+        upsertProspectMemory(entry);
+        task.completed += 1;
+      } catch (error) {
+        console.error('Batch research candidate failed:', error);
+        task.failed += 1;
+      }
     }
   }
 
