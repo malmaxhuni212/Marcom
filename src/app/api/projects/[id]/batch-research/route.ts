@@ -80,6 +80,7 @@ async function processBatch(
 
   for (const seed of discovery.seeds) {
     if (task.status === 'cancelled') break;
+    if (task.completed >= task.total) break;
 
     if (findDuplicate(listResearch(projectId), seed)) {
       task.duplicatesSkipped += 1;
