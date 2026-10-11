@@ -157,7 +157,7 @@ export async function POST(req: Request, { params }: RouteCtx) {
             searchProvider,
             llmProvider,
             existingNames: existing.flatMap((entry) => [entry.seed.name, entry.record.identity.name ?? '']),
-            existingUrls: existing.flatMap((entry) => [entry.seed.website ?? '', entry.record.website ?? '']),
+            existingUrls: existing.flatMap((entry) => [entry.seed.website ?? '', entry.record.websites?.[0]?.url ?? '']),
           });
           const discovered = discovery.seeds[0];
           if (!discovered) throw new Error('Search found no new supported prospect. Refine the brief or enter a name.');
@@ -231,3 +231,4 @@ export async function DELETE(req: Request, { params }: RouteCtx) {
   const ok = deleteResearch(projectId, recordId);
   return ok ? NextResponse.json({ success: true }) : NextResponse.json({ error: 'Record not found' }, { status: 404 });
 }
+

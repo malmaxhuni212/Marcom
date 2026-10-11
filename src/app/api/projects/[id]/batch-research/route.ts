@@ -65,7 +65,7 @@ async function processBatch(
     searchProvider,
     llmProvider,
     existingNames: existing.flatMap((entry) => [entry.seed.name, entry.record.identity.name ?? '']),
-    existingUrls: existing.flatMap((entry) => [entry.seed.website ?? '', entry.record.website ?? '']),
+    existingUrls: existing.flatMap((entry) => [entry.seed.website ?? '', entry.record.websites?.[0]?.url ?? '']),
   });
 
   task.discovered = discovery.seeds.length;
@@ -194,3 +194,4 @@ export async function DELETE(req: Request) {
   task.message = 'Cancellation requested.';
   return NextResponse.json({ success: true });
 }
+

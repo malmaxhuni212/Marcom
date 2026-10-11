@@ -38,10 +38,10 @@ export default function ProspectEvidenceDrawer({
   const evidence = evidenceCoverage(entry);
   const name = record.identity.name ?? entry.seed.name;
   const profileFactGroups = [
-    { label: 'Experience', values: record.relevant_experience },
-    { label: 'Relevant work', values: record.relevant_projects },
+    { label: 'Experience', values: record.background },
+    { label: 'Relevant work', values: record.work_and_projects },
     { label: 'Achievements', values: record.achievements },
-    { label: 'Industry involvement', values: record.industry_involvement },
+    { label: 'Industry involvement', values: record.industry_activity },
   ]
     .map((group) => ({
       ...group,
@@ -153,13 +153,13 @@ export default function ProspectEvidenceDrawer({
             </section>
           )}
 
-          {(record.website || record.linkedin || record.instagram || record.public_contact.length > 0) && (
+          {((record.websites?.[0]?.url) || (record.social_profiles?.find(p => p.platform === 'linkedin')?.profile_url) || (record.social_profiles?.find(p => p.platform === 'instagram')?.profile_url) || record.public_contact.length > 0) && (
             <section>
               <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/40">Public routes</h3>
               <div className="mt-3 flex flex-wrap gap-2">
-                {record.website && <a href={record.website} target="_blank" rel="noreferrer" className="rounded-lg bg-white/[0.05] px-3 py-2 text-xs text-cyan-300">Website ↗</a>}
-                {record.linkedin && <a href={record.linkedin} target="_blank" rel="noreferrer" className="rounded-lg bg-white/[0.05] px-3 py-2 text-xs text-cyan-300">LinkedIn ↗</a>}
-                {record.instagram && <a href={record.instagram} target="_blank" rel="noreferrer" className="rounded-lg bg-white/[0.05] px-3 py-2 text-xs text-cyan-300">Instagram ↗</a>}
+                {(record.websites?.[0]?.url) && <a href={(record.websites?.[0]?.url)} target="_blank" rel="noreferrer" className="rounded-lg bg-white/[0.05] px-3 py-2 text-xs text-cyan-300">Website ↗</a>}
+                {(record.social_profiles?.find(p => p.platform === 'linkedin')?.profile_url) && <a href={(record.social_profiles?.find(p => p.platform === 'linkedin')?.profile_url)} target="_blank" rel="noreferrer" className="rounded-lg bg-white/[0.05] px-3 py-2 text-xs text-cyan-300">LinkedIn ↗</a>}
+                {(record.social_profiles?.find(p => p.platform === 'instagram')?.profile_url) && <a href={(record.social_profiles?.find(p => p.platform === 'instagram')?.profile_url)} target="_blank" rel="noreferrer" className="rounded-lg bg-white/[0.05] px-3 py-2 text-xs text-cyan-300">Instagram ↗</a>}
                 {record.public_contact.map((contact, index) => <span key={`${contact.kind}-${index}`} className="rounded-lg bg-white/[0.05] px-3 py-2 text-xs text-white/55">{contact.kind.replace(/_/g, ' ')}: {contact.value}</span>)}
               </div>
             </section>
@@ -188,3 +188,5 @@ export default function ProspectEvidenceDrawer({
     </div>
   );
 }
+
+

@@ -225,9 +225,10 @@ export async function runResearchAgent(input: RunResearchInput): Promise<Researc
     search_request_ids: search.providerRequestId ? [search.providerRequestId] : [],
     search_usage: {
       requests: search.usage.requests,
-      estimated_cost_usd: search.usage.estimatedCostUsd,
+      estimated_cost_usd: search.usage.estimatedCostUsd ?? 0,
       latency_ms: search.latencyMs,
     },
     search_warnings: search.warnings,
   };
 }
+
