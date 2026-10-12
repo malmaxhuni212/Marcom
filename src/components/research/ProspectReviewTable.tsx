@@ -25,14 +25,14 @@ const emptySummary: ResearchReviewSummary = {
 
 const statusLabel: Record<ReviewStatus, string> = {
   needs_review: 'Needs review',
-  shortlisted: 'Shortlisted',
+  shortlisted: 'Personalized',
   rejected: 'Rejected',
   enrichment_requested: 'More research',
 };
 
 function StatusPill({ status }: { status: ReviewStatus }) {
   const style = status === 'shortlisted'
-    ? 'border-green-300/15 bg-green-300/[0.07] text-green-200'
+    ? 'border-purple-300/20 bg-purple-500/10 text-purple-200'
     : status === 'rejected'
       ? 'border-red-300/15 bg-red-300/[0.06] text-red-200'
       : status === 'enrichment_requested'
@@ -50,7 +50,7 @@ function SummaryItem({ label, value, active, onClick }: { label: string; value: 
   );
 }
 
-export default function ProspectReviewTable({ projectId, initialProspectId }: { projectId: string; initialProspectId?: string }) {
+export default function ProspectReviewTable({ projectId, initialProspectId, initialBatch }: { projectId: string; initialProspectId?: string; initialBatch?: string }) {
   const [data, setData] = useState<ReviewResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -61,7 +61,7 @@ export default function ProspectReviewTable({ projectId, initialProspectId }: { 
   const [location, setLocation] = useState('');
   const [confidence, setConfidence] = useState('all');
   const [coverage, setCoverage] = useState('all');
-  const [batch, setBatch] = useState('all');
+  const [batch, setBatch] = useState(initialBatch || 'all');
   const [sort, setSort] = useState('newest');
   const [page, setPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -84,6 +84,7 @@ export default function ProspectReviewTable({ projectId, initialProspectId }: { 
         sort,
         page: String(page),
         pageSize: '20',
+        ...(batch !== 'all' ? { batch } : {}),
       });
       setLoading(true);
       setError(null);
@@ -106,7 +107,7 @@ export default function ProspectReviewTable({ projectId, initialProspectId }: { 
       window.clearTimeout(timer);
       controller.abort();
     };
-  }, [projectId, query, status, entityType, target, location, confidence, coverage, sort, page, refreshToken]);
+  }, [projectId, query, status, entityType, target, location, confidence, coverage, batch, sort, page, refreshToken]);
 
   const openIndex = useMemo(() => data?.items.findIndex((entry) => entry.record.record_id === openRecordId) ?? -1, [data, openRecordId]);
   const openEntry = openIndex >= 0 ? data?.items[openIndex] ?? null : null;
@@ -162,6 +163,33 @@ export default function ProspectReviewTable({ projectId, initialProspectId }: { 
 
   const summary = data?.summary ?? emptySummary;
   const items = data?.items ?? [];
+  
+  const itemsByBatch = useMemo(() => {
+    if (batch !== 'all') return [{ batchId: batch, items }];
+    
+    const groups = new Map<string, ResearchEntry[]>();
+    const unknownItems: ResearchEntry[] = [];
+    for (const item of items) {
+      const bid = item.batch_id ?? (item.record as any).batch_id ?? 'batch-1';
+      if (!groups.has(bid)) groups.set(bid, []);
+      groups.get(bid)!.push(item);
+    }
+    
+    const sortedGroups = Array.from(groups.entries())
+      .sort(([a], [b]) => {
+         const numA = parseInt(a.replace(/\D/g, '')) || 0;
+         const numB = parseInt(b.replace(/\D/g, '')) || 0;
+         if (numA !== numB) return numA - numB;
+         return a.localeCompare(b);
+      })
+      .map(([batchId, batchItems]) => ({ batchId, items: batchItems }));
+      
+    if (unknownItems.length > 0) {
+      sortedGroups.push({ batchId: 'unknown', items: unknownItems });
+    }
+    
+    return sortedGroups.length > 0 ? sortedGroups : [{ batchId: 'all', items }];
+  }, [items, batch]);
   const allVisibleSelected = items.length > 0 && items.every((entry) => selectedIds.has(entry.record.record_id));
 
   return (
@@ -180,10 +208,72 @@ export default function ProspectReviewTable({ projectId, initialProspectId }: { 
       <section className="grid grid-cols-2 gap-3 md:grid-cols-5" aria-label="Research result summary">
         <SummaryItem label="All prospects" value={summary.total} active={status === 'all'} onClick={() => updateFilter(setStatus, 'all')} />
         <SummaryItem label="Needs review" value={summary.needs_review} active={status === 'needs_review'} onClick={() => updateFilter(setStatus, 'needs_review')} />
-        <SummaryItem label="Shortlisted" value={summary.shortlisted} active={status === 'shortlisted'} onClick={() => updateFilter(setStatus, 'shortlisted')} />
+        <SummaryItem label="Personalized" value={summary.shortlisted} active={status === 'shortlisted'} onClick={() => updateFilter(setStatus, 'shortlisted')} />
         <SummaryItem label="More research" value={summary.enrichment_requested} active={status === 'enrichment_requested'} onClick={() => updateFilter(setStatus, 'enrichment_requested')} />
         <SummaryItem label="Rejected" value={summary.rejected} active={status === 'rejected'} onClick={() => updateFilter(setStatus, 'rejected')} />
       </section>
+
+            {/* Dedicated Batch Navigation Tabs */}
+      {(data?.facets.batches?.length ?? 0) > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/[0.07] bg-[#111118] p-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-semibold uppercase tracking-wider text-white/40 mr-1">Batch View:</span>
+            {data?.facets.batches?.map((b) => {
+              const isSelected = batch === b.id;
+              return (
+                <button
+                  key={b.id}
+                  type="button"
+                  onClick={() => updateFilter(setBatch, b.id)}
+                  className={`rounded-xl px-4 py-2 text-xs font-medium transition-all flex items-center gap-2 ${
+                    isSelected
+                      ? 'bg-cyan-400 text-black shadow-lg shadow-cyan-400/20 font-semibold scale-[1.02]'
+                      : 'bg-white/[0.04] border border-white/[0.08] text-white/70 hover:bg-white/[0.08] hover:text-white'
+                  }`}
+                >
+                  <span>Batch {b.number}</span>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${isSelected ? 'bg-black/20 text-black' : 'bg-white/10 text-white/60'}`}>
+                    {b.count}
+                  </span>
+                </button>
+              );
+            })}
+            <button
+              type="button"
+              onClick={() => updateFilter(setBatch, 'all')}
+              className={`rounded-xl px-3.5 py-2 text-xs font-medium transition-all ${
+                batch === 'all'
+                  ? 'bg-white text-black font-semibold'
+                  : 'bg-white/[0.03] border border-white/[0.07] text-white/45 hover:bg-white/[0.06] hover:text-white'
+              }`}
+            >
+              All Batches ({summary.total})
+            </button>
+          </div>
+
+          {batch !== 'all' && (
+            <div className="flex items-center gap-3 text-xs text-white/40">
+              <span>Showing only <strong className="text-cyan-300 font-medium">Batch {data?.facets.batches?.find(b => b.id === batch)?.number ?? batch}</strong> ({items.length} prospects)</span>
+              <button
+                type="button"
+                onClick={async () => {
+                  const bNum = data?.facets.batches?.find(b => b.id === batch)?.number ?? batch;
+                  if (confirm(`Are you sure you want to delete Batch ${bNum} (${items.length} prospects)? This cannot be undone.`)) {
+                    await fetch(`/api/projects/${projectId}/research?batchId=${encodeURIComponent(batch)}`, { method: 'DELETE' });
+                    window.location.reload();
+                  }
+                }}
+                className="rounded-lg border border-red-500/20 bg-red-500/[0.08] px-2.5 py-1 text-[11px] font-medium text-red-400 hover:bg-red-500/20 transition flex items-center gap-1"
+              >
+                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                Delete this Batch
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       <section className="rounded-2xl border border-white/[0.07] bg-white/[0.02]">
         <div className="border-b border-white/[0.06] p-4">
@@ -192,7 +282,7 @@ export default function ProspectReviewTable({ projectId, initialProspectId }: { 
             <select aria-label="Review status" value={status} onChange={(event) => updateFilter(setStatus, event.target.value)} className="rounded-xl border border-white/[0.08] bg-[#111118] px-3 py-2.5 text-xs text-white/65 outline-none">
               <option value="all">All statuses</option>
               <option value="needs_review">Needs review</option>
-              <option value="shortlisted">Shortlisted</option>
+              <option value="shortlisted">Personalized</option>
               <option value="enrichment_requested">More research</option>
               <option value="rejected">Rejected</option>
             </select>
@@ -242,8 +332,31 @@ export default function ProspectReviewTable({ projectId, initialProspectId }: { 
         {selectedIds.size > 0 && (
           <div className="flex flex-wrap items-center gap-3 border-b border-cyan-300/10 bg-cyan-300/[0.035] px-4 py-3">
             <span className="text-xs font-medium text-cyan-100/75">{selectedIds.size} selected</span>
-            <button type="button" disabled={savingDecision} onClick={() => applyBatchDecision('shortlisted')} className="rounded-lg bg-cyan-300 px-3 py-2 text-xs font-medium text-black disabled:opacity-50">Shortlist selected</button>
+            <button type="button" disabled={savingDecision} onClick={() => applyBatchDecision('shortlisted')} className="rounded-lg bg-purple-400 px-3 py-2 text-xs font-medium text-black disabled:opacity-50">Personalize selected</button>
             <button type="button" disabled={savingDecision} onClick={() => applyBatchDecision('enrichment_requested')} className="rounded-lg border border-white/[0.09] px-3 py-2 text-xs text-white/60 disabled:opacity-50">Request more research</button>
+            <button
+              type="button"
+              disabled={savingDecision}
+              onClick={async () => {
+                if (confirm(`Are you sure you want to delete ${selectedIds.size} selected prospects? This cannot be undone.`)) {
+                  setSavingDecision(true);
+                  try {
+                    await fetch(`/api/projects/${projectId}/research`, {
+                      method: 'DELETE',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ recordIds: Array.from(selectedIds) }),
+                    });
+                    setRefreshToken((v) => v + 1);
+                    setSelectedIds(new Set());
+                  } finally {
+                    setSavingDecision(false);
+                  }
+                }
+              }}
+              className="rounded-lg border border-red-500/20 bg-red-500/[0.08] px-3 py-2 text-xs font-medium text-red-400 hover:bg-red-500/20 disabled:opacity-50"
+            >
+              Delete selected
+            </button>
             <button type="button" onClick={() => setSelectedIds(new Set())} className="ml-auto text-xs text-white/40 hover:text-white/70">Clear selection</button>
           </div>
         )}
@@ -265,9 +378,21 @@ export default function ProspectReviewTable({ projectId, initialProspectId }: { 
                 <th className="px-3 py-3 font-medium">Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/[0.05]">
-              {items.map((entry) => {
-                const record = entry.record;
+            {itemsByBatch.map(({ batchId, items: batchItems }) => {
+              const batchInfo = data?.facets.batches?.find(b => b.id === batchId);
+              const title = batchInfo ? `Batch ${batchInfo.number}` : (batchId.startsWith('batch-') ? `Batch ${batchId.replace('batch-', '')}` : batchId);
+
+              return (
+                <tbody key={batchId} className="divide-y divide-white/[0.05]">
+                  {batch === 'all' && (
+                    <tr className="bg-[#111118] border-y border-white/[0.08]">
+                      <td colSpan={9} className="px-4 py-3 text-xs font-medium text-cyan-300 uppercase tracking-widest">
+                        {title} <span className="ml-2 text-white/40 font-normal tracking-normal normal-case">({batchItems.length} prospects)</span>
+                      </td>
+                    </tr>
+                  )}
+                  {batchItems.map((entry) => {
+                    const record = entry.record;
                 const id = record.record_id;
                 const evidence = evidenceCoverage(entry);
                 const hasContact = Boolean((record.websites?.[0]?.url) || (record.social_profiles?.find(p => p.platform === 'linkedin')?.profile_url) || (record.social_profiles?.find(p => p.platform === 'instagram')?.profile_url) || record.public_contact.length);
@@ -330,7 +455,9 @@ export default function ProspectReviewTable({ projectId, initialProspectId }: { 
                   </tr>
                 );
               })}
-            </tbody>
+                </tbody>
+              );
+            })}
           </table>
         </div>
 

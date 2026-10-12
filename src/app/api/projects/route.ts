@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { JsonFileMemoryStore } from '@/marcom/memory/store';
+import { listResearch } from '@/marcom/memory/research-store';
 import { Project } from '@/types';
 
 export async function GET() {
@@ -17,14 +18,19 @@ export async function GET() {
       else if (pm.name.toLowerCase().includes('sponsor')) { icon = '🏆'; accentColor = 'purple'; }
       else if (pm.name.toLowerCase().includes('film') || pm.name.toLowerCase().includes('soulbound')) { icon = '🎬'; accentColor = 'blue'; }
 
+      const research = listResearch(pm.project_id);
+      const prospectsCurrent = research.length;
+      const qualifiedCount = research.filter(r => r.review?.status === 'shortlisted').length;
+      const reviewCount = research.filter(r => !r.review?.status || r.review?.status === 'needs_review').length;
+
       return {
         id: pm.project_id,
         name: pm.name || 'Untitled Project',
         description: pm.summary || pm.structured_brief?.project.description || 'No description provided.',
-        prospectsCurrent: 0,
-        prospectsTotal: 100,
-        qualifiedCount: 0,
-        reviewCount: 0,
+        prospectsCurrent,
+        prospectsTotal: Math.max(100, prospectsCurrent),
+        qualifiedCount,
+        reviewCount,
         status: (pm.status as any) === 'READY_FOR_RESEARCH' ? 'active' : ((pm.status || 'draft').toLowerCase() as any),
         accentColor,
         icon,

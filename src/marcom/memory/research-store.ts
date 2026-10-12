@@ -66,6 +66,18 @@ export function findDuplicate(entries: ResearchEntry[], seed: { name: string; we
 export function saveResearch(projectId: string, entry: ResearchEntry): void {
   const entries = listResearch(projectId);
   const dup = findDuplicate(entries, entry.seed);
+
+  if (!entry.batch_id) {
+    if (dup?.batch_id) {
+      entry.batch_id = dup.batch_id;
+      entry.batch_number = dup.batch_number;
+    } else {
+      const nextBatch = getNextBatchInfo(projectId);
+      entry.batch_id = nextBatch.batch_id;
+      entry.batch_number = nextBatch.batch_number;
+    }
+  }
+
   const savedEntry: ResearchEntry = {
     ...entry,
     review: entry.review ?? { project_id: projectId, record_id: entry.record.record_id, status: 'needs_review', note: null, reviewed_at: new Date().toISOString(), reviewed_by: 'system' },
@@ -95,6 +107,29 @@ export function updateResearchReview(
 export function deleteResearch(projectId: string, recordId: string): boolean {
   const entries = listResearch(projectId);
   const next = entries.filter((e) => e.record.record_id !== recordId);
+  if (next.length === entries.length) return false;
+  writeResearch(projectId, next);
+  return true;
+}
+
+export function deleteMultipleResearch(projectId: string, recordIds: string[]): boolean {
+  const entries = listResearch(projectId);
+  const idSet = new Set(recordIds);
+  const next = entries.filter((e) => !idSet.has(e.record.record_id));
+  if (next.length === entries.length) return false;
+  writeResearch(projectId, next);
+  return true;
+}
+
+export function deleteBatchResearch(projectId: string, batchId: string): boolean {
+  const entries = listResearch(projectId);
+  const normalizedBatch = batchId.toLowerCase().trim();
+  const targetNum = normalizedBatch.replace(/^batch-?/, '');
+  const next = entries.filter((e) => {
+    const bId = (e.batch_id || 'batch-1').toLowerCase().trim();
+    const bNum = String(e.batch_number ?? 1);
+    return bId !== normalizedBatch && bNum !== targetNum && bId !== `batch-${targetNum}`;
+  });
   if (next.length === entries.length) return false;
   writeResearch(projectId, next);
   return true;

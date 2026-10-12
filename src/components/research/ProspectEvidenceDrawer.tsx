@@ -6,7 +6,7 @@ import { evidenceCoverage, reviewStatus } from '@/marcom/research/review';
 
 const decisionLabels: Record<ReviewStatus, string> = {
   needs_review: 'Restore to review',
-  shortlisted: 'Shortlist',
+  shortlisted: 'Personalize',
   rejected: 'Reject',
   enrichment_requested: 'Request more research',
 };
@@ -187,7 +187,7 @@ export default function ProspectEvidenceDrawer({
             {error && <p role="alert" className="mt-2 text-xs text-red-300">{error}</p>}
             <div className="mt-3 flex flex-wrap gap-2">
               {(['shortlisted', 'rejected', 'enrichment_requested'] as ReviewStatus[]).map((decision) => (
-                <button key={decision} type="button" disabled={saving || status === decision} onClick={() => onDecision(decision, note)} className={`rounded-xl px-4 py-2 text-xs font-medium transition disabled:opacity-40 ${decision === 'shortlisted' ? 'bg-cyan-300 text-black hover:bg-cyan-200' : 'border border-white/[0.09] bg-white/[0.03] text-white/65 hover:bg-white/[0.06]'}`}>
+                <button key={decision} type="button" disabled={saving || status === decision} onClick={() => onDecision(decision, note)} className={`rounded-xl px-4 py-2 text-xs font-medium transition disabled:opacity-40 ${decision === 'shortlisted' ? 'bg-purple-400 text-black hover:bg-purple-300 font-semibold' : 'border border-white/[0.09] bg-white/[0.03] text-white/65 hover:bg-white/[0.06]'}`}>
                   {saving ? 'Saving...' : decisionLabels[decision]}
                 </button>
               ))}

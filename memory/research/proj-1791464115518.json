@@ -2,6 +2,4423 @@
   {
     "record": {
       "research_record_version": "1.1",
+      "record_id": "r-fbs-publishing-ltd-mv576sr7",
+      "project_id": "proj-1791464115518",
+      "brief_target_id": "target-3",
+      "identity": {
+        "name": "FBS Publishing Ltd",
+        "entity_kind": "organisation",
+        "identity_verified": false
+      },
+      "target_type": "Publishers & Book‑Industry Organisations",
+      "role": null,
+      "organisation": null,
+      "country": "United Kingdom",
+      "location": "Thetford, Norfolk, United Kingdom",
+      "websites": [
+        {
+          "url": "https://fbs-publishing.co.uk/",
+          "type": "company",
+          "title": "FBS Publishing Ltd"
+        }
+      ],
+      "social_profiles": [
+        {
+          "platform": "linkedin",
+          "profile_url": "https://linkedin.com/company/fbs-publishing-ltd",
+          "username": null,
+          "display_name": null,
+          "verified_status": false,
+          "confidence": "verified",
+          "source_ids": [
+            "S1"
+          ]
+        }
+      ],
+      "public_contact": [],
+      "background": [
+        "FBS Publishing Ltd is a Book and Periodical Publishing company founded in 2014, headquartered in Thetford, Norfolk, United Kingdom, employing 2 people. (S1)"
+      ],
+      "work_and_projects": [],
+      "achievements": [],
+      "industry_activity": [
+        "Book and Periodical Publishing"
+      ],
+      "qualification_assessment": [
+        {
+          "criterion": "Organisation distributes or promotes books to authors",
+          "status": "met",
+          "note": "Company sells books and offers a wide range of products, indicating distribution and promotion to authors.",
+          "source_ids": [
+            "S1"
+          ]
+        }
+      ],
+      "reason_for_relevance": "No publicly listed contact details (email or phone) available.",
+      "fit": {
+        "score": 0,
+        "band": "irrelevant",
+        "rationale": "No publicly listed contact details (email or phone) available."
+      },
+      "summary": "FBS Publishing Ltd is a small independent book publisher based in Thetford, Norfolk, United Kingdom, founded in 2014. It operates a website and has a LinkedIn presence but does not list an email or phone contact publicly.",
+      "evidence": [
+        {
+          "claim": "FBS Publishing Ltd is a Book and Periodical Publishing company headquartered in Thetford, Norfolk, United Kingdom.",
+          "field": "organisation",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "FBS Publishing Ltd is a Book and Periodical Publishing company. ... Headquartered in Thetford, Norfolk, United Kingdom.",
+          "confidence": "verified"
+        },
+        {
+          "claim": "Website: https://fbs-publishing.co.uk/",
+          "field": "website",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "Homepage: fbs-publishing.co.uk",
+          "confidence": "verified"
+        },
+        {
+          "claim": "LinkedIn profile: https://linkedin.com/company/fbs-publishing-ltd",
+          "field": "social_profiles",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "LinkedIn: linkedin.com/company/fbs-publishing-ltd",
+          "confidence": "verified"
+        },
+        {
+          "claim": "Company sells books and offers a wide range of products, indicating distribution and promotion to authors.",
+          "field": "criteria",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "FBS Publishing is a company that sells books and offers a wide range of products including biography, books for children and teens, gift wrapping, music, TV related, non fiction, new titles, and poetry.",
+          "confidence": "verified"
+        }
+      ],
+      "sources": [
+        {
+          "id": "S1",
+          "url": "https://fbs-publishing.co.uk/",
+          "title": "FBS Publishing Ltd",
+          "source_type": "official website",
+          "retrieved_at": "2026-10-12T11:57:47.923Z"
+        }
+      ],
+      "unknowns": [
+        {
+          "field": "contact",
+          "reason": "No legitimate public contact route was verified."
+        },
+        {
+          "field": "email",
+          "reason": "No email address provided in source"
+        },
+        {
+          "field": "phone",
+          "reason": "No phone number provided in source"
+        }
+      ],
+      "contradictions": [],
+      "research_confidence": "low",
+      "matched_prospect_id": null,
+      "researched_at": "2026-10-12T11:57:47.923Z",
+      "research_agent_version": "research-agent/0.1.0"
+    },
+    "seed": {
+      "name": "FBS Publishing Ltd",
+      "website": "https://fbs-publishing.co.uk/",
+      "entity_kind": "organisation"
+    },
+    "qa": {
+      "status": "needs_review",
+      "issues": [
+        {
+          "severity": "warning",
+          "code": "identity_unverified",
+          "message": "Identity could not be confirmed from reliable sources — human review needed."
+        }
+      ]
+    },
+    "relationship_status": null,
+    "model": "openai/gpt-oss-20b",
+    "searches": [
+      "FBS Publishing Ltd https://fbs-publishing.co.uk/ Publishers & Book‑Industry Organisations official website OR contact OR email OR about"
+    ],
+    "search_provider": "exa",
+    "search_request_ids": [
+      "6b7d8cce43903c7c72552896bbea8d14"
+    ],
+    "search_usage": {
+      "requests": 1,
+      "estimated_cost_usd": 0.007,
+      "latency_ms": 1995
+    },
+    "search_warnings": [],
+    "batch_id": "batch-4",
+    "batch_number": 4,
+    "review": {
+      "project_id": "proj-1791464115518",
+      "record_id": "r-fbs-publishing-ltd-mv576sr7",
+      "status": "needs_review",
+      "note": null,
+      "reviewed_at": "2026-10-12T11:57:47.926Z",
+      "reviewed_by": "system"
+    }
+  },
+  {
+    "record": {
+      "research_record_version": "1.1",
+      "record_id": "r-the-conrad-press-ltd-mv576pde",
+      "project_id": "proj-1791464115518",
+      "brief_target_id": "target-3",
+      "identity": {
+        "name": "The Conrad Press Ltd",
+        "entity_kind": "organisation",
+        "identity_verified": false
+      },
+      "target_type": "Publishers & Book‑Industry Organisations",
+      "role": null,
+      "organisation": "The Conrad Press Ltd",
+      "country": "United Kingdom",
+      "location": "Canterbury, United Kingdom",
+      "websites": [
+        {
+          "url": "https://theconradpress.com/",
+          "type": "company",
+          "title": "The Conrad Press Ltd"
+        }
+      ],
+      "social_profiles": [
+        {
+          "platform": "linkedin",
+          "profile_url": "https://linkedin.com/company/the-conrad-press-ltd",
+          "username": null,
+          "display_name": null,
+          "verified_status": false,
+          "confidence": "verified",
+          "source_ids": [
+            "S1"
+          ]
+        }
+      ],
+      "public_contact": [
+        {
+          "kind": "email",
+          "value": "jamesessinger@theconradpress.com",
+          "is_professional": true,
+          "source_ids": [
+            "S1"
+          ],
+          "confidence": "verified"
+        },
+        {
+          "kind": "email",
+          "value": "publishing@theconradpress.com",
+          "is_professional": true,
+          "source_ids": [
+            "S1"
+          ],
+          "confidence": "verified"
+        },
+        {
+          "kind": "phone",
+          "value": "+44 (0) 1227 472 874",
+          "is_professional": true,
+          "source_ids": [
+            "S1"
+          ],
+          "confidence": "verified"
+        }
+      ],
+      "background": [
+        "The Conrad Press Ltd is a Book and Periodical Publishing company founded in 2015, headquartered in Canterbury, United Kingdom, with a presence in the United States. It offers book publishing, writing and editing services, marketing books, author support, and ghostwriting services."
+      ],
+      "work_and_projects": [
+        "Book publishing",
+        "Writing and editing services",
+        "Marketing books",
+        "Author support",
+        "Ghostwriting services"
+      ],
+      "achievements": [],
+      "industry_activity": [
+        "Book and Periodical Publishing"
+      ],
+      "qualification_assessment": [
+        {
+          "criterion": "Organisation distributes or promotes books to authors",
+          "status": "met",
+          "note": "The Conrad Press offers publishing services to authors",
+          "source_ids": [
+            "S1"
+          ]
+        }
+      ],
+      "reason_for_relevance": "Matches target group and meets qualification criteria",
+      "fit": {
+        "score": 1,
+        "band": "irrelevant",
+        "rationale": "Matches target group and meets qualification criteria"
+      },
+      "summary": "The Conrad Press Ltd is a UK-based book and periodical publishing company founded in 2015, offering publishing services to authors, with offices in Canterbury, UK and the US.",
+      "evidence": [
+        {
+          "claim": "The Conrad Press Ltd is a Book and Periodical Publishing company.",
+          "field": "organisation",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "The Conrad Press Ltd is a Book and Periodical Publishing company.",
+          "confidence": "verified"
+        }
+      ],
+      "sources": [
+        {
+          "id": "S1",
+          "url": "https://theconradpress.com/",
+          "title": "The Conrad Press Ltd",
+          "source_type": "official website",
+          "retrieved_at": "2026-10-12T11:57:43.538Z"
+        }
+      ],
+      "unknowns": [],
+      "contradictions": [],
+      "research_confidence": "low",
+      "matched_prospect_id": null,
+      "researched_at": "2026-10-12T11:57:43.538Z",
+      "research_agent_version": "research-agent/0.1.0"
+    },
+    "seed": {
+      "name": "The Conrad Press Ltd",
+      "website": "https://theconradpress.com/",
+      "entity_kind": "organisation"
+    },
+    "qa": {
+      "status": "needs_review",
+      "issues": [
+        {
+          "severity": "warning",
+          "code": "identity_unverified",
+          "message": "Identity could not be confirmed from reliable sources — human review needed."
+        }
+      ]
+    },
+    "relationship_status": null,
+    "model": "openai/gpt-oss-20b",
+    "searches": [
+      "The Conrad Press Ltd https://theconradpress.com/ Publishers & Book‑Industry Organisations official website OR contact OR email OR about"
+    ],
+    "search_provider": "exa",
+    "search_request_ids": [
+      "e55a20bd7cf67d5a42d989b6f1826f9f"
+    ],
+    "search_usage": {
+      "requests": 1,
+      "estimated_cost_usd": 0.007,
+      "latency_ms": 338
+    },
+    "search_warnings": [],
+    "batch_id": "batch-4",
+    "batch_number": 4,
+    "review": {
+      "project_id": "proj-1791464115518",
+      "record_id": "r-the-conrad-press-ltd-mv576pde",
+      "status": "needs_review",
+      "note": null,
+      "reviewed_at": "2026-10-12T11:57:43.542Z",
+      "reviewed_by": "system"
+    }
+  },
+  {
+    "record": {
+      "research_record_version": "1.1",
+      "record_id": "r-whitefox-publishing-mv5768yf",
+      "project_id": "proj-1791464115518",
+      "brief_target_id": "target-3",
+      "identity": {
+        "name": "Whitefox Publishing",
+        "entity_kind": "organisation",
+        "identity_verified": true
+      },
+      "target_type": "Publishers & Book‑Industry Organisations",
+      "role": null,
+      "organisation": null,
+      "country": "United Kingdom",
+      "location": "London, United Kingdom",
+      "websites": [
+        {
+          "url": "https://wearewhitefox.com/",
+          "type": "company",
+          "title": "Whitefox Publishing"
+        }
+      ],
+      "social_profiles": [
+        {
+          "platform": "linkedin",
+          "profile_url": "https://linkedin.com/company/whitefox-publishing-services",
+          "username": null,
+          "display_name": null,
+          "verified_status": false,
+          "confidence": "verified",
+          "source_ids": [
+            "S1"
+          ]
+        }
+      ],
+      "public_contact": [
+        {
+          "kind": "email",
+          "value": "info@wearewhitefox.com",
+          "is_professional": true,
+          "source_ids": [
+            "S1"
+          ],
+          "confidence": "verified"
+        },
+        {
+          "kind": "phone",
+          "value": "+44 020 8638 0536",
+          "is_professional": true,
+          "source_ids": [
+            "S1"
+          ],
+          "confidence": "verified"
+        }
+      ],
+      "background": [
+        "Whitefox Publishing is a Book and Periodical Publishing company that partners with authors and brands to create exceptional books that amplify voices, start conversations, and inspire new ways of thinking. (S1)"
+      ],
+      "work_and_projects": [
+        "Whitefox Publishing partners with authors and brands to create books. (S1)"
+      ],
+      "achievements": [],
+      "industry_activity": [
+        "Book and Periodical Publishing. (S1)"
+      ],
+      "qualification_assessment": [
+        {
+          "criterion": "Organisation distributes or promotes books to authors",
+          "status": "met",
+          "note": "Whitefox Publishing distributes/promotes books to authors. (S1)",
+          "source_ids": [
+            "S1"
+          ]
+        }
+      ],
+      "reason_for_relevance": "Whitefox Publishing meets the qualification criterion of distributing or promoting books to authors.",
+      "fit": {
+        "score": 1,
+        "band": "irrelevant",
+        "rationale": "Whitefox Publishing meets the qualification criterion of distributing or promoting books to authors."
+      },
+      "summary": "Whitefox Publishing is a UK-based book and periodical publishing company headquartered in London with a presence in the United States. It partners with authors and brands to create books and distributes/promotes them to authors. The organization meets the target criteria for publishers and book‑industry organizations in the United States and United Kingdom.",
+      "evidence": [
+        {
+          "claim": "Headquartered in London, United Kingdom",
+          "field": "location",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "Headquartered in London, United Kingdom",
+          "confidence": "verified"
+        },
+        {
+          "claim": "Website: https://wearewhitefox.com/",
+          "field": "website",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "Homepage: wearewhitefox.com",
+          "confidence": "verified"
+        },
+        {
+          "claim": "LinkedIn: https://linkedin.com/company/whitefox-publishing-services",
+          "field": "social_profiles",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "LinkedIn: linkedin.com/company/whitefox-publishing-services",
+          "confidence": "verified"
+        },
+        {
+          "claim": "Email: info@wearewhitefox.com",
+          "field": "contacts",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "Emails: info@wearewhitefox.com",
+          "confidence": "verified"
+        },
+        {
+          "claim": "Phone: +44 020 8638 0536",
+          "field": "contacts",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "Phone: +44 020 8638 0536",
+          "confidence": "verified"
+        },
+        {
+          "claim": "Industry: Book and Periodical Publishing",
+          "field": "industry_activity",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "Industry: Book and Periodical Publishing",
+          "confidence": "verified"
+        },
+        {
+          "claim": "Distributes or promotes books to authors",
+          "field": "criteria",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "Whitefox is a company that partners with authors and brands to create exceptional books",
+          "confidence": "verified"
+        }
+      ],
+      "sources": [
+        {
+          "id": "S1",
+          "url": "https://wearewhitefox.com/",
+          "title": "Whitefox Publishing",
+          "source_type": "official website",
+          "retrieved_at": "2026-10-12T11:57:22.263Z"
+        },
+        {
+          "id": "S2",
+          "url": "https://whitefoxme.com/",
+          "title": "WhiteFox",
+          "source_type": "official website",
+          "retrieved_at": "2026-10-12T11:57:22.263Z"
+        }
+      ],
+      "unknowns": [
+        {
+          "field": "best_contact_method",
+          "reason": "not found in supplied evidence"
+        }
+      ],
+      "contradictions": [
+        "Headquarters location differs between S1 (London, United Kingdom) and S2 (Dubai, United Arab Emirates)."
+      ],
+      "research_confidence": "high",
+      "matched_prospect_id": null,
+      "researched_at": "2026-10-12T11:57:22.263Z",
+      "research_agent_version": "research-agent/0.1.0"
+    },
+    "seed": {
+      "name": "Whitefox Publishing",
+      "website": "https://wearewhitefox.com/",
+      "entity_kind": "organisation"
+    },
+    "qa": {
+      "status": "needs_review",
+      "issues": [
+        {
+          "severity": "warning",
+          "code": "contradictions",
+          "message": "1 contradiction(s) between sources."
+        }
+      ]
+    },
+    "relationship_status": null,
+    "model": "openai/gpt-oss-20b",
+    "searches": [
+      "Whitefox Publishing https://wearewhitefox.com/ Publishers & Book‑Industry Organisations official website OR contact OR email OR about"
+    ],
+    "search_provider": "exa",
+    "search_request_ids": [
+      "e6abf1d759874754b010961eef5a800d"
+    ],
+    "search_usage": {
+      "requests": 1,
+      "estimated_cost_usd": 0.007,
+      "latency_ms": 4605
+    },
+    "search_warnings": [],
+    "batch_id": "batch-4",
+    "batch_number": 4,
+    "review": {
+      "project_id": "proj-1791464115518",
+      "record_id": "r-whitefox-publishing-mv5768yf",
+      "status": "needs_review",
+      "note": null,
+      "reviewed_at": "2026-10-12T11:57:22.266Z",
+      "reviewed_by": "system"
+    }
+  },
+  {
+    "record": {
+      "research_record_version": "1.1",
+      "record_id": "r-american-publishing-company-mv575xu8",
+      "project_id": "proj-1791464115518",
+      "brief_target_id": "target-3",
+      "identity": {
+        "name": "American Publishing Company",
+        "entity_kind": "organisation",
+        "identity_verified": false
+      },
+      "target_type": "Publishers & Book‑Industry Organisations",
+      "role": null,
+      "organisation": null,
+      "country": "United States",
+      "location": "Sheridan, Wyoming, United States",
+      "websites": [
+        {
+          "url": "https://americanpublishingcompany.com/",
+          "type": "company",
+          "title": "American Publishing Company"
+        }
+      ],
+      "social_profiles": [
+        {
+          "platform": "linkedin",
+          "profile_url": "https://linkedin.com/company/americanpublishingcompany",
+          "username": null,
+          "display_name": null,
+          "verified_status": false,
+          "confidence": "likely",
+          "source_ids": []
+        }
+      ],
+      "public_contact": [
+        {
+          "kind": "email",
+          "value": "info@americanpublishingcompany.com",
+          "is_professional": true,
+          "source_ids": [
+            "S1-auto"
+          ],
+          "confidence": "uncertain"
+        },
+        {
+          "kind": "phone",
+          "value": "(626) 879 0171",
+          "is_professional": true,
+          "source_ids": [
+            "S1-auto"
+          ],
+          "confidence": "uncertain"
+        }
+      ],
+      "background": [
+        "American Publishing Company is a Book Publishing company providing writing, editing, design, marketing, and audiobook publishing services for authors and creators."
+      ],
+      "work_and_projects": [],
+      "achievements": [],
+      "industry_activity": [],
+      "qualification_assessment": [
+        {
+          "criterion": "Organisation distributes or promotes books to authors",
+          "status": "unknown",
+          "note": "Downgraded to unknown: no verified source. Provides marketing services for authors",
+          "source_ids": []
+        }
+      ],
+      "reason_for_relevance": "No evidence-based rationale provided.",
+      "fit": {
+        "score": 0,
+        "band": "irrelevant",
+        "rationale": "No evidence-based rationale provided."
+      },
+      "summary": "",
+      "evidence": [],
+      "sources": [
+        {
+          "id": "S1-auto",
+          "url": "https://americanpublishingcompany.com/",
+          "title": null,
+          "source_type": "other",
+          "retrieved_at": "2026-10-12T11:57:07.856Z"
+        }
+      ],
+      "unknowns": [],
+      "contradictions": [],
+      "research_confidence": "low",
+      "matched_prospect_id": null,
+      "researched_at": "2026-10-12T11:57:07.856Z",
+      "research_agent_version": "research-agent/0.1.0"
+    },
+    "seed": {
+      "name": "American Publishing Company",
+      "website": "https://americanpublishingcompany.com/",
+      "entity_kind": "organisation"
+    },
+    "qa": {
+      "status": "failed",
+      "issues": [
+        {
+          "severity": "warning",
+          "code": "unsupported_claim",
+          "message": "Removed claim without a verified source: \"American Publishing Company is a book publishing company headquartered in Sheridan, Wyoming, United States.\""
+        },
+        {
+          "severity": "info",
+          "code": "contact_source_fixed",
+          "message": "Contact \"info@americanpublishingcompany.com\" re-attributed to https://americanpublishingcompany.com/."
+        },
+        {
+          "severity": "info",
+          "code": "contact_source_fixed",
+          "message": "Contact \"(626) 879 0171\" re-attributed to https://americanpublishingcompany.com/."
+        },
+        {
+          "severity": "warning",
+          "code": "identity_unverified",
+          "message": "Identity could not be confirmed from reliable sources — human review needed."
+        },
+        {
+          "severity": "error",
+          "code": "schema_invalid",
+          "message": "social_profiles.0.source_ids: Too small: expected array to have >=1 items"
+        }
+      ]
+    },
+    "relationship_status": null,
+    "model": "openai/gpt-oss-20b",
+    "searches": [
+      "American Publishing Company https://americanpublishingcompany.com/ Publishers & Book‑Industry Organisations official website OR contact OR email OR about"
+    ],
+    "search_provider": "exa",
+    "search_request_ids": [
+      "f3e7c9fbcad4481a8494617bbfaea1e3"
+    ],
+    "search_usage": {
+      "requests": 1,
+      "estimated_cost_usd": 0.007,
+      "latency_ms": 2409
+    },
+    "search_warnings": [],
+    "batch_id": "batch-4",
+    "batch_number": 4,
+    "review": {
+      "project_id": "proj-1791464115518",
+      "record_id": "r-american-publishing-company-mv575xu8",
+      "status": "needs_review",
+      "note": null,
+      "reviewed_at": "2026-10-12T11:57:07.859Z",
+      "reviewed_by": "system"
+    }
+  },
+  {
+    "record": {
+      "research_record_version": "1.1",
+      "record_id": "r-vine-publishing-mv575pxy",
+      "project_id": "proj-1791464115518",
+      "brief_target_id": "target-3",
+      "identity": {
+        "name": "Vine Publishing",
+        "entity_kind": "organisation",
+        "identity_verified": true
+      },
+      "target_type": "Publishers & Book‑Industry Organisations",
+      "role": null,
+      "organisation": null,
+      "country": "United States",
+      "location": "New York, New York, United States",
+      "websites": [
+        {
+          "url": "https://vinepublish.com/",
+          "type": "company",
+          "title": "Vine Publishing"
+        },
+        {
+          "url": "https://linkedin.com/company/vine-publishing",
+          "type": "official_profile",
+          "title": "Vine Publishing LinkedIn"
+        }
+      ],
+      "social_profiles": [
+        {
+          "platform": "linkedin",
+          "profile_url": "https://linkedin.com/company/vine-publishing",
+          "username": null,
+          "display_name": null,
+          "verified_status": false,
+          "confidence": "verified",
+          "source_ids": [
+            "S1"
+          ]
+        }
+      ],
+      "public_contact": [
+        {
+          "kind": "email",
+          "value": "info@vinepublish.com",
+          "is_professional": true,
+          "source_ids": [
+            "S1"
+          ],
+          "confidence": "verified"
+        },
+        {
+          "kind": "phone",
+          "value": "+1 646 535 3945",
+          "is_professional": true,
+          "source_ids": [
+            "S1"
+          ],
+          "confidence": "verified"
+        }
+      ],
+      "background": [
+        "Hybrid publisher offering coaching, design, marketing and promotion for authors, including press releases to outlets."
+      ],
+      "work_and_projects": [
+        "Provides marketing and promotion services for authors, including press releases."
+      ],
+      "achievements": [],
+      "industry_activity": [
+        "Book and Periodical Publishing"
+      ],
+      "qualification_assessment": [
+        {
+          "criterion": "Organisation distributes or promotes books to authors",
+          "status": "met",
+          "note": "Provides marketing and promotion services including press releases to outlets.",
+          "source_ids": [
+            "S1"
+          ]
+        }
+      ],
+      "reason_for_relevance": "Matches criteria of distributing/promoting books to authors.",
+      "fit": {
+        "score": 1,
+        "band": "irrelevant",
+        "rationale": "Matches criteria of distributing/promoting books to authors."
+      },
+      "summary": "Vine Publishing is a privately held hybrid publisher headquartered in New York, offering marketing and promotion services to authors, including press releases to outlets.",
+      "evidence": [
+        {
+          "claim": "Vine Publishing provides marketing and promotion services to authors.",
+          "field": "criteria",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "marketing and promotion for your title, which includes a press release to outlets.",
+          "confidence": "verified"
+        }
+      ],
+      "sources": [
+        {
+          "id": "S1",
+          "url": "https://vinepublish.com/",
+          "title": "Vine Publishing",
+          "source_type": "official website",
+          "retrieved_at": "2026-10-12T11:56:57.622Z"
+        }
+      ],
+      "unknowns": [
+        {
+          "field": "role",
+          "reason": "not specified in source"
+        }
+      ],
+      "contradictions": [],
+      "research_confidence": "medium",
+      "matched_prospect_id": null,
+      "researched_at": "2026-10-12T11:56:57.622Z",
+      "research_agent_version": "research-agent/0.1.0"
+    },
+    "seed": {
+      "name": "Vine Publishing",
+      "website": "https://vinepublish.com/",
+      "entity_kind": "organisation"
+    },
+    "qa": {
+      "status": "passed",
+      "issues": []
+    },
+    "relationship_status": null,
+    "model": "openai/gpt-oss-20b",
+    "searches": [
+      "Vine Publishing https://vinepublish.com/ Publishers & Book‑Industry Organisations official website OR contact OR email OR about"
+    ],
+    "search_provider": "exa",
+    "search_request_ids": [
+      "a4b00dc99b28cc19978d89278e20f81e"
+    ],
+    "search_usage": {
+      "requests": 1,
+      "estimated_cost_usd": 0.007,
+      "latency_ms": 3250
+    },
+    "search_warnings": [],
+    "batch_id": "batch-4",
+    "batch_number": 4,
+    "review": {
+      "project_id": "proj-1791464115518",
+      "record_id": "r-vine-publishing-mv575pxy",
+      "status": "needs_review",
+      "note": null,
+      "reviewed_at": "2026-10-12T11:56:57.625Z",
+      "reviewed_by": "system"
+    }
+  },
+  {
+    "record": {
+      "research_record_version": "1.1",
+      "record_id": "r-harpercollins-publishers-uk-mv575gt4",
+      "project_id": "proj-1791464115518",
+      "brief_target_id": "target-3",
+      "identity": {
+        "name": "HarperCollins Publishers UK",
+        "entity_kind": "organisation",
+        "identity_verified": true
+      },
+      "target_type": "Publishers & Book‑Industry Organisations",
+      "role": null,
+      "organisation": null,
+      "country": "United Kingdom",
+      "location": "London, United Kingdom",
+      "websites": [
+        {
+          "url": "https://harpercollins.co.uk/",
+          "type": "company",
+          "title": "HarperCollins Publishers UK"
+        },
+        {
+          "url": "https://harpercollins.com/",
+          "type": "company",
+          "title": "HarperCollins Publishers"
+        }
+      ],
+      "social_profiles": [
+        {
+          "platform": "linkedin",
+          "profile_url": "https://linkedin.com/company/collings-limited",
+          "username": null,
+          "display_name": "HarperCollins UK Publishers Ltd.",
+          "verified_status": false,
+          "confidence": "likely",
+          "source_ids": [
+            "S2"
+          ]
+        },
+        {
+          "platform": "linkedin",
+          "profile_url": "https://linkedin.com/company/harpercollins",
+          "username": null,
+          "display_name": "HarperCollins",
+          "verified_status": false,
+          "confidence": "likely",
+          "source_ids": [
+            "S3"
+          ]
+        }
+      ],
+      "public_contact": [
+        {
+          "kind": "email",
+          "value": "enquiries@harpercollins.co.uk",
+          "is_professional": true,
+          "source_ids": [
+            "S2"
+          ],
+          "confidence": "verified"
+        },
+        {
+          "kind": "phone",
+          "value": "+44 0141 306 31",
+          "is_professional": true,
+          "source_ids": [
+            "S2"
+          ],
+          "confidence": "verified"
+        }
+      ],
+      "background": [
+        "Book publishing company headquartered in London, United Kingdom, with a workforce of 345 people and a history dating back to 1817. Publishes around 1,500 books a year for readers of all ages and interests. Second largest consumer book publisher in the world. (S1)"
+      ],
+      "work_and_projects": [
+        "Publishes approximately 1,500 books annually, including bestsellers such as Bernard Cornwell, Adele Parks, Rebecca Kuang, and Chimamanda Ngozi Adichie. (S1)"
+      ],
+      "achievements": [
+        "Second largest consumer book publisher globally. (S1)"
+      ],
+      "industry_activity": [
+        "Publishes books, audio books, and educational resources; offers free catalogue to Royal National Institute for the Blind; operates Collins Learning division for reference publishing. (S1)"
+      ],
+      "qualification_assessment": [
+        {
+          "criterion": "Organisation distributes or promotes books to authors",
+          "status": "met",
+          "note": "HarperCollins UK publishes and promotes a large catalogue of books to authors and readers. (S1)",
+          "source_ids": [
+            "S1"
+          ]
+        }
+      ],
+      "reason_for_relevance": "HarperCollins UK meets the qualification criterion of distributing or promoting books to authors.",
+      "fit": {
+        "score": 1,
+        "band": "irrelevant",
+        "rationale": "HarperCollins UK meets the qualification criterion of distributing or promoting books to authors."
+      },
+      "summary": "HarperCollins Publishers UK is a major book publishing organisation headquartered in London, United Kingdom, with a global presence and a strong track record of publishing and promoting books to authors.",
+      "evidence": [
+        {
+          "claim": "HarperCollins UK is headquartered in London, United Kingdom.",
+          "field": "location",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "Headquartered in London, United Kingdom, with presence in Ireland.",
+          "confidence": "verified"
+        },
+        {
+          "claim": "HarperCollins UK publishes around 1,500 books a year.",
+          "field": "projects_or_work",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "Here at HarperCollins UK, we publish around 1,500 books a year for readers of all ages and interests.",
+          "confidence": "verified"
+        },
+        {
+          "claim": "HarperCollins UK employs 345 people.",
+          "field": "background",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "HarperCollins Publishers UK employs 345 people (+36.4% YoY, +92 people)",
+          "confidence": "verified"
+        }
+      ],
+      "sources": [
+        {
+          "id": "S1",
+          "url": "https://harpercollins.co.uk/",
+          "title": "HarperCollins Publishers UK",
+          "source_type": "official website",
+          "retrieved_at": "2026-10-12T11:56:45.784Z"
+        },
+        {
+          "id": "S2",
+          "url": "https://linkedin.com/company/collings-limited",
+          "title": "COLLINGS LIMITED",
+          "source_type": "linkedin",
+          "retrieved_at": "2026-10-12T11:56:45.784Z"
+        },
+        {
+          "id": "S3",
+          "url": "https://harpercollins.com/",
+          "title": "HarperCollins Publishers",
+          "source_type": "official website",
+          "retrieved_at": "2026-10-12T11:56:45.784Z"
+        },
+        {
+          "id": "S4",
+          "url": "https://collins.co.uk/pages/international",
+          "title": "Collins International",
+          "source_type": "official website",
+          "retrieved_at": "2026-10-12T11:56:45.784Z"
+        }
+      ],
+      "unknowns": [
+        {
+          "field": "best_contact_method",
+          "reason": "No explicit indication of preferred contact method in supplied evidence."
+        }
+      ],
+      "contradictions": [],
+      "research_confidence": "high",
+      "matched_prospect_id": null,
+      "researched_at": "2026-10-12T11:56:45.784Z",
+      "research_agent_version": "research-agent/0.1.0"
+    },
+    "seed": {
+      "name": "HarperCollins Publishers UK",
+      "website": "https://harpercollins.co.uk/",
+      "entity_kind": "organisation"
+    },
+    "qa": {
+      "status": "passed",
+      "issues": []
+    },
+    "relationship_status": null,
+    "model": "openai/gpt-oss-20b",
+    "searches": [
+      "HarperCollins Publishers UK https://harpercollins.co.uk/ Publishers & Book‑Industry Organisations official website OR contact OR email OR about"
+    ],
+    "search_provider": "exa",
+    "search_request_ids": [
+      "08d4c08229fecae1d8091df2df12aa5d"
+    ],
+    "search_usage": {
+      "requests": 1,
+      "estimated_cost_usd": 0.007,
+      "latency_ms": 2775
+    },
+    "search_warnings": [],
+    "batch_id": "batch-4",
+    "batch_number": 4,
+    "review": {
+      "project_id": "proj-1791464115518",
+      "record_id": "r-harpercollins-publishers-uk-mv575gt4",
+      "status": "needs_review",
+      "note": null,
+      "reviewed_at": "2026-10-12T11:56:45.787Z",
+      "reviewed_by": "system"
+    }
+  },
+  {
+    "record": {
+      "research_record_version": "1.1",
+      "record_id": "r-st-martin-s-press-mv574cww",
+      "project_id": "proj-1791464115518",
+      "brief_target_id": "target-3",
+      "identity": {
+        "name": "St. Martin's Press",
+        "entity_kind": "organisation",
+        "identity_verified": true
+      },
+      "target_type": "Publishers & Book‑Industry Organisations",
+      "role": "publisher",
+      "organisation": "St. Martin’s Publishing Group",
+      "country": "United States",
+      "location": "New York, New York",
+      "websites": [
+        {
+          "url": "https://us.macmillan.com/",
+          "type": "official website",
+          "title": "St. Martin's Press"
+        }
+      ],
+      "social_profiles": [],
+      "public_contact": [
+        {
+          "kind": "email",
+          "value": "press.inquiries@macmillan.com",
+          "is_professional": true,
+          "source_ids": [
+            "S2"
+          ],
+          "confidence": "verified"
+        },
+        {
+          "kind": "phone",
+          "value": "+1 609 409 0298",
+          "is_professional": true,
+          "source_ids": [
+            "S2"
+          ],
+          "confidence": "verified"
+        },
+        {
+          "kind": "phone",
+          "value": "646-600-7856",
+          "is_professional": true,
+          "source_ids": [
+            "S2"
+          ],
+          "confidence": "verified"
+        }
+      ],
+      "background": [
+        "St. Martin's Press is a Book and Periodical Publishing company. The St. Martin’s Publishing Group is a leading publisher of books designed to entertain, inform, and delight. St. Martin's Press employs 397 people, founded in 1952. Headquartered in New York, New York, United States, with an office in New York City. Its workforce is distributed across 9 countries (including United States, Israel, United Kingdom, Australia, and Belgium). The company is based in the Flat Iron Building in the heart of New York City."
+      ],
+      "work_and_projects": [],
+      "achievements": [],
+      "industry_activity": [
+        "Book and Periodical Publishing"
+      ],
+      "qualification_assessment": [
+        {
+          "criterion": "Organisation distributes or promotes books to authors",
+          "status": "met",
+          "note": "St. Martin's Press publishes and distributes books to authors.",
+          "source_ids": [
+            "S1",
+            "S2"
+          ]
+        }
+      ],
+      "reason_for_relevance": "St. Martin's Press meets the target criteria of distributing or promoting books to authors.",
+      "fit": {
+        "score": 1,
+        "band": "irrelevant",
+        "rationale": "St. Martin's Press meets the target criteria of distributing or promoting books to authors."
+      },
+      "summary": "St. Martin's Press is a book and periodical publishing company headquartered in New York, part of the St. Martin’s Publishing Group under Macmillan Publishers. It publishes and distributes books to authors worldwide and operates from the Flat Iron Building in New York City.",
+      "evidence": [
+        {
+          "claim": "St. Martin's Press is headquartered in New York, New York, United States",
+          "field": "location",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "Headquartered in New York, New York, United States, with an office in New York City.",
+          "confidence": "verified"
+        },
+        {
+          "claim": "St. Martin's Press is a division of the St. Martin’s Publishing Group, part of Macmillan",
+          "field": "organisation",
+          "source_ids": [
+            "S1",
+            "S2"
+          ],
+          "quote": "The St. Martin’s Publishing Group is a leading publisher of books designed to entertain, inform, and delight.",
+          "confidence": "verified"
+        },
+        {
+          "claim": "St. Martin's Press employs 397 people",
+          "field": "employees",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "St. Martin's Press employs 397 people",
+          "confidence": "verified"
+        }
+      ],
+      "sources": [
+        {
+          "id": "S1",
+          "url": "https://us.macmillan.com/",
+          "title": "St. Martin's Press",
+          "source_type": "official website",
+          "retrieved_at": "2026-10-12T11:55:54.080Z"
+        },
+        {
+          "id": "S2",
+          "url": "https://macmillan.com/",
+          "title": "Macmillan",
+          "source_type": "official website",
+          "retrieved_at": "2026-10-12T11:55:54.080Z"
+        },
+        {
+          "id": "S3",
+          "url": "https://us.macmillan.com/fsg",
+          "title": "Farrar, Straus and Giroux",
+          "source_type": "official website",
+          "retrieved_at": "2026-10-12T11:55:54.080Z"
+        },
+        {
+          "id": "S4",
+          "url": "https://bedfordstmartins.com/",
+          "title": "Bedford/st. Martin's",
+          "source_type": "official website",
+          "retrieved_at": "2026-10-12T11:55:54.080Z"
+        },
+        {
+          "id": "S5",
+          "url": "https://mheducation.com/prek-12.html",
+          "title": "Macmillan/McGraw-Hill School Publishing Company",
+          "source_type": "official website",
+          "retrieved_at": "2026-10-12T11:55:54.080Z"
+        },
+        {
+          "id": "S6",
+          "url": "https://penguin.com/",
+          "title": "Penguin Publishing Group",
+          "source_type": "official website",
+          "retrieved_at": "2026-10-12T11:55:54.080Z"
+        },
+        {
+          "id": "S7",
+          "url": "https://harpercollins.com/",
+          "title": "HarperCollins Publishers",
+          "source_type": "official website",
+          "retrieved_at": "2026-10-12T11:55:54.080Z"
+        },
+        {
+          "id": "S8",
+          "url": "https://nap.edu/",
+          "title": "National Academies Press",
+          "source_type": "official website",
+          "retrieved_at": "2026-10-12T11:55:54.080Z"
+        }
+      ],
+      "unknowns": [],
+      "contradictions": [],
+      "research_confidence": "high",
+      "matched_prospect_id": null,
+      "researched_at": "2026-10-12T11:55:54.080Z",
+      "research_agent_version": "research-agent/0.1.0"
+    },
+    "seed": {
+      "name": "St. Martin's Press",
+      "website": "https://us.macmillan.com/",
+      "entity_kind": "organisation"
+    },
+    "qa": {
+      "status": "failed",
+      "issues": [
+        {
+          "severity": "error",
+          "code": "schema_invalid",
+          "message": "websites.0.type: Invalid option: expected one of \"personal\"|\"company\"|\"author\"|\"portfolio\"|\"project\"|\"official_profile\"|\"other\""
+        }
+      ]
+    },
+    "relationship_status": null,
+    "model": "openai/gpt-oss-20b",
+    "searches": [
+      "St. Martin's Press https://us.macmillan.com/ Publishers & Book‑Industry Organisations official website OR contact OR email OR about"
+    ],
+    "search_provider": "exa",
+    "search_request_ids": [
+      "67e9d44a41a35d9095e6fb67fba3045f"
+    ],
+    "search_usage": {
+      "requests": 1,
+      "estimated_cost_usd": 0.007,
+      "latency_ms": 2632
+    },
+    "search_warnings": [],
+    "batch_id": "batch-4",
+    "batch_number": 4,
+    "review": {
+      "project_id": "proj-1791464115518",
+      "record_id": "r-st-martin-s-press-mv574cww",
+      "status": "needs_review",
+      "note": null,
+      "reviewed_at": "2026-10-12T11:55:54.084Z",
+      "reviewed_by": "system"
+    }
+  },
+  {
+    "record": {
+      "research_record_version": "1.1",
+      "record_id": "r-manhattan-book-group-mv572pkd",
+      "project_id": "proj-1791464115518",
+      "brief_target_id": "target-3",
+      "identity": {
+        "name": "Manhattan Book Group",
+        "entity_kind": "organisation",
+        "identity_verified": true
+      },
+      "target_type": "Publishers & Book‑Industry Organisations",
+      "role": null,
+      "organisation": null,
+      "country": "United States",
+      "location": "New York, New York, United States",
+      "websites": [
+        {
+          "url": "https://manhattanbookgroup.com/",
+          "type": "company",
+          "title": "Manhattan Book Group"
+        }
+      ],
+      "social_profiles": [
+        {
+          "platform": "linkedin",
+          "profile_url": "https://linkedin.com/company/manhattan-book-group",
+          "username": null,
+          "display_name": null,
+          "verified_status": false,
+          "confidence": "verified",
+          "source_ids": [
+            "S1"
+          ]
+        }
+      ],
+      "public_contact": [
+        {
+          "kind": "email",
+          "value": "info@manhattanbookgroup.com",
+          "is_professional": true,
+          "source_ids": [
+            "S1"
+          ],
+          "confidence": "verified"
+        },
+        {
+          "kind": "phone",
+          "value": "212-634-7677",
+          "is_professional": true,
+          "source_ids": [
+            "S1"
+          ],
+          "confidence": "verified"
+        }
+      ],
+      "background": [
+        "Manhattan Book Group is a premier hybrid book publisher based in Manhattan, New York, providing top hybrid book publishing services and guaranteeing Amazon bestseller status and major media placements."
+      ],
+      "work_and_projects": [
+        "Hybrid publishing services, guarantee Amazon bestseller status, media placements through ad campaigns and advanced publicity strategies."
+      ],
+      "achievements": [
+        "Guarantee Amazon bestseller status for selected titles."
+      ],
+      "industry_activity": [
+        "Book and Periodical Publishing"
+      ],
+      "qualification_assessment": [
+        {
+          "criterion": "distributes or promotes books to authors",
+          "status": "met",
+          "note": null,
+          "source_ids": [
+            "S1"
+          ]
+        }
+      ],
+      "reason_for_relevance": "Matches target group of publishers and book‑industry organisations that distribute or promote books to authors.",
+      "fit": {
+        "score": 1,
+        "band": "irrelevant",
+        "rationale": "Matches target group of publishers and book‑industry organisations that distribute or promote books to authors."
+      },
+      "summary": "Manhattan Book Group is a hybrid book publisher headquartered in New York, offering services that guarantee Amazon bestseller status and media placements, thereby meeting the qualification criteria of distributing/promoting books to authors.",
+      "evidence": [
+        {
+          "claim": "Manhattan Book Group is a hybrid book publisher headquartered in New York, New York, United States.",
+          "field": "role|organisation|location",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "Manhattan Book Group is a premier hybrid book publisher based in Manhattan, New York, providing top hybrid book publishing services, with a twist: We GUARANTEE Amazon bestseller status and major media placements through the use of bestseller ad campaigns and advanced book publicity strategies. Manhattan Book Group employs 5 people. Headquartered in New York, New York, United States.",
+          "confidence": "verified"
+        },
+        {
+          "claim": "Website: https://manhattanbookgroup.com/",
+          "field": "website",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "Homepage: manhattanbookgroup.com",
+          "confidence": "verified"
+        },
+        {
+          "claim": "LinkedIn profile: https://linkedin.com/company/manhattan-book-group",
+          "field": "social_profiles",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "LinkedIn: linkedin.com/company/manhattan-book-group",
+          "confidence": "verified"
+        },
+        {
+          "claim": "Email: info@manhattanbookgroup.com",
+          "field": "contacts",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "Emails: info@manhattanbookgroup.com",
+          "confidence": "verified"
+        },
+        {
+          "claim": "Phone: 212-634-7677",
+          "field": "contacts",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "Phone: 212-634-7677",
+          "confidence": "verified"
+        },
+        {
+          "claim": "Distributes or promotes books to authors",
+          "field": "criteria",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "Manhattan Book Group is a Book and Periodical Publishing company...",
+          "confidence": "verified"
+        }
+      ],
+      "sources": [
+        {
+          "id": "S1",
+          "url": "https://manhattanbookgroup.com/",
+          "title": "Manhattan Book Group",
+          "source_type": "official website",
+          "retrieved_at": "2026-10-12T11:54:37.165Z"
+        }
+      ],
+      "unknowns": [],
+      "contradictions": [],
+      "research_confidence": "medium",
+      "matched_prospect_id": null,
+      "researched_at": "2026-10-12T11:54:37.165Z",
+      "research_agent_version": "research-agent/0.1.0"
+    },
+    "seed": {
+      "name": "Manhattan Book Group",
+      "website": "https://manhattanbookgroup.com/",
+      "entity_kind": "organisation"
+    },
+    "qa": {
+      "status": "passed",
+      "issues": []
+    },
+    "relationship_status": null,
+    "model": "openai/gpt-oss-20b",
+    "searches": [
+      "Manhattan Book Group https://manhattanbookgroup.com/ Publishers & Book‑Industry Organisations official website OR contact OR email OR about"
+    ],
+    "search_provider": "exa",
+    "search_request_ids": [
+      "f1add877449ed94dab2e8c3c5ddc4364"
+    ],
+    "search_usage": {
+      "requests": 1,
+      "estimated_cost_usd": 0.007,
+      "latency_ms": 1971
+    },
+    "search_warnings": [],
+    "batch_id": "batch-4",
+    "batch_number": 4,
+    "review": {
+      "project_id": "proj-1791464115518",
+      "record_id": "r-manhattan-book-group-mv572pkd",
+      "status": "needs_review",
+      "note": null,
+      "reviewed_at": "2026-10-12T11:54:37.168Z",
+      "reviewed_by": "system"
+    }
+  },
+  {
+    "record": {
+      "research_record_version": "1.1",
+      "record_id": "r-extraordinary-books-mv572fic",
+      "project_id": "proj-1791464115518",
+      "brief_target_id": "target-3",
+      "identity": {
+        "name": "Extraordinary Books",
+        "entity_kind": "organisation",
+        "identity_verified": false
+      },
+      "target_type": "Publishers & Book‑Industry Organisations",
+      "role": null,
+      "organisation": null,
+      "country": "United States",
+      "location": "Ann Arbor, Michigan, United States",
+      "websites": [
+        {
+          "url": "https://extraordinarybooks.co.uk/",
+          "type": "company",
+          "title": "Extraordinary Books"
+        },
+        {
+          "url": "https://linkedin.com/company/extraordinarybooks",
+          "type": "official_profile",
+          "title": "Extraordinary Books LinkedIn"
+        }
+      ],
+      "social_profiles": [
+        {
+          "platform": "linkedin",
+          "profile_url": "https://linkedin.com/company/extraordinarybooks",
+          "username": null,
+          "display_name": "Extraordinary Books",
+          "verified_status": false,
+          "confidence": "verified",
+          "source_ids": [
+            "S1"
+          ]
+        }
+      ],
+      "public_contact": [],
+      "background": [
+        "Book Publishing company headquartered in Ann Arbor, Michigan, United States."
+      ],
+      "work_and_projects": [],
+      "achievements": [],
+      "industry_activity": [
+        "Book Publishing"
+      ],
+      "qualification_assessment": [
+        {
+          "criterion": "Organisation distributes or promotes books to authors.",
+          "status": "unknown",
+          "note": "No evidence found that Extraordinary Books distributes or promotes books to authors.",
+          "source_ids": [
+            "S1"
+          ]
+        }
+      ],
+      "reason_for_relevance": "No evidence that Extraordinary Books distributes or promotes books to authors.",
+      "fit": {
+        "score": 0,
+        "band": "irrelevant",
+        "rationale": "No evidence that Extraordinary Books distributes or promotes books to authors."
+      },
+      "summary": "Extraordinary Books is a book publishing company headquartered in Ann Arbor, Michigan, United States. No evidence found that it distributes or promotes books to authors.",
+      "evidence": [
+        {
+          "claim": "Extraordinary Books is a Book Publishing company headquartered in Ann Arbor, Michigan, United States.",
+          "field": "organisation",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "Extraordinary Books is a Book Publishing company. Extraordinary Books is a company that provides books. Extraordinary Books employs 4 people. Headquartered in Ann Arbor, Michigan, United States.",
+          "confidence": "verified"
+        }
+      ],
+      "sources": [
+        {
+          "id": "S1",
+          "url": "https://extraordinarybooks.co.uk/",
+          "title": "Extraordinary Books",
+          "source_type": "official website",
+          "retrieved_at": "2026-10-12T11:54:24.132Z"
+        }
+      ],
+      "unknowns": [
+        {
+          "field": "contact",
+          "reason": "No legitimate public contact route was verified."
+        },
+        {
+          "field": "email",
+          "reason": "No email address provided in source."
+        },
+        {
+          "field": "phone",
+          "reason": "No phone number provided in source."
+        },
+        {
+          "field": "best_contact_method",
+          "reason": "No contact method provided in source."
+        }
+      ],
+      "contradictions": [],
+      "research_confidence": "low",
+      "matched_prospect_id": null,
+      "researched_at": "2026-10-12T11:54:24.132Z",
+      "research_agent_version": "research-agent/0.1.0"
+    },
+    "seed": {
+      "name": "Extraordinary Books",
+      "website": "https://extraordinarybooks.co.uk/",
+      "entity_kind": "organisation"
+    },
+    "qa": {
+      "status": "needs_review",
+      "issues": [
+        {
+          "severity": "warning",
+          "code": "identity_unverified",
+          "message": "Identity could not be confirmed from reliable sources — human review needed."
+        }
+      ]
+    },
+    "relationship_status": null,
+    "model": "openai/gpt-oss-20b",
+    "searches": [
+      "Extraordinary Books https://extraordinarybooks.co.uk/ Publishers & Book‑Industry Organisations official website OR contact OR email OR about"
+    ],
+    "search_provider": "exa",
+    "search_request_ids": [
+      "c1956f53b5e27d9ceb19353e0327eebb"
+    ],
+    "search_usage": {
+      "requests": 1,
+      "estimated_cost_usd": 0.007,
+      "latency_ms": 2460
+    },
+    "search_warnings": [],
+    "batch_id": "batch-4",
+    "batch_number": 4,
+    "review": {
+      "project_id": "proj-1791464115518",
+      "record_id": "r-extraordinary-books-mv572fic",
+      "status": "needs_review",
+      "note": null,
+      "reviewed_at": "2026-10-12T11:54:24.134Z",
+      "reviewed_by": "system"
+    }
+  },
+  {
+    "record": {
+      "research_record_version": "1.1",
+      "record_id": "r-flame-tree-publishing-mv5724oa",
+      "project_id": "proj-1791464115518",
+      "brief_target_id": "target-3",
+      "identity": {
+        "name": "Flame Tree Publishing",
+        "entity_kind": "organisation",
+        "identity_verified": true
+      },
+      "target_type": "Publishers & Book‑Industry Organisations",
+      "role": null,
+      "organisation": null,
+      "country": "United Kingdom",
+      "location": "London, SW6",
+      "websites": [
+        {
+          "url": "https://flametreepublishing.com/",
+          "type": "company",
+          "title": "Flame Tree Publishing"
+        }
+      ],
+      "social_profiles": [
+        {
+          "platform": "linkedin",
+          "profile_url": "https://linkedin.com/company/flame-tree-publishing-ltd",
+          "username": null,
+          "display_name": null,
+          "verified_status": false,
+          "confidence": "verified",
+          "source_ids": [
+            "S1"
+          ]
+        }
+      ],
+      "public_contact": [
+        {
+          "kind": "email",
+          "value": "info@flametreepublishing.com",
+          "is_professional": true,
+          "source_ids": [
+            "S1"
+          ],
+          "confidence": "verified"
+        }
+      ],
+      "background": [
+        "Flame Tree Publishing is a Book and Periodical Publishing company founded in 1992, headquartered in London, United Kingdom, with a workforce of 36 people and an annual revenue of $12.6M. (S1)"
+      ],
+      "work_and_projects": [
+        "Distributes books via Hachette UK Distribution (UK), Peribo (Australia), and Simon & Schuster (US). Offers books, calendars, ebooks, and gift stationery. (S1)"
+      ],
+      "achievements": [],
+      "industry_activity": [
+        "Book and Periodical Publishing"
+      ],
+      "qualification_assessment": [
+        {
+          "criterion": "Organisation distributes or promotes books to authors",
+          "status": "met",
+          "note": "Flame Tree Publishing distributes books through major distributors.",
+          "source_ids": [
+            "S1"
+          ]
+        }
+      ],
+      "reason_for_relevance": "Flame Tree Publishing meets the qualification criteria of distributing books to authors and operates in the UK and US markets.",
+      "fit": {
+        "score": 1,
+        "band": "irrelevant",
+        "rationale": "Flame Tree Publishing meets the qualification criteria of distributing books to authors and operates in the UK and US markets."
+      },
+      "summary": "Flame Tree Publishing is an independent book and periodical publisher headquartered in London, UK, distributing books through major distributors and offering a range of publication types.",
+      "evidence": [
+        {
+          "claim": "Flame Tree Publishing is headquartered in London, SW6, United Kingdom",
+          "field": "location",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "Headquartered in London, England, United Kingdom. (S1)",
+          "confidence": "verified"
+        },
+        {
+          "claim": "Flame Tree Publishing distributes books via Hachette UK Distribution, Peribo, and Simon & Schuster",
+          "field": "projects_or_work",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "Distribution: Hachette UK Distribution (UK), Peribo (Australia), Simon & Schuster (US). (S1)",
+          "confidence": "verified"
+        },
+        {
+          "claim": "Flame Tree Publishing offers books, calendars, ebooks, and gift stationery",
+          "field": "projects_or_work",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "Publication types: Books, calendars, ebooks, gift stationery. (S1)",
+          "confidence": "verified"
+        },
+        {
+          "claim": "Flame Tree Publishing's official website is https://flametreepublishing.com/",
+          "field": "website",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "Official website: flametreepublishing.com. (S1)",
+          "confidence": "verified"
+        }
+      ],
+      "sources": [
+        {
+          "id": "S1",
+          "url": "https://flametreepublishing.com/",
+          "title": "Flame Tree Publishing",
+          "source_type": "official website",
+          "retrieved_at": "2026-10-12T11:54:10.090Z"
+        }
+      ],
+      "unknowns": [
+        {
+          "field": "phone",
+          "reason": "No publicly verified value found."
+        }
+      ],
+      "contradictions": [],
+      "research_confidence": "medium",
+      "matched_prospect_id": null,
+      "researched_at": "2026-10-12T11:54:10.090Z",
+      "research_agent_version": "research-agent/0.1.0"
+    },
+    "seed": {
+      "name": "Flame Tree Publishing",
+      "website": "https://flametreepublishing.com/",
+      "entity_kind": "organisation"
+    },
+    "qa": {
+      "status": "needs_review",
+      "issues": [
+        {
+          "severity": "warning",
+          "code": "unverified_contact",
+          "message": "Removed phone \"+44 20 7751 9650\" — not found verbatim in any searched page."
+        }
+      ]
+    },
+    "relationship_status": null,
+    "model": "openai/gpt-oss-20b",
+    "searches": [
+      "Flame Tree Publishing https://flametreepublishing.com/ Publishers & Book‑Industry Organisations official website OR contact OR email OR about"
+    ],
+    "search_provider": "exa",
+    "search_request_ids": [
+      "27ec5daaf57d92c64f2fc33bcba8a8e3"
+    ],
+    "search_usage": {
+      "requests": 1,
+      "estimated_cost_usd": 0.007,
+      "latency_ms": 2188
+    },
+    "search_warnings": [],
+    "batch_id": "batch-4",
+    "batch_number": 4,
+    "review": {
+      "project_id": "proj-1791464115518",
+      "record_id": "r-flame-tree-publishing-mv5724oa",
+      "status": "needs_review",
+      "note": null,
+      "reviewed_at": "2026-10-12T11:54:10.093Z",
+      "reviewed_by": "system"
+    }
+  },
+  {
+    "record": {
+      "research_record_version": "1.1",
+      "record_id": "r-hachette-uk-mv571upx",
+      "project_id": "proj-1791464115518",
+      "brief_target_id": "target-3",
+      "identity": {
+        "name": "Hachette UK",
+        "entity_kind": "organisation",
+        "identity_verified": true
+      },
+      "target_type": "Publishers & Book‑Industry Organisations",
+      "role": "Book and Periodical Publishing company",
+      "organisation": null,
+      "country": "United Kingdom",
+      "location": "London, United Kingdom",
+      "websites": [
+        {
+          "url": "https://hachette.co.uk/",
+          "type": "official website",
+          "title": "Hachette UK"
+        }
+      ],
+      "social_profiles": [
+        {
+          "platform": "LinkedIn",
+          "profile_url": "https://linkedin.com/company/hachette-uk-limited",
+          "username": null,
+          "display_name": "Hachette UK Limited",
+          "verified_status": false,
+          "confidence": "verified",
+          "source_ids": [
+            "S1"
+          ]
+        }
+      ],
+      "public_contact": [
+        {
+          "kind": "email",
+          "value": "enquiries@hachette.co.uk",
+          "is_professional": true,
+          "source_ids": [
+            "S1"
+          ],
+          "confidence": "verified"
+        },
+        {
+          "kind": "phone",
+          "value": "+442031226000",
+          "is_professional": true,
+          "source_ids": [
+            "S1"
+          ],
+          "confidence": "verified"
+        }
+      ],
+      "background": [
+        "Hachette UK is a leading UK trade publishing group comprised of Hachette Children’s Group, Headline Publishing Group, Hodder & Stoughton, Hodder Education, Little, Brown Book Group, Octopus P…",
+        "Headquartered in London, United Kingdom, with offices including Chichester, Edinburgh, Newcastle upon Tyne, Banbury, and Didcot."
+      ],
+      "work_and_projects": [
+        "Imprints include Hachette Children’s Group, Headline Publishing Group, Hodder & Stoughton, Hodder Education, Little, Brown Book Group, Octopus P…"
+      ],
+      "achievements": [],
+      "industry_activity": [
+        "Book and Periodical Publishing"
+      ],
+      "qualification_assessment": [
+        {
+          "criterion": "Organisation distributes or promotes books to authors",
+          "status": "met",
+          "note": "Distributes books via Hachette UK Distribution",
+          "source_ids": [
+            "S5"
+          ]
+        }
+      ],
+      "reason_for_relevance": "No evidence-based rationale provided.",
+      "fit": {
+        "score": 1,
+        "band": "irrelevant",
+        "rationale": "No evidence-based rationale provided."
+      },
+      "summary": "",
+      "evidence": [
+        {
+          "claim": "Hachette UK Distribution provides leading-edge fulfilment and warehousing services to over thirty publishers",
+          "field": "criteria",
+          "source_ids": [
+            "S5"
+          ],
+          "quote": "Hachette UK Distribution provides leading-edge fulfilment and warehousing services to over thirty publishers",
+          "confidence": "verified"
+        }
+      ],
+      "sources": [
+        {
+          "id": "S1",
+          "url": "https://hachette.co.uk/",
+          "title": "Hachette UK",
+          "source_type": "official website",
+          "retrieved_at": "2026-10-12T11:53:57.189Z"
+        },
+        {
+          "id": "S2",
+          "url": "https://hodder.co.uk/",
+          "title": "Hodder & Stoughton",
+          "source_type": "official website",
+          "retrieved_at": "2026-10-12T11:53:57.189Z"
+        },
+        {
+          "id": "S3",
+          "url": "https://hachettechildrens.co.uk/",
+          "title": "Hachette Children's Group",
+          "source_type": "official website",
+          "retrieved_at": "2026-10-12T11:53:57.189Z"
+        },
+        {
+          "id": "S4",
+          "url": "https://headline.co.uk/",
+          "title": "HEADLINE PUBLISHING GROUP",
+          "source_type": "official website",
+          "retrieved_at": "2026-10-12T11:53:57.189Z"
+        },
+        {
+          "id": "S5",
+          "url": "https://hachetteukdistribution.co.uk/",
+          "title": "Hachette UK Distribution",
+          "source_type": "official website",
+          "retrieved_at": "2026-10-12T11:53:57.189Z"
+        }
+      ],
+      "unknowns": [],
+      "contradictions": [],
+      "research_confidence": "low",
+      "matched_prospect_id": null,
+      "researched_at": "2026-10-12T11:53:57.189Z",
+      "research_agent_version": "research-agent/0.1.0"
+    },
+    "seed": {
+      "name": "Hachette UK",
+      "website": "https://hachette.co.uk/",
+      "entity_kind": "organisation"
+    },
+    "qa": {
+      "status": "failed",
+      "issues": [
+        {
+          "severity": "error",
+          "code": "schema_invalid",
+          "message": "websites.0.type: Invalid option: expected one of \"personal\"|\"company\"|\"author\"|\"portfolio\"|\"project\"|\"official_profile\"|\"other\"; social_profiles.0.platform: Invalid option: expected one of \"linkedin\"|\"instagram\"|\"facebook\"|\"x\"|\"tiktok\"|\"youtube\"|\"threads\"|\"bluesky\"|\"goodreads\"|\"substack\"|\"medium\"|\"other\""
+        }
+      ]
+    },
+    "relationship_status": null,
+    "model": "openai/gpt-oss-20b",
+    "searches": [
+      "Hachette UK https://hachette.co.uk/ Publishers & Book‑Industry Organisations official website OR contact OR email OR about"
+    ],
+    "search_provider": "exa",
+    "search_request_ids": [
+      "0946bacbe22ec7ecf525a03cb744cf40"
+    ],
+    "search_usage": {
+      "requests": 1,
+      "estimated_cost_usd": 0.007,
+      "latency_ms": 2307
+    },
+    "search_warnings": [],
+    "batch_id": "batch-4",
+    "batch_number": 4,
+    "review": {
+      "project_id": "proj-1791464115518",
+      "record_id": "r-hachette-uk-mv571upx",
+      "status": "needs_review",
+      "note": null,
+      "reviewed_at": "2026-10-12T11:53:57.193Z",
+      "reviewed_by": "system"
+    }
+  },
+  {
+    "record": {
+      "research_record_version": "1.1",
+      "record_id": "r-publishers-licensing-services-pls-mv570w62",
+      "project_id": "proj-1791464115518",
+      "brief_target_id": "target-3",
+      "identity": {
+        "name": "Publishers' Licensing Services (PLS)",
+        "entity_kind": "organisation",
+        "identity_verified": false
+      },
+      "target_type": "Publishers & Book‑Industry Organisations",
+      "role": null,
+      "organisation": null,
+      "country": "United Kingdom",
+      "location": "London, United Kingdom",
+      "websites": [
+        {
+          "url": "https://pls.org.uk/",
+          "type": "company",
+          "title": "Publishers' Licensing Services (PLS)"
+        }
+      ],
+      "social_profiles": [
+        {
+          "platform": "linkedin",
+          "profile_url": "https://linkedin.com/company/publishers-licensing-services",
+          "username": null,
+          "display_name": null,
+          "verified_status": false,
+          "confidence": "verified",
+          "source_ids": [
+            "S1"
+          ]
+        }
+      ],
+      "public_contact": [
+        {
+          "kind": "email",
+          "value": "pls@pls.org.uk",
+          "is_professional": true,
+          "source_ids": [
+            "S1"
+          ],
+          "confidence": "verified"
+        },
+        {
+          "kind": "phone",
+          "value": "+44 20 7079 5930",
+          "is_professional": true,
+          "source_ids": [
+            "S1"
+          ],
+          "confidence": "verified"
+        }
+      ],
+      "background": [
+        "Nonprofit collective management organisation providing publishing services, founded 1981, headquartered in London, representing over 4,500 publishers. (S1)"
+      ],
+      "work_and_projects": [
+        "Provides rights and licensing services to the publishing industry. (S1)"
+      ],
+      "achievements": [
+        "Collected and distributed more than £49.3 million in 2025-26. (S1)"
+      ],
+      "industry_activity": [
+        "Book and Periodical Publishing. (S1)"
+      ],
+      "qualification_assessment": [
+        {
+          "criterion": "Organisation distributes or promotes books to authors",
+          "status": "unknown",
+          "note": "Evidence does not explicitly state distribution or promotion to authors.",
+          "source_ids": [
+            "S1"
+          ]
+        }
+      ],
+      "reason_for_relevance": "No evidence that PLS distributes or promotes books to authors.",
+      "fit": {
+        "score": 0,
+        "band": "irrelevant",
+        "rationale": "No evidence that PLS distributes or promotes books to authors."
+      },
+      "summary": "Publishers' Licensing Services (PLS) is a UK-based nonprofit collective management organisation that provides publishing services, including rights and licensing, but there is no explicit evidence that it distributes or promotes books to authors.",
+      "evidence": [
+        {
+          "claim": "Name",
+          "field": "organisation",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "Publishers' Licensing Services (PLS) is a nonprofit organization.",
+          "confidence": "verified"
+        },
+        {
+          "claim": "Location",
+          "field": "location",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "Headquartered in London, England, United Kingdom.",
+          "confidence": "verified"
+        },
+        {
+          "claim": "Website",
+          "field": "website",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "Homepage: pls.org.uk",
+          "confidence": "verified"
+        },
+        {
+          "claim": "LinkedIn",
+          "field": "social_profile",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "LinkedIn: linkedin.com/company/publishers-licensing-services",
+          "confidence": "verified"
+        },
+        {
+          "claim": "Email",
+          "field": "contacts",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "pls@pls.org.uk",
+          "confidence": "verified"
+        },
+        {
+          "claim": "Phone",
+          "field": "contacts",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "+44 20 7079 5930",
+          "confidence": "verified"
+        }
+      ],
+      "sources": [
+        {
+          "id": "S1",
+          "url": "https://pls.org.uk/",
+          "title": "Publishers' Licensing Services (PLS)",
+          "source_type": "official website",
+          "retrieved_at": "2026-10-12T11:53:12.410Z"
+        }
+      ],
+      "unknowns": [],
+      "contradictions": [],
+      "research_confidence": "low",
+      "matched_prospect_id": "p-mv0sztu6",
+      "researched_at": "2026-10-12T11:53:12.410Z",
+      "research_agent_version": "research-agent/0.1.0"
+    },
+    "seed": {
+      "name": "Publishers' Licensing Services (PLS)",
+      "website": "https://pls.org.uk/",
+      "entity_kind": "organisation"
+    },
+    "qa": {
+      "status": "needs_review",
+      "issues": [
+        {
+          "severity": "warning",
+          "code": "identity_unverified",
+          "message": "Identity could not be confirmed from reliable sources — human review needed."
+        },
+        {
+          "severity": "info",
+          "code": "known_prospect",
+          "message": "Matches existing prospect in memory (p-mv0sztu6)."
+        }
+      ]
+    },
+    "relationship_status": null,
+    "model": "openai/gpt-oss-20b",
+    "searches": [
+      "Publishers' Licensing Services (PLS) https://pls.org.uk/ Publishers & Book‑Industry Organisations official website OR contact OR email OR about"
+    ],
+    "search_provider": "exa",
+    "search_request_ids": [
+      "08ecce9e4942efc4f1f65f60b6a0741c"
+    ],
+    "search_usage": {
+      "requests": 1,
+      "estimated_cost_usd": 0.007,
+      "latency_ms": 2571
+    },
+    "search_warnings": [],
+    "batch_id": "batch-4",
+    "batch_number": 4,
+    "review": {
+      "project_id": "proj-1791464115518",
+      "record_id": "r-publishers-licensing-services-pls-mv570w62",
+      "status": "needs_review",
+      "note": null,
+      "reviewed_at": "2026-10-12T11:53:12.413Z",
+      "reviewed_by": "system"
+    }
+  },
+  {
+    "record": {
+      "research_record_version": "1.1",
+      "record_id": "r-allison-busby-mv570dqr",
+      "project_id": "proj-1791464115518",
+      "brief_target_id": "target-3",
+      "identity": {
+        "name": "ALLISON & BUSBY",
+        "entity_kind": "organisation",
+        "identity_verified": false
+      },
+      "target_type": "Publishers & Book‑Industry Organisations",
+      "role": null,
+      "organisation": null,
+      "country": "United Kingdom",
+      "location": "London, United Kingdom",
+      "websites": [
+        {
+          "url": "https://allisonandbusby.com/",
+          "type": "company",
+          "title": "ALLISON & BUSBY"
+        }
+      ],
+      "social_profiles": [
+        {
+          "platform": "linkedin",
+          "profile_url": "https://linkedin.com/company/allison-and-busby-limited",
+          "username": null,
+          "display_name": null,
+          "verified_status": false,
+          "confidence": "verified",
+          "source_ids": [
+            "S1"
+          ]
+        }
+      ],
+      "public_contact": [
+        {
+          "kind": "email",
+          "value": "susie@allisonandbusby.com",
+          "is_professional": true,
+          "source_ids": [
+            "S1"
+          ],
+          "confidence": "verified"
+        },
+        {
+          "kind": "phone",
+          "value": "+44 020 3950 7834",
+          "is_professional": true,
+          "source_ids": [
+            "S1"
+          ],
+          "confidence": "verified"
+        }
+      ],
+      "background": [
+        "Independent publishing house based in central London, founded 1967, publishes fiction and non-fiction with a core focus on crime, historical and literary fiction."
+      ],
+      "work_and_projects": [
+        "Distribution via Turnaround Publisher Services (UK) and Baker & Taylor Publisher Services (US)."
+      ],
+      "achievements": [
+        "Founded 1967, employs 10 people, annual revenue $6.2M."
+      ],
+      "industry_activity": [
+        "Book publishing and distribution services."
+      ],
+      "qualification_assessment": [
+        {
+          "criterion": "distributes books to authors",
+          "status": "met",
+          "note": null,
+          "source_ids": [
+            "S1"
+          ]
+        }
+      ],
+      "reason_for_relevance": "No evidence of best contact method preference.",
+      "fit": {
+        "score": 0,
+        "band": "irrelevant",
+        "rationale": "No evidence of best contact method preference."
+      },
+      "summary": "",
+      "evidence": [
+        {
+          "claim": "Allison & Busby is an independent publishing house headquartered in London, United Kingdom.",
+          "field": "organisation",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "Founded in 1967, Allison & Busby are an independent publishing house based in central London.",
+          "confidence": "verified"
+        },
+        {
+          "claim": "Website: https://allisonandbusby.com/",
+          "field": "website",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "Official website: www.allisonandbusby.com",
+          "confidence": "verified"
+        },
+        {
+          "claim": "LinkedIn profile: https://linkedin.com/company/allison-and-busby-limited",
+          "field": "social_profile",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "LinkedIn: linkedin.com/company/allison-and-busby-limited",
+          "confidence": "verified"
+        },
+        {
+          "claim": "Email contact: susie@allisonandbusby.com",
+          "field": "contacts",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "Emails: susie@allisonandbusby.com",
+          "confidence": "verified"
+        },
+        {
+          "claim": "Phone contact: +44 020 3950 7834",
+          "field": "contacts",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "Phone: +44 020 3950 7834",
+          "confidence": "verified"
+        },
+        {
+          "claim": "Distribution services: Turnaround Publisher Services (UK) and Baker & Taylor Publisher Services (US)",
+          "field": "projects_or_work",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "Distribution: Turnaround Publisher Services (UK), Baker & Taylor Publisher Services (US)",
+          "confidence": "verified"
+        }
+      ],
+      "sources": [
+        {
+          "id": "S1",
+          "url": "https://allisonandbusby.com/",
+          "title": "ALLISON & BUSBY",
+          "source_type": "official website",
+          "retrieved_at": "2026-10-12T11:52:48.531Z"
+        }
+      ],
+      "unknowns": [],
+      "contradictions": [],
+      "research_confidence": "low",
+      "matched_prospect_id": "p-mv0t29xu",
+      "researched_at": "2026-10-12T11:52:48.531Z",
+      "research_agent_version": "research-agent/0.1.0"
+    },
+    "seed": {
+      "name": "ALLISON & BUSBY",
+      "website": "https://allisonandbusby.com/",
+      "entity_kind": "organisation"
+    },
+    "qa": {
+      "status": "needs_review",
+      "issues": [
+        {
+          "severity": "warning",
+          "code": "identity_unverified",
+          "message": "Identity could not be confirmed from reliable sources — human review needed."
+        },
+        {
+          "severity": "info",
+          "code": "known_prospect",
+          "message": "Matches existing prospect in memory (p-mv0t29xu)."
+        }
+      ]
+    },
+    "relationship_status": null,
+    "model": "openai/gpt-oss-20b",
+    "searches": [
+      "ALLISON & BUSBY https://allisonandbusby.com/ Publishers & Book‑Industry Organisations official website OR contact OR email OR about"
+    ],
+    "search_provider": "exa",
+    "search_request_ids": [
+      "bea3992952f32d947ec7b72502ad605d"
+    ],
+    "search_usage": {
+      "requests": 1,
+      "estimated_cost_usd": 0.007,
+      "latency_ms": 2225
+    },
+    "search_warnings": [],
+    "batch_id": "batch-4",
+    "batch_number": 4,
+    "review": {
+      "project_id": "proj-1791464115518",
+      "record_id": "r-allison-busby-mv570dqr",
+      "status": "needs_review",
+      "note": null,
+      "reviewed_at": "2026-10-12T11:52:48.535Z",
+      "reviewed_by": "system"
+    }
+  },
+  {
+    "record": {
+      "research_record_version": "1.1",
+      "record_id": "r-publish-authority-mv5707lm",
+      "project_id": "proj-1791464115518",
+      "brief_target_id": "target-3",
+      "identity": {
+        "name": "Publish Authority",
+        "entity_kind": "organisation",
+        "identity_verified": true
+      },
+      "target_type": "Publishers & Book‑Industry Organisations",
+      "role": null,
+      "organisation": null,
+      "country": "United States",
+      "location": "Roswell, Georgia",
+      "websites": [
+        {
+          "url": "https://publishauthority.com/",
+          "type": "company",
+          "title": "Publish Authority"
+        }
+      ],
+      "social_profiles": [
+        {
+          "platform": "linkedin",
+          "profile_url": "https://linkedin.com/company/publish-authority",
+          "username": null,
+          "display_name": null,
+          "verified_status": false,
+          "confidence": "verified",
+          "source_ids": [
+            "S1"
+          ]
+        }
+      ],
+      "public_contact": [
+        {
+          "kind": "phone",
+          "value": "(214) 551-3475",
+          "is_professional": true,
+          "source_ids": [
+            "S1"
+          ],
+          "confidence": "verified"
+        },
+        {
+          "kind": "phone",
+          "value": "+12145513475",
+          "is_professional": true,
+          "source_ids": [
+            "S1"
+          ],
+          "confidence": "verified"
+        }
+      ],
+      "background": [
+        "Publish Authority is a hybrid publishing company that specializes in publishing professional-quality books for independent authors, operating since 2013 with headquarters in Roswell, Georgia."
+      ],
+      "work_and_projects": [],
+      "achievements": [],
+      "industry_activity": [],
+      "qualification_assessment": [
+        {
+          "criterion": "Organisation distributes or promotes books to authors",
+          "status": "met",
+          "note": null,
+          "source_ids": [
+            "S1"
+          ]
+        }
+      ],
+      "reason_for_relevance": "Publish Authority meets the qualification criteria of distributing/promoting books to authors and is located in the United States.",
+      "fit": {
+        "score": 1,
+        "band": "irrelevant",
+        "rationale": "Publish Authority meets the qualification criteria of distributing/promoting books to authors and is located in the United States."
+      },
+      "summary": "Publish Authority is a hybrid publishing company headquartered in Roswell, Georgia, United States, specializing in professional-quality books for independent authors.",
+      "evidence": [
+        {
+          "claim": "Publish Authority is a hybrid publishing company that publishes professional-quality books for independent authors.",
+          "field": "organisation",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "Publish Authority is a Book Publishing company. Excellence In Book Publishing is a hybrid publishing company that specializes in publishing professional-quality books for independent authors.",
+          "confidence": "verified"
+        }
+      ],
+      "sources": [
+        {
+          "id": "S1",
+          "url": "https://publishauthority.com/",
+          "title": "Publish Authority",
+          "source_type": "official website",
+          "retrieved_at": "2026-10-12T11:52:40.570Z"
+        }
+      ],
+      "unknowns": [
+        {
+          "field": "email",
+          "reason": "no email found in source"
+        }
+      ],
+      "contradictions": [],
+      "research_confidence": "medium",
+      "matched_prospect_id": null,
+      "researched_at": "2026-10-12T11:52:40.570Z",
+      "research_agent_version": "research-agent/0.1.0"
+    },
+    "seed": {
+      "name": "Publish Authority",
+      "website": "https://publishauthority.com/",
+      "entity_kind": "organisation"
+    },
+    "qa": {
+      "status": "passed",
+      "issues": []
+    },
+    "relationship_status": null,
+    "model": "openai/gpt-oss-20b",
+    "searches": [
+      "Publish Authority https://publishauthority.com/ Publishers & Book‑Industry Organisations official website OR contact OR email OR about"
+    ],
+    "search_provider": "exa",
+    "search_request_ids": [
+      "f0a60c5eed8057b87dcc9ec1cf4488be"
+    ],
+    "search_usage": {
+      "requests": 1,
+      "estimated_cost_usd": 0.007,
+      "latency_ms": 2199
+    },
+    "search_warnings": [],
+    "batch_id": "batch-4",
+    "batch_number": 4,
+    "review": {
+      "project_id": "proj-1791464115518",
+      "record_id": "r-publish-authority-mv5707lm",
+      "status": "needs_review",
+      "note": null,
+      "reviewed_at": "2026-10-12T11:52:40.572Z",
+      "reviewed_by": "system"
+    }
+  },
+  {
+    "record": {
+      "research_record_version": "1.1",
+      "record_id": "r-penguin-publishing-group-mv570179",
+      "project_id": "proj-1791464115518",
+      "brief_target_id": "target-3",
+      "identity": {
+        "name": "Penguin Publishing Group",
+        "entity_kind": "organisation",
+        "identity_verified": true
+      },
+      "target_type": "Publishers & Book‑Industry Organisations",
+      "role": null,
+      "organisation": null,
+      "country": "United States",
+      "location": "New York, New York, United States",
+      "websites": [
+        {
+          "url": "https://penguin.com/",
+          "type": "company",
+          "title": "Penguin Publishing Group"
+        },
+        {
+          "url": "https://penguinrandomhouse.com/",
+          "type": "company",
+          "title": "Penguin Random House"
+        },
+        {
+          "url": "https://penguin.de/",
+          "type": "company",
+          "title": "Penguin Random House Verlagsgruppe GmbH"
+        },
+        {
+          "url": "https://penguinrandomhouse.ca/",
+          "type": "company",
+          "title": "Penguin Random House Canada"
+        },
+        {
+          "url": "https://penguinrandomhouse.com.au/",
+          "type": "company",
+          "title": "Penguin Random House Australia & New Zealand"
+        },
+        {
+          "url": "https://penguin.com.au/",
+          "type": "company",
+          "title": "Random House Australia"
+        },
+        {
+          "url": "https://penguin.com.cn/",
+          "type": "company",
+          "title": "Penguin Random House North Asia 企鹅兰登"
+        }
+      ],
+      "social_profiles": [
+        {
+          "platform": "linkedin",
+          "profile_url": "https://linkedin.com/company/penguin-group-usa",
+          "username": null,
+          "display_name": null,
+          "verified_status": false,
+          "confidence": "verified",
+          "source_ids": [
+            "S1"
+          ]
+        }
+      ],
+      "public_contact": [
+        {
+          "kind": "email",
+          "value": "ecommerce@us.penguingroup.com",
+          "is_professional": true,
+          "source_ids": [
+            "S1"
+          ],
+          "confidence": "verified"
+        },
+        {
+          "kind": "phone",
+          "value": "212-366-2687",
+          "is_professional": true,
+          "source_ids": [
+            "S1"
+          ],
+          "confidence": "verified"
+        }
+      ],
+      "background": [
+        "Penguin Publishing Group is a Book and Periodical Publishing company headquartered in New York, New York, United States, employing 1,293 people. (S1)"
+      ],
+      "work_and_projects": [],
+      "achievements": [],
+      "industry_activity": [
+        "Publishes across every category and interest with the utmost care and enthusiasm. (S1)"
+      ],
+      "qualification_assessment": [
+        {
+          "criterion": "Organisation distributes or promotes books to authors",
+          "status": "met",
+          "note": "Penguin Publishing Group publishes books for authors. (S1)",
+          "source_ids": [
+            "S1"
+          ]
+        }
+      ],
+      "reason_for_relevance": "Matches qualification criteria: publishes books.",
+      "fit": {
+        "score": 1,
+        "band": "irrelevant",
+        "rationale": "Matches qualification criteria: publishes books."
+      },
+      "summary": "Penguin Publishing Group is a leading book and periodical publishing company headquartered in New York, United States, with a global presence and a workforce of over 1,200 employees. It publishes a wide range of titles across multiple categories and operates several imprints worldwide.",
+      "evidence": [
+        {
+          "claim": "Penguin Publishing Group publishes books.",
+          "field": "other",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "Penguin Publishing Group is a Book and Periodical Publishing company. (S1)",
+          "confidence": "verified"
+        }
+      ],
+      "sources": [
+        {
+          "id": "S1",
+          "url": "https://penguin.com/",
+          "title": "Penguin Publishing Group",
+          "source_type": "official website",
+          "retrieved_at": "2026-10-12T11:52:32.277Z"
+        },
+        {
+          "id": "S2",
+          "url": "https://penguinrandomhouse.com/",
+          "title": "Penguin Random House",
+          "source_type": "official website",
+          "retrieved_at": "2026-10-12T11:52:32.277Z"
+        },
+        {
+          "id": "S3",
+          "url": "https://penguin.de/",
+          "title": "Penguin Random House Verlagsgruppe GmbH",
+          "source_type": "official website",
+          "retrieved_at": "2026-10-12T11:52:32.277Z"
+        },
+        {
+          "id": "S4",
+          "url": "https://penguinrandomhouse.ca/",
+          "title": "Penguin Random House Canada",
+          "source_type": "official website",
+          "retrieved_at": "2026-10-12T11:52:32.277Z"
+        },
+        {
+          "id": "S5",
+          "url": "https://penguinrandomhouse.com.au/",
+          "title": "Penguin Random House Australia & New Zealand",
+          "source_type": "official website",
+          "retrieved_at": "2026-10-12T11:52:32.277Z"
+        },
+        {
+          "id": "S6",
+          "url": "https://penguin.com.au/",
+          "title": "Random House Australia",
+          "source_type": "official website",
+          "retrieved_at": "2026-10-12T11:52:32.277Z"
+        },
+        {
+          "id": "S7",
+          "url": "https://penguin.com.cn/",
+          "title": "Penguin Random House North Asia 企鹅兰登",
+          "source_type": "official website",
+          "retrieved_at": "2026-10-12T11:52:32.277Z"
+        }
+      ],
+      "unknowns": [],
+      "contradictions": [],
+      "research_confidence": "medium",
+      "matched_prospect_id": null,
+      "researched_at": "2026-10-12T11:52:32.277Z",
+      "research_agent_version": "research-agent/0.1.0"
+    },
+    "seed": {
+      "name": "Penguin Publishing Group",
+      "website": "https://penguin.com/",
+      "entity_kind": "organisation"
+    },
+    "qa": {
+      "status": "passed",
+      "issues": []
+    },
+    "relationship_status": null,
+    "model": "openai/gpt-oss-20b",
+    "searches": [
+      "Penguin Publishing Group https://penguin.com/ Publishers & Book‑Industry Organisations official website OR contact OR email OR about"
+    ],
+    "search_provider": "exa",
+    "search_request_ids": [
+      "294a71e9b4b747b1047a5b33a9b67e32"
+    ],
+    "search_usage": {
+      "requests": 1,
+      "estimated_cost_usd": 0.007,
+      "latency_ms": 1941
+    },
+    "search_warnings": [],
+    "batch_id": "batch-4",
+    "batch_number": 4,
+    "review": {
+      "project_id": "proj-1791464115518",
+      "record_id": "r-penguin-publishing-group-mv570179",
+      "status": "needs_review",
+      "note": null,
+      "reviewed_at": "2026-10-12T11:52:32.280Z",
+      "reviewed_by": "system"
+    }
+  },
+  {
+    "record": {
+      "research_record_version": "1.1",
+      "record_id": "r-netgalley-mv56zl0e",
+      "project_id": "proj-1791464115518",
+      "brief_target_id": "target-3",
+      "identity": {
+        "name": "NetGalley",
+        "entity_kind": "organisation",
+        "identity_verified": true
+      },
+      "target_type": "Publishers & Book‑Industry Organisations",
+      "role": null,
+      "organisation": null,
+      "country": "United States",
+      "location": "Newburyport, Massachusetts, United States",
+      "websites": [
+        {
+          "url": "https://netgalley.com/",
+          "type": "company",
+          "title": "NetGalley"
+        }
+      ],
+      "social_profiles": [
+        {
+          "platform": "linkedin",
+          "profile_url": "https://linkedin.com/company/netgalley",
+          "username": null,
+          "display_name": null,
+          "verified_status": false,
+          "confidence": "verified",
+          "source_ids": [
+            "S1"
+          ]
+        }
+      ],
+      "public_contact": [
+        {
+          "kind": "email",
+          "value": "concierge@netgalley.com",
+          "is_professional": true,
+          "source_ids": [
+            "S1"
+          ],
+          "confidence": "verified"
+        },
+        {
+          "kind": "phone",
+          "value": "888-708-1936",
+          "is_professional": true,
+          "source_ids": [
+            "S1"
+          ],
+          "confidence": "verified"
+        },
+        {
+          "kind": "phone",
+          "value": "978-465-7748",
+          "is_professional": true,
+          "source_ids": [
+            "S1"
+          ],
+          "confidence": "verified"
+        }
+      ],
+      "background": [
+        "NetGalley is a software development company that helps publishers and authors promote digital review copies to book advocates and industry professionals. The company provides a platform for publishers to make digital review copies and audiobooks available for the NetGalley community to discover, request, read, and review."
+      ],
+      "work_and_projects": [
+        "Digital review copy distribution platform for publishers and authors."
+      ],
+      "achievements": [],
+      "industry_activity": [
+        "Software Development",
+        "Book and Periodical Publishing"
+      ],
+      "qualification_assessment": [
+        {
+          "criterion": "Organisation distributes or promotes books to authors",
+          "status": "met",
+          "note": "NetGalley provides digital review copies to publishers and authors.",
+          "source_ids": [
+            "S1"
+          ]
+        }
+      ],
+      "reason_for_relevance": "NetGalley meets the qualification criteria of distributing or promoting books to authors.",
+      "fit": {
+        "score": 1,
+        "band": "irrelevant",
+        "rationale": "NetGalley meets the qualification criteria of distributing or promoting books to authors."
+      },
+      "summary": "NetGalley is a software development company headquartered in Newburyport, Massachusetts, that provides a platform for publishers and authors to distribute digital review copies, thereby promoting books to authors and industry professionals.",
+      "evidence": [
+        {
+          "claim": "NetGalley is headquartered in Newburyport, Massachusetts, United States.",
+          "field": "location",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "Headquartered in Newburyport, Massachusetts, United States.",
+          "confidence": "verified"
+        },
+        {
+          "claim": "NetGalley helps publishers and authors promote digital review copies.",
+          "field": "role|organisation|projects_or_work",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "NetGalley helps publishers and authors promote digital review copies to book advocates and industry professionals.",
+          "confidence": "verified"
+        },
+        {
+          "claim": "NetGalley’s official website is https://netgalley.com/",
+          "field": "website",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "Homepage: netgalley.com",
+          "confidence": "verified"
+        },
+        {
+          "claim": "NetGalley’s LinkedIn profile is https://linkedin.com/company/netgalley",
+          "field": "social_profiles",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "LinkedIn: linkedin.com/company/netgalley",
+          "confidence": "verified"
+        },
+        {
+          "claim": "NetGalley’s contact email is concierge@netgalley.com",
+          "field": "public_contact",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "Emails: concierge@netgalley.com",
+          "confidence": "verified"
+        },
+        {
+          "claim": "NetGalley’s contact phone numbers are 888-708-1936 and 978-465-7748",
+          "field": "public_contact",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "Phone: 888-708-1936, 978-465-7748",
+          "confidence": "verified"
+        }
+      ],
+      "sources": [
+        {
+          "id": "S1",
+          "url": "https://netgalley.com/",
+          "title": "NetGalley",
+          "source_type": "official website",
+          "retrieved_at": "2026-10-12T11:52:11.294Z"
+        }
+      ],
+      "unknowns": [
+        {
+          "field": "best_contact_method",
+          "reason": "not found in evidence"
+        }
+      ],
+      "contradictions": [],
+      "research_confidence": "medium",
+      "matched_prospect_id": null,
+      "researched_at": "2026-10-12T11:52:11.294Z",
+      "research_agent_version": "research-agent/0.1.0"
+    },
+    "seed": {
+      "name": "NetGalley",
+      "website": "https://netgalley.com/",
+      "entity_kind": "organisation"
+    },
+    "qa": {
+      "status": "passed",
+      "issues": []
+    },
+    "relationship_status": null,
+    "model": "openai/gpt-oss-20b",
+    "searches": [
+      "NetGalley https://netgalley.com/ Publishers & Book‑Industry Organisations official website OR contact OR email OR about"
+    ],
+    "search_provider": "exa",
+    "search_request_ids": [
+      "00fffa1a25b0b1987dccdeb10b3602a6"
+    ],
+    "search_usage": {
+      "requests": 1,
+      "estimated_cost_usd": 0.007,
+      "latency_ms": 3265
+    },
+    "search_warnings": [],
+    "batch_id": "batch-4",
+    "batch_number": 4,
+    "review": {
+      "project_id": "proj-1791464115518",
+      "record_id": "r-netgalley-mv56zl0e",
+      "status": "needs_review",
+      "note": null,
+      "reviewed_at": "2026-10-12T11:52:11.296Z",
+      "reviewed_by": "system"
+    }
+  },
+  {
+    "record": {
+      "research_record_version": "1.1",
+      "record_id": "r-nunabooks-mv56zez6",
+      "project_id": "proj-1791464115518",
+      "brief_target_id": "target-3",
+      "identity": {
+        "name": "Nunabooks",
+        "entity_kind": "organisation",
+        "identity_verified": true
+      },
+      "target_type": "Publishers & Book‑Industry Organisations",
+      "role": null,
+      "organisation": null,
+      "country": "United Kingdom",
+      "location": "London, United Kingdom",
+      "websites": [
+        {
+          "url": "https://nunabooks.com/",
+          "type": "company",
+          "title": "Nunabooks"
+        }
+      ],
+      "social_profiles": [
+        {
+          "platform": "linkedin",
+          "profile_url": "https://linkedin.com/company/nunabooks",
+          "username": null,
+          "display_name": null,
+          "verified_status": false,
+          "confidence": "verified",
+          "source_ids": [
+            "S1"
+          ]
+        }
+      ],
+      "public_contact": [
+        {
+          "kind": "email",
+          "value": "hello@nunabooks.com",
+          "is_professional": true,
+          "source_ids": [
+            "S1"
+          ],
+          "confidence": "verified"
+        }
+      ],
+      "background": [
+        "Nunabooks is a Book and Periodical Publishing company founded in 2014, headquartered in London, United Kingdom, aiming to bridge the gap between indie and traditional publishing."
+      ],
+      "work_and_projects": [
+        "Provides a database of professionally edited manuscripts and self-published data tracking for literary agents and publishers, and offers an innovative approach to sourcing talented authors."
+      ],
+      "achievements": [],
+      "industry_activity": [
+        "Book and Periodical Publishing"
+      ],
+      "qualification_assessment": [
+        {
+          "criterion": "Organisation distributes or promotes books to authors",
+          "status": "partially_met",
+          "note": "Evidence indicates authors sourcing and manuscript database but no explicit distribution or promotion services.",
+          "source_ids": [
+            "S1"
+          ]
+        }
+      ],
+      "reason_for_relevance": "No evidence of distribution or promotion of books to authors; only sourcing and database services.",
+      "fit": {
+        "score": 0,
+        "band": "irrelevant",
+        "rationale": "No evidence of distribution or promotion of books to authors; only sourcing and database services."
+      },
+      "summary": "Nunabooks is a UK-based book and periodical publishing company founded in 2014, headquartered in London, offering a database for manuscript evaluation and author sourcing. Contact via hello@nunabooks.com or LinkedIn.",
+      "evidence": [
+        {
+          "claim": "Name: Nunabooks",
+          "field": "role|organisation|other",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "Nunabooks is a Book and Periodical Publishing company.",
+          "confidence": "verified"
+        },
+        {
+          "claim": "Location: London, United Kingdom",
+          "field": "location",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "Headquartered in London, United Kingdom.",
+          "confidence": "verified"
+        },
+        {
+          "claim": "Website: https://nunabooks.com/",
+          "field": "website",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "Homepage: nunabooks.com",
+          "confidence": "verified"
+        },
+        {
+          "claim": "Email: hello@nunabooks.com",
+          "field": "contacts",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "Emails: hello@nunabooks.com",
+          "confidence": "verified"
+        },
+        {
+          "claim": "LinkedIn: linkedin.com/company/nunabooks",
+          "field": "social_profile",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "LinkedIn: linkedin.com/company/nunabooks",
+          "confidence": "verified"
+        },
+        {
+          "claim": "Provides database for manuscript evaluation",
+          "field": "work_and_projects",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "We provide a database of professionally edited manuscripts and self-published data tracking",
+          "confidence": "verified"
+        }
+      ],
+      "sources": [
+        {
+          "id": "S1",
+          "url": "https://nunabooks.com/",
+          "title": "Nunabooks",
+          "source_type": "official website",
+          "retrieved_at": "2026-10-12T11:52:03.474Z"
+        }
+      ],
+      "unknowns": [
+        {
+          "field": "phone",
+          "reason": "No phone number provided in evidence"
+        }
+      ],
+      "contradictions": [],
+      "research_confidence": "medium",
+      "matched_prospect_id": "p-mv0t1fej",
+      "researched_at": "2026-10-12T11:52:03.474Z",
+      "research_agent_version": "research-agent/0.1.0"
+    },
+    "seed": {
+      "name": "Nunabooks",
+      "website": "https://nunabooks.com/",
+      "entity_kind": "organisation"
+    },
+    "qa": {
+      "status": "passed",
+      "issues": [
+        {
+          "severity": "info",
+          "code": "known_prospect",
+          "message": "Matches existing prospect in memory (p-mv0t1fej)."
+        }
+      ]
+    },
+    "relationship_status": null,
+    "model": "openai/gpt-oss-20b",
+    "searches": [
+      "Nunabooks https://nunabooks.com/ Publishers & Book‑Industry Organisations official website OR contact OR email OR about"
+    ],
+    "search_provider": "exa",
+    "search_request_ids": [
+      "2e21cbe910ac6771b2ae5d18aaf83411"
+    ],
+    "search_usage": {
+      "requests": 1,
+      "estimated_cost_usd": 0.007,
+      "latency_ms": 2182
+    },
+    "search_warnings": [],
+    "batch_id": "batch-4",
+    "batch_number": 4,
+    "review": {
+      "project_id": "proj-1791464115518",
+      "record_id": "r-nunabooks-mv56zez6",
+      "status": "needs_review",
+      "note": null,
+      "reviewed_at": "2026-10-12T11:52:03.478Z",
+      "reviewed_by": "system"
+    }
+  },
+  {
+    "record": {
+      "research_record_version": "1.1",
+      "record_id": "r-collective-ink-books-mv56z6m9",
+      "project_id": "proj-1791464115518",
+      "brief_target_id": "target-3",
+      "identity": {
+        "name": "Collective Ink Books",
+        "entity_kind": "organisation",
+        "identity_verified": false
+      },
+      "target_type": "Publishers & Book‑Industry Organisations",
+      "role": null,
+      "organisation": null,
+      "country": "United Kingdom",
+      "location": "London, England, United Kingdom",
+      "websites": [
+        {
+          "url": "https://collectiveinkbooks.com/",
+          "type": "company",
+          "title": "Collective Ink Books"
+        }
+      ],
+      "social_profiles": [
+        {
+          "platform": "linkedin",
+          "profile_url": "https://linkedin.com/company/collective-ink-books",
+          "username": null,
+          "display_name": "Collective Ink Books",
+          "verified_status": false,
+          "confidence": "likely",
+          "source_ids": [
+            "S1"
+          ]
+        }
+      ],
+      "public_contact": [
+        {
+          "kind": "phone",
+          "value": "2923843",
+          "is_professional": true,
+          "source_ids": [
+            "S1"
+          ],
+          "confidence": "uncertain"
+        }
+      ],
+      "background": [
+        "Collective Ink Books is a Book Publishing company. Independent publisher with sales teams worldwide welcoming new authors and unsolicited manuscript submissions. Employs 8 people. Headquarters in London, England, United Kingdom. Workforce distributed across South Africa, Canada, United Kingdom, and United States."
+      ],
+      "work_and_projects": [
+        "Welcoming unsolicited manuscript submissions; promoting books to authors."
+      ],
+      "achievements": [],
+      "industry_activity": [
+        "Book Publishing."
+      ],
+      "qualification_assessment": [
+        {
+          "criterion": "Organisation distributes or promotes books to authors",
+          "status": "met",
+          "note": "Collective Ink Books welcomes unsolicited manuscript submissions and promotes books to authors.",
+          "source_ids": [
+            "S1"
+          ]
+        }
+      ],
+      "reason_for_relevance": "No evidence-based rationale provided.",
+      "fit": {
+        "score": 0,
+        "band": "irrelevant",
+        "rationale": "No evidence-based rationale provided."
+      },
+      "summary": "Collective Ink Books is an independent book publishing company headquartered in London, United Kingdom, that welcomes unsolicited manuscript submissions and promotes books to authors worldwide.",
+      "evidence": [
+        {
+          "claim": "Collective Ink Books is a Book Publishing company headquartered in London, United Kingdom.",
+          "field": "organisation",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "Collective Ink Books is a Book Publishing company. ... Headquartered in London, England, United Kingdom.",
+          "confidence": "verified"
+        }
+      ],
+      "sources": [
+        {
+          "id": "S1",
+          "url": "https://collectiveinkbooks.com/",
+          "title": "Collective Ink Books",
+          "source_type": "official website",
+          "retrieved_at": "2026-10-12T11:51:52.641Z"
+        }
+      ],
+      "unknowns": [
+        {
+          "field": "email",
+          "reason": "No email provided in source."
+        },
+        {
+          "field": "best contact method",
+          "reason": "Not specified."
+        }
+      ],
+      "contradictions": [],
+      "research_confidence": "low",
+      "matched_prospect_id": null,
+      "researched_at": "2026-10-12T11:51:52.641Z",
+      "research_agent_version": "research-agent/0.1.0"
+    },
+    "seed": {
+      "name": "Collective Ink Books",
+      "website": "https://collectiveinkbooks.com/",
+      "entity_kind": "organisation"
+    },
+    "qa": {
+      "status": "needs_review",
+      "issues": [
+        {
+          "severity": "warning",
+          "code": "identity_unverified",
+          "message": "Identity could not be confirmed from reliable sources — human review needed."
+        }
+      ]
+    },
+    "relationship_status": null,
+    "model": "openai/gpt-oss-20b",
+    "searches": [
+      "Collective Ink Books https://collectiveinkbooks.com/ Publishers & Book‑Industry Organisations official website OR contact OR email OR about"
+    ],
+    "search_provider": "exa",
+    "search_request_ids": [
+      "1572530b07e1f386486d0eb5fde5ef64"
+    ],
+    "search_usage": {
+      "requests": 1,
+      "estimated_cost_usd": 0.007,
+      "latency_ms": 1966
+    },
+    "search_warnings": [],
+    "batch_id": "batch-4",
+    "batch_number": 4,
+    "review": {
+      "project_id": "proj-1791464115518",
+      "record_id": "r-collective-ink-books-mv56z6m9",
+      "status": "needs_review",
+      "note": null,
+      "reviewed_at": "2026-10-12T11:51:52.644Z",
+      "reviewed_by": "system"
+    }
+  },
+  {
+    "record": {
+      "research_record_version": "1.1",
+      "record_id": "r-salt-publishing-mv56yoic",
+      "project_id": "proj-1791464115518",
+      "brief_target_id": "target-3",
+      "identity": {
+        "name": "Salt Publishing",
+        "entity_kind": "organisation",
+        "identity_verified": false
+      },
+      "target_type": "Publishers & Book‑Industry Organisations",
+      "role": null,
+      "organisation": null,
+      "country": "United Kingdom",
+      "location": "Cromer, Norfolk, United Kingdom",
+      "websites": [
+        {
+          "url": "https://saltpublishing.com/",
+          "type": "company",
+          "title": "Salt Publishing"
+        },
+        {
+          "url": "https://linkedin.com/company/salt-publishing",
+          "type": "official_profile",
+          "title": "Salt Publishing LinkedIn"
+        }
+      ],
+      "social_profiles": [
+        {
+          "platform": "linkedin",
+          "profile_url": "https://linkedin.com/company/salt-publishing",
+          "username": null,
+          "display_name": "Salt Publishing",
+          "verified_status": false,
+          "confidence": "likely",
+          "source_ids": [
+            "S1"
+          ]
+        }
+      ],
+      "public_contact": [
+        {
+          "kind": "email",
+          "value": "sales@saltpublishing.com",
+          "is_professional": true,
+          "source_ids": [
+            "S1"
+          ],
+          "confidence": "verified"
+        },
+        {
+          "kind": "phone",
+          "value": "+44 1263 511011",
+          "is_professional": true,
+          "source_ids": [
+            "S1"
+          ],
+          "confidence": "verified"
+        }
+      ],
+      "background": [
+        "Independent literary publisher founded in 1999, offering award‑winning fiction and non‑fiction books."
+      ],
+      "work_and_projects": [
+        "Publishes award‑winning fiction and non‑fiction books."
+      ],
+      "achievements": [],
+      "industry_activity": [
+        "Book publishing."
+      ],
+      "qualification_assessment": [
+        {
+          "criterion": "Organisation distributes or promotes books to authors",
+          "status": "unknown",
+          "note": "No explicit evidence found",
+          "source_ids": [
+            "S1"
+          ]
+        }
+      ],
+      "reason_for_relevance": "Only one source available; cannot confirm from two independent sources; qualification criteria not explicitly verified.",
+      "fit": {
+        "score": 0,
+        "band": "irrelevant",
+        "rationale": "Only one source available; cannot confirm from two independent sources; qualification criteria not explicitly verified."
+      },
+      "summary": "",
+      "evidence": [
+        {
+          "claim": "Salt Publishing is a book publishing company headquartered in Cromer, Norfolk, United Kingdom.",
+          "field": "organisation",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "Salt Publishing is a Book Publishing company. Salt Publishing is an independent literary publisher that has been in operation since 1999. They offer award‑winning fiction and non‑fiction books. Salt Publishing employs 10 people, founded in 1999. Headquartered in Cromer, Norfolk, United Kingdom.",
+          "confidence": "verified"
+        }
+      ],
+      "sources": [
+        {
+          "id": "S1",
+          "url": "https://saltpublishing.com/",
+          "title": "Salt Publishing",
+          "source_type": "official website",
+          "retrieved_at": "2026-10-12T11:51:29.171Z"
+        }
+      ],
+      "unknowns": [
+        {
+          "field": "best contact method",
+          "reason": "Not specified in source."
+        },
+        {
+          "field": "relevant experience",
+          "reason": "Not specified in source."
+        }
+      ],
+      "contradictions": [],
+      "research_confidence": "low",
+      "matched_prospect_id": "p-mv0t05a3",
+      "researched_at": "2026-10-12T11:51:29.171Z",
+      "research_agent_version": "research-agent/0.1.0"
+    },
+    "seed": {
+      "name": "Salt Publishing",
+      "website": "https://saltpublishing.com/",
+      "entity_kind": "organisation"
+    },
+    "qa": {
+      "status": "needs_review",
+      "issues": [
+        {
+          "severity": "warning",
+          "code": "identity_unverified",
+          "message": "Identity could not be confirmed from reliable sources — human review needed."
+        },
+        {
+          "severity": "info",
+          "code": "known_prospect",
+          "message": "Matches existing prospect in memory (p-mv0t05a3)."
+        }
+      ]
+    },
+    "relationship_status": null,
+    "model": "openai/gpt-oss-20b",
+    "searches": [
+      "Salt Publishing https://saltpublishing.com/ Publishers & Book‑Industry Organisations official website OR contact OR email OR about"
+    ],
+    "search_provider": "exa",
+    "search_request_ids": [
+      "83e4b5e3aaeb9f36b7e24dd48d8c5121"
+    ],
+    "search_usage": {
+      "requests": 1,
+      "estimated_cost_usd": 0.007,
+      "latency_ms": 2277
+    },
+    "search_warnings": [],
+    "batch_id": "batch-4",
+    "batch_number": 4,
+    "review": {
+      "project_id": "proj-1791464115518",
+      "record_id": "r-salt-publishing-mv56yoic",
+      "status": "needs_review",
+      "note": null,
+      "reviewed_at": "2026-10-12T11:51:29.175Z",
+      "reviewed_by": "system"
+    }
+  },
+  {
+    "record": {
+      "research_record_version": "1.1",
+      "record_id": "r-publishing-push-mv56yk5f",
+      "project_id": "proj-1791464115518",
+      "brief_target_id": "target-3",
+      "identity": {
+        "name": "Publishing Push",
+        "entity_kind": "organisation",
+        "identity_verified": false
+      },
+      "target_type": "Publishers & Book‑Industry Organisations",
+      "role": null,
+      "organisation": null,
+      "country": "United Kingdom",
+      "location": "London, United Kingdom",
+      "websites": [
+        {
+          "url": "https://publishingpush.com/",
+          "type": "company",
+          "title": "Publishing Push"
+        }
+      ],
+      "social_profiles": [
+        {
+          "platform": "linkedin",
+          "profile_url": "https://linkedin.com/company/publishing-push",
+          "username": null,
+          "display_name": null,
+          "verified_status": false,
+          "confidence": "likely",
+          "source_ids": [
+            "S1"
+          ]
+        }
+      ],
+      "public_contact": [
+        {
+          "kind": "phone",
+          "value": "+44 203-318-6848",
+          "is_professional": true,
+          "source_ids": [
+            "S1"
+          ],
+          "confidence": "verified"
+        }
+      ],
+      "background": [],
+      "work_and_projects": [],
+      "achievements": [],
+      "industry_activity": [],
+      "qualification_assessment": [
+        {
+          "criterion": "Organisation distributes or promotes books to authors",
+          "status": "met",
+          "note": null,
+          "source_ids": [
+            "S1"
+          ]
+        }
+      ],
+      "reason_for_relevance": "No evidence-based rationale provided.",
+      "fit": {
+        "score": 0,
+        "band": "irrelevant",
+        "rationale": "No evidence-based rationale provided."
+      },
+      "summary": "",
+      "evidence": [
+        {
+          "claim": "Publishing Push is a book publishing company that provides editorial services, self-publishing, bookshops, global book distribution, book cover design, illustrations, internal book design, success stories, resources, ghost writing, and blog.",
+          "field": "role|organisation|projects_or_work|achievements|contacts|criteria|other",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "Publishing Push is a Book Publishing company. The company provides editorial services, self-publishing, bookshops, global book distribution, book cover design, illustrations, internal book design, success stories, resources, ghost writing, and blog.",
+          "confidence": "verified"
+        },
+        {
+          "claim": "Headquarters located in London, United Kingdom.",
+          "field": "location",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "Headquartered in London, United Kingdom, with an office in Horsham.",
+          "confidence": "verified"
+        },
+        {
+          "claim": "Website is https://publishingpush.com/",
+          "field": "website",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "Homepage: publishingpush.com",
+          "confidence": "verified"
+        },
+        {
+          "claim": "LinkedIn profile is https://linkedin.com/company/publishing-push",
+          "field": "social_profiles",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "LinkedIn: linkedin.com/company/publishing-push",
+          "confidence": "verified"
+        },
+        {
+          "claim": "Phone number is +44 203-318-6848",
+          "field": "contacts",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "Phone: +44 203-318-6848",
+          "confidence": "verified"
+        },
+        {
+          "claim": "Organisation distributes or promotes books to authors",
+          "field": "criteria",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "Publishing Push is a Book Publishing company. The company provides editorial services, self-publishing, bookshops, global book distribution, book cover design, illustrations, internal book design, success stories, resources, ghost writing, and blog.",
+          "confidence": "verified"
+        }
+      ],
+      "sources": [
+        {
+          "id": "S1",
+          "url": "https://publishingpush.com/",
+          "title": "Publishing Push",
+          "source_type": "official website",
+          "retrieved_at": "2026-10-12T11:51:23.523Z"
+        }
+      ],
+      "unknowns": [
+        {
+          "field": "email",
+          "reason": "No email address found in supplied sources"
+        }
+      ],
+      "contradictions": [],
+      "research_confidence": "low",
+      "matched_prospect_id": "p-mv0t0lax",
+      "researched_at": "2026-10-12T11:51:23.523Z",
+      "research_agent_version": "research-agent/0.1.0"
+    },
+    "seed": {
+      "name": "Publishing Push",
+      "website": "https://publishingpush.com/",
+      "entity_kind": "organisation"
+    },
+    "qa": {
+      "status": "needs_review",
+      "issues": [
+        {
+          "severity": "warning",
+          "code": "identity_unverified",
+          "message": "Identity could not be confirmed from reliable sources — human review needed."
+        },
+        {
+          "severity": "info",
+          "code": "known_prospect",
+          "message": "Matches existing prospect in memory (p-mv0t0lax)."
+        }
+      ]
+    },
+    "relationship_status": null,
+    "model": "openai/gpt-oss-20b",
+    "searches": [
+      "Publishing Push https://publishingpush.com/ Publishers & Book‑Industry Organisations official website OR contact OR email OR about"
+    ],
+    "search_provider": "exa",
+    "search_request_ids": [
+      "3aa7ea87227b554fc92ef3a350b28577"
+    ],
+    "search_usage": {
+      "requests": 1,
+      "estimated_cost_usd": 0.007,
+      "latency_ms": 3956
+    },
+    "search_warnings": [],
+    "batch_id": "batch-4",
+    "batch_number": 4,
+    "review": {
+      "project_id": "proj-1791464115518",
+      "record_id": "r-publishing-push-mv56yk5f",
+      "status": "needs_review",
+      "note": null,
+      "reviewed_at": "2026-10-12T11:51:23.525Z",
+      "reviewed_by": "system"
+    }
+  },
+  {
+    "record": {
+      "research_record_version": "1.1",
+      "record_id": "r-independent-publishers-of-new-england-mv56y01v",
+      "project_id": "proj-1791464115518",
+      "brief_target_id": "target-3",
+      "identity": {
+        "name": "Independent Publishers of New England",
+        "entity_kind": "organisation",
+        "identity_verified": true
+      },
+      "target_type": "Publishers & Book‑Industry Organisations",
+      "role": null,
+      "organisation": null,
+      "country": "United States",
+      "location": "New England, United States",
+      "websites": [
+        {
+          "url": "https://ipne.org/",
+          "type": "official_profile",
+          "title": "Independent Publishers of New England"
+        }
+      ],
+      "social_profiles": [
+        {
+          "platform": "linkedin",
+          "profile_url": "https://linkedin.com/company/board-member-independent-publishers-of-new-england",
+          "username": null,
+          "display_name": "Independent Publishers of New England",
+          "verified_status": false,
+          "confidence": "verified",
+          "source_ids": [
+            "S1"
+          ]
+        }
+      ],
+      "public_contact": [
+        {
+          "kind": "email",
+          "value": "talktous@ipne.org",
+          "is_professional": true,
+          "source_ids": [
+            "S1"
+          ],
+          "confidence": "verified"
+        },
+        {
+          "kind": "phone",
+          "value": "+1 339-368-8229",
+          "is_professional": true,
+          "source_ids": [
+            "S1"
+          ],
+          "confidence": "verified"
+        }
+      ],
+      "background": [],
+      "work_and_projects": [],
+      "achievements": [],
+      "industry_activity": [],
+      "qualification_assessment": [
+        {
+          "criterion": "Organisation distributes or promotes books to authors",
+          "status": "met",
+          "note": "Collaborates with independent publishers to improve books and sell more of them",
+          "source_ids": [
+            "S1"
+          ]
+        }
+      ],
+      "reason_for_relevance": "The organization is located in the United States, meets the qualification criterion of distributing/promoting books to authors, and has a verified official website and contact information.",
+      "fit": {
+        "score": 1,
+        "band": "irrelevant",
+        "rationale": "The organization is located in the United States, meets the qualification criterion of distributing/promoting books to authors, and has a verified official website and contact information."
+      },
+      "summary": "Independent Publishers of New England is a nonprofit organization headquartered in New England, United States, that collaborates with independent publishers to improve and distribute books. It meets the project’s qualification criteria and provides verified contact details.",
+      "evidence": [
+        {
+          "claim": "Independent Publishers of New England collaborates with independent publishers to improve books and sell more of them",
+          "field": "role|organisation|projects_or_work|achievements|contacts|criteria|other",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "Independent Publishers of New England (IPNE) is a company that collaborates with indies to make better books and sell more of them.",
+          "confidence": "verified"
+        }
+      ],
+      "sources": [
+        {
+          "id": "S1",
+          "url": "https://ipne.org/",
+          "title": "Independent Publishers of New England",
+          "source_type": "official website",
+          "retrieved_at": "2026-10-12T11:50:57.474Z"
+        }
+      ],
+      "unknowns": [
+        {
+          "field": "role",
+          "reason": "not specified"
+        }
+      ],
+      "contradictions": [],
+      "research_confidence": "medium",
+      "matched_prospect_id": null,
+      "researched_at": "2026-10-12T11:50:57.474Z",
+      "research_agent_version": "research-agent/0.1.0"
+    },
+    "seed": {
+      "name": "Independent Publishers of New England",
+      "website": "https://ipne.org/",
+      "entity_kind": "organisation"
+    },
+    "qa": {
+      "status": "passed",
+      "issues": []
+    },
+    "relationship_status": null,
+    "model": "openai/gpt-oss-20b",
+    "searches": [
+      "Independent Publishers of New England https://ipne.org/ Publishers & Book‑Industry Organisations official website OR contact OR email OR about"
+    ],
+    "search_provider": "exa",
+    "search_request_ids": [
+      "d4956371367e05951a4433f101f1f25b"
+    ],
+    "search_usage": {
+      "requests": 1,
+      "estimated_cost_usd": 0.007,
+      "latency_ms": 4780
+    },
+    "search_warnings": [],
+    "batch_id": "batch-4",
+    "batch_number": 4,
+    "review": {
+      "project_id": "proj-1791464115518",
+      "record_id": "r-independent-publishers-of-new-england-mv56y01v",
+      "status": "needs_review",
+      "note": null,
+      "reviewed_at": "2026-10-12T11:50:57.478Z",
+      "reviewed_by": "system"
+    }
+  },
+  {
+    "record": {
+      "research_record_version": "1.1",
+      "record_id": "r-inpress-ltd-mv56xubv",
+      "project_id": "proj-1791464115518",
+      "brief_target_id": "target-3",
+      "identity": {
+        "name": "Inpress Ltd",
+        "entity_kind": "organisation",
+        "identity_verified": false
+      },
+      "target_type": "Publishers & Book‑Industry Organisations",
+      "role": null,
+      "organisation": null,
+      "country": "United Kingdom",
+      "location": null,
+      "websites": [],
+      "social_profiles": [],
+      "public_contact": [],
+      "background": [],
+      "work_and_projects": [],
+      "achievements": [],
+      "industry_activity": [],
+      "qualification_assessment": [],
+      "reason_for_relevance": "No evidence-based rationale provided.",
+      "fit": {
+        "score": 0,
+        "band": "irrelevant",
+        "rationale": "No evidence-based rationale provided."
+      },
+      "summary": "",
+      "evidence": [],
+      "sources": [],
+      "unknowns": [
+        {
+          "field": "contact",
+          "reason": "No legitimate public contact route was verified."
+        },
+        {
+          "field": "website",
+          "reason": "No official website verified."
+        }
+      ],
+      "contradictions": [],
+      "research_confidence": "low",
+      "matched_prospect_id": "p-mv0syo3y",
+      "researched_at": "2026-10-12T11:50:50.059Z",
+      "research_agent_version": "research-agent/0.1.0"
+    },
+    "seed": {
+      "name": "Inpress Ltd",
+      "website": "https://inpressbooks.co.uk/",
+      "entity_kind": "organisation"
+    },
+    "qa": {
+      "status": "failed",
+      "issues": [
+        {
+          "severity": "warning",
+          "code": "identity_unverified",
+          "message": "Identity could not be confirmed from reliable sources — human review needed."
+        },
+        {
+          "severity": "info",
+          "code": "known_prospect",
+          "message": "Matches existing prospect in memory (p-mv0syo3y)."
+        },
+        {
+          "severity": "error",
+          "code": "no_sources",
+          "message": "No verifiable sources were found. Nothing in this record is confirmed."
+        }
+      ]
+    },
+    "relationship_status": null,
+    "model": "openai/gpt-oss-20b",
+    "searches": [
+      "Inpress Ltd https://inpressbooks.co.uk/ Publishers & Book‑Industry Organisations official website OR contact OR email OR about"
+    ],
+    "search_provider": "exa",
+    "search_request_ids": [
+      "36b2aafc8ca627b3a404a63c784ebaa1"
+    ],
+    "search_usage": {
+      "requests": 1,
+      "estimated_cost_usd": 0.007,
+      "latency_ms": 1871
+    },
+    "search_warnings": [],
+    "batch_id": "batch-4",
+    "batch_number": 4,
+    "review": {
+      "project_id": "proj-1791464115518",
+      "record_id": "r-inpress-ltd-mv56xubv",
+      "status": "needs_review",
+      "note": null,
+      "reviewed_at": "2026-10-12T11:50:50.061Z",
+      "reviewed_by": "system"
+    }
+  },
+  {
+    "record": {
+      "research_record_version": "1.1",
+      "record_id": "r-wtaw-press-mv56xq3y",
+      "project_id": "proj-1791464115518",
+      "brief_target_id": "target-3",
+      "identity": {
+        "name": "WTAW Press",
+        "entity_kind": "organisation",
+        "identity_verified": true
+      },
+      "target_type": "Publishers & Book‑Industry Organisations",
+      "role": null,
+      "organisation": null,
+      "country": "United States",
+      "location": "Santa Rosa, California, United States",
+      "websites": [
+        {
+          "url": "https://wtawpress.org/",
+          "type": "company",
+          "title": "WTAW Press"
+        }
+      ],
+      "social_profiles": [
+        {
+          "platform": "linkedin",
+          "profile_url": "https://linkedin.com/company/wtaw-press",
+          "username": null,
+          "display_name": null,
+          "verified_status": false,
+          "confidence": "verified",
+          "source_ids": [
+            "S1"
+          ]
+        }
+      ],
+      "public_contact": [],
+      "background": [
+        "WTAW Press is a nonprofit organization and independent publisher of literary books, founded in 2015, headquartered in Santa Rosa, California, United States."
+      ],
+      "work_and_projects": [
+        "Publishes literary fiction, narrative nonfiction, essay, and prose; operates imprint Betty for women; runs Alcove Chapbook Series; offers annual Kevin McIlvoy Book Prize."
+      ],
+      "achievements": [],
+      "industry_activity": [
+        "Distributes and promotes literary books to authors and readers."
+      ],
+      "qualification_assessment": [
+        {
+          "criterion": "Organisation distributes or promotes books to authors",
+          "status": "met",
+          "note": null,
+          "source_ids": [
+            "S1"
+          ]
+        }
+      ],
+      "reason_for_relevance": "WTAW Press meets the qualification criteria of distributing/promoting books to authors.",
+      "fit": {
+        "score": 1,
+        "band": "irrelevant",
+        "rationale": "WTAW Press meets the qualification criteria of distributing/promoting books to authors."
+      },
+      "summary": "WTAW Press is a nonprofit independent publisher based in Santa Rosa, California, distributing literary books to authors and readers.",
+      "evidence": [
+        {
+          "claim": "WTAW Press is a nonprofit independent publisher that distributes and promotes books to authors.",
+          "field": "organisation|projects_or_work|criteria",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "WTAW Press is a nonprofit organization. WTAW Press is an independent publisher of exceptional, vital literary books and fosterer of literary community that seeks to usher good into the world.",
+          "confidence": "verified"
+        }
+      ],
+      "sources": [
+        {
+          "id": "S1",
+          "url": "https://wtawpress.org/",
+          "title": "WTAW Press",
+          "source_type": "official website",
+          "retrieved_at": "2026-10-12T11:50:44.590Z"
+        }
+      ],
+      "unknowns": [
+        {
+          "field": "contact",
+          "reason": "No legitimate public contact route was verified."
+        },
+        {
+          "field": "email",
+          "reason": "No email provided in source."
+        },
+        {
+          "field": "phone",
+          "reason": "No phone provided in source."
+        }
+      ],
+      "contradictions": [],
+      "research_confidence": "medium",
+      "matched_prospect_id": null,
+      "researched_at": "2026-10-12T11:50:44.590Z",
+      "research_agent_version": "research-agent/0.1.0"
+    },
+    "seed": {
+      "name": "WTAW Press",
+      "website": "https://wtawpress.org/",
+      "entity_kind": "organisation"
+    },
+    "qa": {
+      "status": "passed",
+      "issues": []
+    },
+    "relationship_status": null,
+    "model": "openai/gpt-oss-20b",
+    "searches": [
+      "WTAW Press https://wtawpress.org/ Publishers & Book‑Industry Organisations official website OR contact OR email OR about"
+    ],
+    "search_provider": "exa",
+    "search_request_ids": [
+      "a56396aebe43e3a40cd6182f1c96795c"
+    ],
+    "search_usage": {
+      "requests": 1,
+      "estimated_cost_usd": 0.007,
+      "latency_ms": 4051
+    },
+    "search_warnings": [],
+    "batch_id": "batch-4",
+    "batch_number": 4,
+    "review": {
+      "project_id": "proj-1791464115518",
+      "record_id": "r-wtaw-press-mv56xq3y",
+      "status": "needs_review",
+      "note": null,
+      "reviewed_at": "2026-10-12T11:50:44.592Z",
+      "reviewed_by": "system"
+    }
+  },
+  {
+    "record": {
+      "research_record_version": "1.1",
+      "record_id": "r-authoright-mv56xl08",
+      "project_id": "proj-1791464115518",
+      "brief_target_id": "target-3",
+      "identity": {
+        "name": "Authoright",
+        "entity_kind": "organisation",
+        "identity_verified": false
+      },
+      "target_type": "Publishers & Book‑Industry Organisations",
+      "role": null,
+      "organisation": null,
+      "country": "United Kingdom",
+      "location": "London, United Kingdom",
+      "websites": [
+        {
+          "url": "https://authoright.com/",
+          "type": "company",
+          "title": "Authoright"
+        }
+      ],
+      "social_profiles": [
+        {
+          "platform": "linkedin",
+          "profile_url": "https://linkedin.com/company/authoright-pr",
+          "username": null,
+          "display_name": null,
+          "verified_status": false,
+          "confidence": "likely",
+          "source_ids": [
+            "S1"
+          ]
+        }
+      ],
+      "public_contact": [
+        {
+          "kind": "email",
+          "value": "info@authoright.com",
+          "is_professional": true,
+          "source_ids": [
+            "S1"
+          ],
+          "confidence": "verified"
+        },
+        {
+          "kind": "phone",
+          "value": "44-2079938225",
+          "is_professional": true,
+          "source_ids": [
+            "S1"
+          ],
+          "confidence": "verified"
+        }
+      ],
+      "background": [
+        "Authoright is a full‑service publishing company that partners with independent authors to produce, market, distribute, and sell their books to a global audience. (S1)"
+      ],
+      "work_and_projects": [],
+      "achievements": [],
+      "industry_activity": [
+        "Book and Periodical Publishing"
+      ],
+      "qualification_assessment": [
+        {
+          "criterion": "Organisation distributes or promotes books to authors",
+          "status": "met",
+          "note": "Authoright partners with independent authors to produce, market, distribute, and sell books globally.",
+          "source_ids": [
+            "S1"
+          ]
+        }
+      ],
+      "reason_for_relevance": "Insufficient evidence to confirm all qualification criteria.",
+      "fit": {
+        "score": 0,
+        "band": "irrelevant",
+        "rationale": "Insufficient evidence to confirm all qualification criteria."
+      },
+      "summary": "Authoright is a UK‑based publishing company that partners with independent authors to produce, market, distribute, and sell books globally.",
+      "evidence": [
+        {
+          "claim": "Authoright is headquartered in London, United Kingdom",
+          "field": "location",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "Headquartered in London, United Kingdom, with presence in United States.",
+          "confidence": "verified"
+        },
+        {
+          "claim": "Authoright operates a website at https://authoright.com/",
+          "field": "website",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "Homepage: authoright.com",
+          "confidence": "verified"
+        },
+        {
+          "claim": "Authoright has a LinkedIn company page at https://linkedin.com/company/authoright-pr",
+          "field": "social_profiles",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "LinkedIn: linkedin.com/company/authoright-pr",
+          "confidence": "verified"
+        },
+        {
+          "claim": "Authoright provides an organisational email info@authoright.com",
+          "field": "contacts",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "Emails: info@authoright.com",
+          "confidence": "verified"
+        },
+        {
+          "claim": "Authoright provides a phone number 44-2079938225",
+          "field": "contacts",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "Phone: 44-2079938225",
+          "confidence": "verified"
+        },
+        {
+          "claim": "Authoright is in the Book and Periodical Publishing industry",
+          "field": "industry_activity",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "Industry: Book and Periodical Publishing",
+          "confidence": "verified"
+        }
+      ],
+      "sources": [
+        {
+          "id": "S1",
+          "url": "https://authoright.com/",
+          "title": "Authoright",
+          "source_type": "official website",
+          "retrieved_at": "2026-10-12T11:50:37.976Z"
+        }
+      ],
+      "unknowns": [
+        {
+          "field": "role",
+          "reason": "No evidence of a specific role"
+        }
+      ],
+      "contradictions": [],
+      "research_confidence": "low",
+      "matched_prospect_id": "p-mv0syx3w",
+      "researched_at": "2026-10-12T11:50:37.976Z",
+      "research_agent_version": "research-agent/0.1.0"
+    },
+    "seed": {
+      "name": "Authoright",
+      "website": "https://authoright.com/",
+      "entity_kind": "organisation"
+    },
+    "qa": {
+      "status": "needs_review",
+      "issues": [
+        {
+          "severity": "warning",
+          "code": "identity_unverified",
+          "message": "Identity could not be confirmed from reliable sources — human review needed."
+        },
+        {
+          "severity": "info",
+          "code": "known_prospect",
+          "message": "Matches existing prospect in memory (p-mv0syx3w)."
+        }
+      ]
+    },
+    "relationship_status": null,
+    "model": "openai/gpt-oss-20b",
+    "searches": [
+      "Authoright https://authoright.com/ Publishers & Book‑Industry Organisations official website OR contact OR email OR about"
+    ],
+    "search_provider": "exa",
+    "search_request_ids": [
+      "d7ec5524f9e457fa14017474cca95442"
+    ],
+    "search_usage": {
+      "requests": 1,
+      "estimated_cost_usd": 0.007,
+      "latency_ms": 2003
+    },
+    "search_warnings": [],
+    "batch_id": "batch-4",
+    "batch_number": 4,
+    "review": {
+      "project_id": "proj-1791464115518",
+      "record_id": "r-authoright-mv56xl08",
+      "status": "needs_review",
+      "note": null,
+      "reviewed_at": "2026-10-12T11:50:37.979Z",
+      "reviewed_by": "system"
+    }
+  },
+  {
+    "record": {
+      "research_record_version": "1.1",
+      "record_id": "r-pegasus-publishers-mv56xhqa",
+      "project_id": "proj-1791464115518",
+      "brief_target_id": "target-3",
+      "identity": {
+        "name": "Pegasus Publishers",
+        "entity_kind": "organisation",
+        "identity_verified": false
+      },
+      "target_type": "Publishers & Book‑Industry Organisations",
+      "role": null,
+      "organisation": null,
+      "country": "United Kingdom",
+      "location": "Cambridge, United Kingdom",
+      "websites": [
+        {
+          "url": "https://pegasuspublishers.com/",
+          "type": "company",
+          "title": "Pegasus Publishers"
+        },
+        {
+          "url": "https://linkedin.com/company/pegasus-elliot-mackenzie-publishers-limited",
+          "type": "official_profile",
+          "title": "Pegasus Elliot Mackenzie Publishers Ltd"
+        }
+      ],
+      "social_profiles": [
+        {
+          "platform": "linkedin",
+          "profile_url": "https://linkedin.com/company/pegasus-elliot-mackenzie-publishers-limited",
+          "username": null,
+          "display_name": "Pegasus Elliot Mackenzie Publishers Ltd",
+          "verified_status": false,
+          "confidence": "verified",
+          "source_ids": [
+            "S1"
+          ]
+        }
+      ],
+      "public_contact": [
+        {
+          "kind": "email",
+          "value": "editors@pegasuspublishers.com",
+          "is_professional": true,
+          "source_ids": [
+            "S1"
+          ],
+          "confidence": "verified"
+        },
+        {
+          "kind": "phone",
+          "value": "+44 (0)1223 665568",
+          "is_professional": true,
+          "source_ids": [
+            "S1"
+          ],
+          "confidence": "verified"
+        },
+        {
+          "kind": "phone",
+          "value": "1223 370012",
+          "is_professional": true,
+          "source_ids": [
+            "S1"
+          ],
+          "confidence": "verified"
+        }
+      ],
+      "background": [
+        "Pegasus Publishers is an independent book publisher based in Cambridge, United Kingdom, working with authors across the UK and around the world since 1999."
+      ],
+      "work_and_projects": [],
+      "achievements": [],
+      "industry_activity": [
+        "Distributes and promotes books to authors worldwide."
+      ],
+      "qualification_assessment": [
+        {
+          "criterion": "distributes or promotes books to authors",
+          "status": "met",
+          "note": null,
+          "source_ids": [
+            "S1"
+          ]
+        }
+      ],
+      "reason_for_relevance": "Matches target group and qualification criteria.",
+      "fit": {
+        "score": 1,
+        "band": "irrelevant",
+        "rationale": "Matches target group and qualification criteria."
+      },
+      "summary": "Pegasus Publishers is a UK-based independent book publisher headquartered in Cambridge, with a website and LinkedIn presence, and contact details.",
+      "evidence": [
+        {
+          "claim": "Pegasus Publishers is a book publisher based in Cambridge, UK, working with authors worldwide.",
+          "field": "organisation",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "Pegasus Publishers is an independent book publisher based in Cambridge, UK, working with authors across the UK and around the world since 1999.",
+          "confidence": "verified"
+        }
+      ],
+      "sources": [
+        {
+          "id": "S1",
+          "url": "https://pegasuspublishers.com/",
+          "title": "Pegasus Publishers",
+          "source_type": "official website",
+          "retrieved_at": "2026-10-12T11:50:33.729Z"
+        }
+      ],
+      "unknowns": [
+        {
+          "field": "role",
+          "reason": "No role information found"
+        }
+      ],
+      "contradictions": [],
+      "research_confidence": "low",
+      "matched_prospect_id": "p-mv0sy0da",
+      "researched_at": "2026-10-12T11:50:33.729Z",
+      "research_agent_version": "research-agent/0.1.0"
+    },
+    "seed": {
+      "name": "Pegasus Publishers",
+      "website": "https://pegasuspublishers.com/",
+      "entity_kind": "organisation"
+    },
+    "qa": {
+      "status": "needs_review",
+      "issues": [
+        {
+          "severity": "warning",
+          "code": "identity_unverified",
+          "message": "Identity could not be confirmed from reliable sources — human review needed."
+        },
+        {
+          "severity": "info",
+          "code": "known_prospect",
+          "message": "Matches existing prospect in memory (p-mv0sy0da)."
+        }
+      ]
+    },
+    "relationship_status": null,
+    "model": "openai/gpt-oss-20b",
+    "searches": [
+      "Pegasus Publishers https://pegasuspublishers.com/ Publishers & Book‑Industry Organisations official website OR contact OR email OR about"
+    ],
+    "search_provider": "exa",
+    "search_request_ids": [
+      "01f2bb70505cc27ae177db61e93342b0"
+    ],
+    "search_usage": {
+      "requests": 1,
+      "estimated_cost_usd": 0.007,
+      "latency_ms": 2981
+    },
+    "search_warnings": [],
+    "batch_id": "batch-4",
+    "batch_number": 4,
+    "review": {
+      "project_id": "proj-1791464115518",
+      "record_id": "r-pegasus-publishers-mv56xhqa",
+      "status": "needs_review",
+      "note": null,
+      "reviewed_at": "2026-10-12T11:50:33.737Z",
+      "reviewed_by": "system"
+    }
+  },
+  {
+    "record": {
+      "research_record_version": "1.1",
       "record_id": "r-bowker-mv0z2ysk",
       "project_id": "proj-1791464115518",
       "brief_target_id": "target-3",

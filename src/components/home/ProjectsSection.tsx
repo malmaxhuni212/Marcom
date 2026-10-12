@@ -2,8 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import ProgressBar from '@/components/ui/ProgressBar';
-import StatusBadge from '@/components/ui/StatusBadge';
 import BriefIntakeModal from '@/components/ui/BriefIntakeModal';
 import type { Project } from '@/types';
 
@@ -33,102 +31,82 @@ export function ProjectCard({ project, onDelete, isDeleting }: ProjectCardProps)
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   return (
-    <Link href={`/projects/${project.id}`} className="block group relative backdrop-blur-xl bg-white/[0.03] border border-white/[0.07] rounded-2xl p-5 transition-all duration-300 hover:bg-white/[0.05] hover:border-white/[0.14] hover:shadow-[0_8px_30px_rgba(0,0,0,0.4)] flex flex-col justify-between min-h-[280px]">
-
-      
+    <Link 
+      href={`/projects/${project.id}`} 
+      className="block group relative backdrop-blur-xl bg-white/[0.03] border border-white/[0.07] rounded-2xl p-5 transition-all duration-300 hover:bg-white/[0.05] hover:border-cyan-500/30 hover:shadow-[0_8px_30px_rgba(0,0,0,0.45)] hover:-translate-y-0.5 flex flex-col justify-between"
+    >
       {/* Top Header */}
       <div>
-        <div className="flex items-start justify-between gap-2 mb-3">
-          <div className="flex items-center gap-3 min-w-0">
+        <div className="flex items-start justify-between gap-2.5 mb-3.5">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
             <ProjectIcon icon={project.icon} color={project.accentColor} />
-            <div className="min-w-0">
-              <h4 className="text-[15px] font-semibold text-white/90 truncate group-hover:text-white transition-colors" title={project.name}>
+            <div className="min-w-0 flex-1">
+              <h4 className="text-[15px] font-semibold text-white/90 truncate group-hover:text-cyan-300 transition-colors" title={project.name}>
                 {project.name}
               </h4>
-              <p className="text-[11px] text-white/40">MARCOM Campaign</p>
+              <p className="text-[11px] text-white/40 tracking-wide mt-0.5">MARCOM Campaign</p>
             </div>
           </div>
           
-          <div className="flex items-center gap-1.5 flex-shrink-0">
-            <StatusBadge status={project.status} />
-
-            {/* Delete / Remove Action */}
-            <div className="relative">
-              {confirmDelete ? (
-                <div 
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    onDelete(project.id, e);
-                  }}
-                  className="flex items-center gap-1 bg-red-500/20 border border-red-500/40 text-red-400 rounded-lg px-2 py-1 text-[11px] font-medium hover:bg-red-500/30 cursor-pointer transition-all animate-fadeIn"
-                  title="Click again to permanently delete"
-                >
-                  Confirm Delete
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setConfirmDelete(true);
-                    setTimeout(() => setConfirmDelete(false), 3000);
-                  }}
-                  disabled={isDeleting}
-                  className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-white/30 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 transition-all cursor-pointer"
-                  title="Remove project"
-                >
-                  <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <path d="M2.5 4h11M5.5 4V2.5a1 1 0 011-1h3a1 1 0 011 1V4M6 7.5v4.5M10 7.5v4.5M4 4l.8 9.2a1.5 1.5 0 001.5 1.3h3.4a1.5 1.5 0 001.5-1.3L12 4" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </button>
-              )}
-            </div>
+          {/* Discreet Remove Action */}
+          <div className="relative shrink-0">
+            {confirmDelete ? (
+              <div 
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onDelete(project.id, e);
+                }}
+                className="flex items-center gap-1 bg-red-500/20 border border-red-500/40 text-red-400 rounded-lg px-2 py-0.5 text-[11px] font-medium hover:bg-red-500/30 cursor-pointer transition-all animate-fadeIn"
+                title="Click again to permanently delete"
+              >
+                Delete?
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setConfirmDelete(true);
+                  setTimeout(() => setConfirmDelete(false), 3000);
+                }}
+                disabled={isDeleting}
+                className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-white/20 hover:text-red-400 hover:bg-white/[0.04] transition-all cursor-pointer"
+                title="Remove project"
+              >
+                <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <path d="M2.5 4h11M5.5 4V2.5a1 1 0 011-1h3a1 1 0 011 1V4M6 7.5v4.5M10 7.5v4.5M4 4l.8 9.2a1.5 1.5 0 001.5 1.3h3.4a1.5 1.5 0 001.5-1.3L12 4" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+            )}
           </div>
         </div>
 
         {/* Description */}
-        <p className="text-[12px] text-white/40 leading-relaxed line-clamp-2 mb-4 h-[36px]">
+        <p className="text-[12.5px] text-white/50 leading-relaxed line-clamp-3 mb-4 min-h-[54px]">
           {project.description}
         </p>
 
-        {/* Stats Row */}
-        <div className="grid grid-cols-2 gap-2 bg-white/[0.02] border border-white/[0.04] rounded-xl p-2.5 mb-5">
+        {/* Clean 2-Column Stats: Total and Personalized */}
+        <div className="grid grid-cols-2 gap-3 bg-white/[0.02] border border-white/[0.05] rounded-xl p-3.5 mb-4">
           <div>
-            <p className="text-[9px] text-white/30 uppercase font-medium tracking-wider mb-0.5">Qualified</p>
-            <p className="text-[14px] font-semibold text-white/80">{project.qualifiedCount}</p>
+            <p className="text-[10px] text-white/35 uppercase font-medium tracking-wider mb-1">Total</p>
+            <p className="text-base font-semibold text-white/90">{project.prospectsCurrent}</p>
           </div>
           <div>
-            <p className="text-[9px] text-white/30 uppercase font-medium tracking-wider mb-0.5">Review</p>
-            <div className="flex items-center gap-1.5">
-              <p className="text-[14px] font-semibold text-white/80">{project.reviewCount}</p>
-              {project.reviewCount > 0 && <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />}
-            </div>
+            <p className="text-[10px] text-purple-300/70 uppercase font-medium tracking-wider mb-1">Personalized</p>
+            <p className="text-base font-semibold text-purple-300">{project.qualifiedCount}</p>
           </div>
         </div>
       </div>
 
-      {/* Clean Bottom Progress & Open Action */}
-      <div className="pt-3 border-t border-white/[0.06]">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-[10px] text-white/40 font-medium uppercase tracking-wider">Research Progress</span>
-          <span className="text-[11px] text-white/60 font-medium">
-            {project.prospectsCurrent} / {project.prospectsTotal}
-          </span>
-        </div>
-        <ProgressBar
-          current={project.prospectsCurrent}
-          total={project.prospectsTotal}
-          color={project.accentColor}
-        />
-        
-        <div className="flex items-center justify-between mt-3 text-white/50 group-hover:text-cyan-400 transition-colors">
-          <span className="text-[12px] font-medium">Open Project</span>
-          <svg className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <path d="M5 3l4 4-4 4" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </div>
+      {/* Clean Bottom Action */}
+      <div className="pt-3 border-t border-white/[0.06] flex items-center justify-between text-xs font-medium text-white/50 group-hover:text-cyan-400 transition-colors">
+        <span>Open Project Dashboard</span>
+        <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.75">
+          <path d="M6 3.5l4.5 4.5-4.5 4.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
       </div>
     </Link>
   );

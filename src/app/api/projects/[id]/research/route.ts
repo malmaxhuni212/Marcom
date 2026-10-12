@@ -6,7 +6,7 @@ import { pickTarget, runResearchAgent, type ResearchProgress } from '@/marcom/ag
 import { discoverProspectSeeds } from '@/marcom/agents/research/discovery';
 import { resolveSearchProvider } from '@/marcom/search/registry';
 import type { SearchProvider } from '@/marcom/search/provider';
-import { deleteResearch, deleteProjectResearch, findDuplicate, listResearch, saveResearch, updateResearchReview, upsertProspectMemory } from '@/marcom/memory/research-store';
+import { deleteResearch, deleteMultipleResearch, deleteBatchResearch, deleteProjectResearch, findDuplicate, getNextBatchInfo, listResearch, saveResearch, updateResearchReview, upsertProspectMemory } from '@/marcom/memory/research-store';
 import { ReviewStatusSchema, type ProspectSeed, type ResearchEntry } from '@/marcom/schemas/research-record';
 import { evidenceCoverage, reviewStatus, summarizeResearch } from '@/marcom/research/review';
 
@@ -188,6 +188,9 @@ export async function POST(req: Request, { params }: RouteCtx) {
           onProgress,
         });
         onProgress({ stage: 'saving', message: 'Saving to project' });
+        const batchInfo = getNextBatchInfo(projectId);
+        entry.batch_id = batchInfo.batch_id;
+        entry.batch_number = batchInfo.batch_number;
         saveResearch(projectId, entry);
         upsertProspectMemory(entry);
         onProgress({ stage: 'complete', message: 'Research complete' });
@@ -231,6 +234,49 @@ export async function DELETE(req: Request, { params }: RouteCtx) {
   const { id: projectId } = await params;
   const url = new URL(req.url);
   const recordId = url.searchParams.get('recordId');
+  const batchId = url.searchParams.get('batchId') || url.searchParams.get('batch');
+  const all = url.searchParams.get('all') === 'true';
+
+  if (all) {
+    deleteProjectResearch(projectId);
+    return NextResponse.json({ success: true, message: 'All research deleted' });
+  }
+
+  if (batchId) {
+    const ok = deleteBatchResearch(projectId, batchId);
+    return ok 
+      ? NextResponse.json({ success: true, message: `Batch ${batchId} deleted` })
+      : NextResponse.json({ error: `Batch ${batchId} not found` }, { status: 404 });
+  }
+
+  let bodyRecordIds: string[] | null = null;
+  try {
+    const body = await req.json();
+    if (Array.isArray(body?.recordIds)) {
+      bodyRecordIds = body.recordIds;
+    }
+  } catch {
+    // Body is optional
+  }
+
+  if (bodyRecordIds && bodyRecordIds.length > 0) {
+    const ok = deleteMultipleResearch(projectId, bodyRecordIds);
+    return ok 
+      ? NextResponse.json({ success: true, count: bodyRecordIds.length })
+      : NextResponse.json({ error: 'No matching records found' }, { status: 404 });
+  }
+
+  if (!recordId) return NextResponse.json({ error: 'recordId, batchId, recordIds, or all=true is required' }, { status: 400 });
+  
+  const ok = deleteResearch(projectId, recordId);
+  return ok ? NextResponse.json({ success: true }) : NextResponse.json({ error: 'Record not found' }, { status: 404 });
+}
+
+/* end of route handlers */
+/*
+  const { id: projectId } = await params;
+  const url = new URL(req.url);
+  const recordId = url.searchParams.get('recordId');
   const all = url.searchParams.get('all') === 'true';
 
   if (all) {
@@ -242,5 +288,5 @@ export async function DELETE(req: Request, { params }: RouteCtx) {
   
   const ok = deleteResearch(projectId, recordId);
   return ok ? NextResponse.json({ success: true }) : NextResponse.json({ error: 'Record not found' }, { status: 404 });
-}
+}*/
 

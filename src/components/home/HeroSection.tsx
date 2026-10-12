@@ -5,9 +5,11 @@ import PrimaryButton from '@/components/ui/PrimaryButton';
 import SecondaryButton from '@/components/ui/SecondaryButton';
 import AgentVisual from '@/components/home/AgentVisual';
 import BriefIntakeModal from '@/components/ui/BriefIntakeModal';
+import DemoTutorialModal from '@/components/ui/DemoTutorialModal';
 
 export default function HeroSection() {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isTutorialOpen, setIsTutorialOpen] = useState(false);
 
   return (
     <section className="relative ambient-glow pt-6 pb-12">
@@ -49,6 +51,7 @@ export default function HeroSection() {
             </PrimaryButton>
 
             <SecondaryButton
+              onClick={() => setIsTutorialOpen(true)}
               icon={
                 <svg className="w-4 h-4" viewBox="0 0 16 16" fill="currentColor">
                   <path d="M6 3.5v9l6.5-4.5z" />
@@ -70,6 +73,12 @@ export default function HeroSection() {
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
         onSuccess={() => window.location.reload()} 
+      />
+
+      <DemoTutorialModal
+        isOpen={isTutorialOpen}
+        onClose={() => setIsTutorialOpen(false)}
+        onStartProject={() => setIsModalOpen(true)}
       />
     </section>
   );

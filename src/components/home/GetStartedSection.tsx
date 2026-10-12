@@ -30,41 +30,131 @@ function ArrowConnector() {
 }
 
 export default function GetStartedSection() {
-  const [hasProjects, setHasProjects] = useState<boolean | null>(null);
+  const [projects, setProjects] = useState<any[]>([]);
+  const [selectedProjectId, setSelectedProjectId] = useState<string>('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/projects').then(res => res.json()).then(data => {
-      setHasProjects(data.length > 0);
-    }).catch(() => setHasProjects(false));
+    fetch('/api/projects')
+      .then(res => res.json())
+      .then(data => {
+        setProjects(data);
+        if (data.length > 0) {
+          setSelectedProjectId(data[0].id);
+        }
+        setLoading(false);
+      })
+      .catch(() => {
+        setProjects([]);
+        setLoading(false);
+      });
   }, []);
 
-  if (hasProjects === null) return null; // loading
+  if (loading) return null;
 
-  if (hasProjects) {
+  if (projects.length > 0) {
+    const activeProject = projects.find(p => p.id === selectedProjectId) || projects[0];
+    const isReady = activeProject.status === 'READY_FOR_RESEARCH' || activeProject.status === 'active' || activeProject.status === 'completed';
+    const hasResearch = activeProject.prospectsCurrent > 0;
+    const allReviewed = hasResearch && activeProject.reviewCount === 0;
+    const hasReviewsPending = hasResearch && activeProject.reviewCount > 0;
+
+    const dynamicSteps = [
+      { 
+        step: 1, 
+        title: 'Create project brief', 
+        isCompleted: true,
+        href: `/projects/${activeProject.id}`
+      },
+      { 
+        step: 2, 
+        title: 'Analyze targets', 
+        isCompleted: isReady,
+        href: `/projects/${activeProject.id}`
+      },
+      { 
+        step: 3, 
+        title: hasResearch ? `Run research agent (${activeProject.prospectsCurrent} found)` : 'Run research agent', 
+        isCompleted: hasResearch,
+        href: `/projects/${activeProject.id}`
+      },
+      { 
+        step: 4, 
+        title: allReviewed 
+          ? 'Review prospects (Completed)' 
+          : hasReviewsPending 
+            ? `Review prospects (${activeProject.reviewCount} pending)` 
+            : 'Review prospects', 
+        isCompleted: allReviewed,
+        isActive: hasReviewsPending,
+        href: `/projects/${activeProject.id}/research`
+      },
+    ];
+
     return (
-      <section className="py-6">
-        <div className="flex items-center justify-between backdrop-blur-xl bg-white/[0.02] border border-white/[0.04] rounded-xl px-6 py-4">
-          <div className="flex items-center gap-4">
-            <h4 className="text-[13px] font-semibold text-white/90">Setup Status</h4>
-            <div className="h-4 w-px bg-white/10" />
-            <div className="flex items-center gap-6">
-              {steps.map((step, index) => (
+      <section className="py-6 space-y-4">
+        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 backdrop-blur-xl bg-white/[0.02] border border-white/[0.04] rounded-xl px-6 py-4">
+          <div className="flex flex-col xl:flex-row xl:items-center gap-4 w-full">
+            <div className="flex items-center gap-2.5 shrink-0">
+              <h4 className="text-[13px] font-semibold text-white/90 whitespace-nowrap">Setup Status</h4>
+              {projects.length > 1 ? (
+                <select
+                  value={activeProject.id}
+                  onChange={(e) => setSelectedProjectId(e.target.value)}
+                  className="bg-white/[0.04] border border-cyan-500/30 text-cyan-300 text-xs rounded-lg px-2.5 py-1 font-medium outline-none cursor-pointer hover:bg-white/[0.07] transition-colors"
+                  aria-label="Select project for setup status"
+                >
+                  {projects.map((p) => (
+                    <option key={p.id} value={p.id} className="bg-[#111118] text-white">
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <span className="text-[12px] font-medium text-cyan-300/80 bg-cyan-500/[0.08] border border-cyan-500/20 px-2 py-0.5 rounded-lg">
+                  {activeProject.name}
+                </span>
+              )}
+            </div>
+            <div className="hidden xl:block h-4 w-px bg-white/10 shrink-0" />
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+              {dynamicSteps.map((step, index) => (
                 <div key={step.step} className="flex items-center gap-2">
-                  <div className={`w-5 h-5 rounded-full flex items-center justify-center border ${step.isCompleted ? 'bg-green-400/10 border-green-400/20 text-green-400' : 'border-white/20 text-white/40'}`}>
+                  <div className={`w-5 h-5 rounded-full flex items-center justify-center border shrink-0 ${
+                    step.isCompleted 
+                      ? 'bg-cyan-400/10 border-cyan-400/30 text-cyan-400' 
+                      : (step as any).isActive 
+                        ? 'bg-amber-400/10 border-amber-400/30 text-amber-300 animate-pulse' 
+                        : 'border-white/20 text-white/40'
+                  }`}>
                     {step.isCompleted ? (
                       <svg className="w-3 h-3" viewBox="0 0 16 16" fill="currentColor"><path d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425a.267.267 0 0 1 .02-.022z"/></svg>
                     ) : (
                       <span className="text-[9px] font-bold">{step.step}</span>
                     )}
                   </div>
-                  <span className={`text-[12px] ${step.isCompleted ? 'text-white/70' : 'text-white/40'}`}>{step.title}</span>
-                  {index < steps.length - 1 && <svg className="w-3 h-3 text-white/10 ml-4" viewBox="0 0 20 20" fill="none" stroke="currentColor"><path d="M7 4l6 6-6 6" /></svg>}
+                  <a href={step.href} className={`text-[12px] whitespace-nowrap transition-colors hover:underline ${
+                    step.isCompleted 
+                      ? 'text-white/80 hover:text-white' 
+                      : (step as any).isActive 
+                        ? 'text-amber-200 font-medium' 
+                        : 'text-white/40'
+                  }`}>
+                    {step.title}
+                  </a>
+                  {index < dynamicSteps.length - 1 && <svg className="w-3 h-3 text-white/10 ml-4 hidden sm:block shrink-0" viewBox="0 0 20 20" fill="none" stroke="currentColor"><path d="M7 4l6 6-6 6" /></svg>}
                 </div>
               ))}
             </div>
           </div>
-          <button className="text-[12px] text-accent-blue hover:text-white transition-colors" onClick={() => setIsModalOpen(true)}>Create New Project</button>
+          <button 
+            type="button" 
+            className="text-[12px] text-cyan-400 hover:text-cyan-200 transition-colors whitespace-nowrap xl:ml-auto font-medium" 
+            onClick={() => setIsModalOpen(true)}
+          >
+            + Create New Project
+          </button>
         </div>
         <BriefIntakeModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSuccess={() => window.location.reload()} />
       </section>

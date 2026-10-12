@@ -57,10 +57,20 @@ export default function ResearchStreamForm({
         const taskId = data.taskId;
         setActiveTaskId(taskId);
         const interval = setInterval(async () => {
-          const statusRes = await fetch(`/api/projects/${projectId}/batch-research?taskId=${taskId}`);
-          if (!statusRes.ok) return;
-          const statusData = await statusRes.json();
-          setProgressMsg(statusData.message || `Saved ${statusData.completed} of ${statusData.total} prospects.`);
+          try {
+            const statusRes = await fetch(`/api/projects/${projectId}/batch-research?taskId=${taskId}`);
+            if (statusRes.status === 404) {
+              clearInterval(interval);
+              setIsStreaming(false);
+              setProgressStage('');
+              setActiveTaskId(null);
+              setProgressMsg('');
+              setError('Research task disappeared (server restarted). Please try again.');
+              return;
+            }
+            if (!statusRes.ok) return;
+            const statusData = await statusRes.json();
+            setProgressMsg(statusData.message || `Saved ${statusData.completed} of ${statusData.total} prospects.`);
           if (['completed', 'completed_with_errors', 'error', 'cancelled'].includes(statusData.status)) {
             clearInterval(interval);
             setIsStreaming(false);
@@ -77,6 +87,9 @@ export default function ResearchStreamForm({
                 message: statusData.message || `Research finished with ${statusData.completed ?? 0} saved prospects.`,
               });
             }
+          }
+          } catch (intervalErr) {
+            console.error('Polling error', intervalErr);
           }
         }, 5000);
       } catch (err) {
