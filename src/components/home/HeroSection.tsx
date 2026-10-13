@@ -58,7 +58,7 @@ export default function HeroSection() {
                 </svg>
               }
             >
-              View Demo
+              Tutorial
             </SecondaryButton>
           </div>
         </div>
