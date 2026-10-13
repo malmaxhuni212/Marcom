@@ -27,10 +27,16 @@ export default function AgentActivitySection() {
         console.error('Failed to load activity', err);
         setLoading(false);
       });
+
+    if (typeof window !== 'undefined' && window.location.hash === '#agent-activity') {
+      setTimeout(() => {
+        document.getElementById('agent-activity')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 300);
+    }
   }, []);
 
   return (
-    <section className="py-6 h-full flex flex-col">
+    <section id="agent-activity" className="py-6 h-full flex flex-col scroll-mt-6">
       <SectionHeader 
         title="Recent Activity" 
         subtitle="Live feed of agent operations." 

@@ -221,13 +221,21 @@ export default function NotificationBell() {
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               <span>Agents operational</span>
             </div>
-            <Link 
-              href="/#agent-activity" 
-              onClick={() => setIsOpen(false)}
-              className="text-white/40 hover:text-white/80 transition-colors"
+            <button 
+              type="button"
+              onClick={() => {
+                setIsOpen(false);
+                const el = document.getElementById('agent-activity');
+                if (el) {
+                  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                } else {
+                  window.location.href = '/#agent-activity';
+                }
+              }}
+              className="text-white/40 hover:text-cyan-300 transition-colors cursor-pointer"
             >
-              Live stream view →
-            </Link>
+              View activity feed ↓
+            </button>
           </div>
         </div>
       )}
