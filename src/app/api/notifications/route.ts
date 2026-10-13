@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { readProjects } from '@/marcom/memory/project-store';
 import { listResearch } from '@/marcom/memory/research-store';
+import { listPersonalizations } from '@/marcom/memory/personalization-store';
 
 export interface NotificationItem {
   id: string;
@@ -34,6 +35,7 @@ function formatRelativeTime(timestampMs: number): string {
 export async function GET() {
   const projects = readProjects();
   const notifications: NotificationItem[] = [];
+  let totalPersonalizationsCount = 0;
 
   for (const p of projects) {
     const research = listResearch(p.project_id);
@@ -104,18 +106,66 @@ export async function GET() {
         projectName: p.name,
       });
     }
+
+    // 4. Personalization Agent Milestones & Outreach Ready
+    const personalizations = listPersonalizations(p.project_id);
+    totalPersonalizationsCount += personalizations.length;
+
+    if (personalizations.length > 0) {
+      const latestPersTime = Math.max(
+        ...personalizations.map((pe) => new Date(pe.updated_at || pe.generated_at).getTime()),
+        0
+      );
+
+      // Milestone notification
+      notifications.push({
+        id: `notif-pers-milestone-${p.project_id}`,
+        title: 'Personalized Outreach Generated',
+        message: `${personalizations.length} prospects prepared with verified hooks, contact routes, and custom copy for "${p.name}".`,
+        timestamp: formatRelativeTime(latestPersTime || Date.now()),
+        sortTime: latestPersTime || Date.now(),
+        type: 'agent',
+        icon: '✍️',
+        link: `/outreach`,
+        projectName: p.name,
+      });
+
+      // Top recent personalized leads (up to 3)
+      const sortedPers = [...personalizations].sort(
+        (a, b) => new Date(b.updated_at || b.generated_at).getTime() - new Date(a.updated_at || a.generated_at).getTime()
+      );
+
+      for (const pe of sortedPers.slice(0, 3)) {
+        const timeMs = new Date(pe.updated_at || pe.generated_at).getTime();
+        const bestTarget = pe.strategy?.contact_audit?.best_contact_target;
+        const channel = pe.strategy?.recommended_channel ? `${pe.strategy.recommended_channel}` : 'outreach';
+        notifications.push({
+          id: `notif-pers-${pe.record_id}-${timeMs}`,
+          title: `Outreach Ready: ${pe.prospect_name}`,
+          message: `Tailored ${channel} copy and verified destination (${bestTarget || 'route audited'}) ready for "${p.name}".`,
+          timestamp: formatRelativeTime(timeMs),
+          sortTime: timeMs,
+          type: 'success',
+          icon: '✨',
+          link: `/outreach`,
+          projectName: p.name,
+        });
+      }
+    }
   }
 
-  // 4. System / Agent Status Notification
-  notifications.push({
-    id: 'notif-system-agent-personalizer',
-    title: 'Personalization Agent Ready',
-    message: 'Pipeline initialized to generate tailored cold outreach hooks for personalized prospects.',
-    timestamp: 'Today',
-    sortTime: Date.now() - 1000 * 60 * 120,
-    type: 'agent',
-    icon: '✨',
-  });
+  // 5. System Status (only if no personalizations yet)
+  if (totalPersonalizationsCount === 0) {
+    notifications.push({
+      id: 'notif-system-agent-personalizer',
+      title: 'Personalization Agent Ready',
+      message: 'Pipeline initialized to generate tailored cold outreach hooks for personalized prospects.',
+      timestamp: 'Today',
+      sortTime: Date.now() - 1000 * 60 * 120,
+      type: 'agent',
+      icon: '✨',
+    });
+  }
 
   // Sort descending by true timestamp
   notifications.sort((a, b) => b.sortTime - a.sortTime);

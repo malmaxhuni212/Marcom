@@ -38,6 +38,15 @@ export function loadResearchEvidencePrompt(): string {
   return read('research/evidence-system-prompt.md');
 }
 
+/** Personalization Agent — Model 1 (Strategist) and Model 2 (Copywriter) system prompts. */
+export function loadPersonalizationPrompts(): { strategist: string; writer: string; globalRules: string } {
+  return {
+    strategist: read('personalization/strategist-system-prompt.md'),
+    writer: read('personalization/writer-system-prompt.md'),
+    globalRules: read('shared/global-rules.md'),
+  };
+}
+
 /** Wraps a context section with clear delimiters so the model can tell sources apart. */
 export function section(title: string, body: unknown): string {
   const content = typeof body === 'string' ? body : JSON.stringify(body, null, 2);

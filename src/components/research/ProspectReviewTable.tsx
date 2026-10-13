@@ -69,6 +69,8 @@ export default function ProspectReviewTable({ projectId, initialProspectId, init
   const [savingDecision, setSavingDecision] = useState(false);
   const [decisionError, setDecisionError] = useState<string | null>(null);
   const [refreshToken, setRefreshToken] = useState(0);
+  const [personalizingBatch, setPersonalizingBatch] = useState(false);
+  const [batchNotice, setBatchNotice] = useState<string | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -158,6 +160,28 @@ export default function ProspectReviewTable({ projectId, initialProspectId, init
       setError(batchError instanceof Error ? batchError.message : 'The selected prospects could not be updated.');
     } finally {
       setSavingDecision(false);
+    }
+  };
+
+  const handlePersonalizeBatch = async () => {
+    const ids = Array.from(selectedIds);
+    if (!ids.length) return;
+    setPersonalizingBatch(true);
+    setBatchNotice(`Personalizing ${ids.length} selected lead${ids.length > 1 ? 's' : ''}...`);
+    try {
+      await applyBatchDecision('shortlisted');
+      const res = await fetch(`/api/projects/${projectId}/personalization`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ recordIds: ids }),
+      });
+      const result = await res.json();
+      setBatchNotice(`✓ Generated outreach for ${result.items?.length || ids.length} prospects! Check the Outreach tab.`);
+      setTimeout(() => setBatchNotice(null), 5000);
+    } catch {
+      setError('Failed to personalize selected prospects.');
+    } finally {
+      setPersonalizingBatch(false);
     }
   };
 
@@ -332,7 +356,23 @@ export default function ProspectReviewTable({ projectId, initialProspectId, init
         {selectedIds.size > 0 && (
           <div className="flex flex-wrap items-center gap-3 border-b border-cyan-300/10 bg-cyan-300/[0.035] px-4 py-3">
             <span className="text-xs font-medium text-cyan-100/75">{selectedIds.size} selected</span>
-            <button type="button" disabled={savingDecision} onClick={() => applyBatchDecision('shortlisted')} className="rounded-lg bg-purple-400 px-3 py-2 text-xs font-medium text-black disabled:opacity-50">Personalize selected</button>
+            <button
+              type="button"
+              disabled={savingDecision || personalizingBatch}
+              onClick={handlePersonalizeBatch}
+              className="rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 px-3 py-2 text-xs font-semibold text-white shadow-md shadow-cyan-500/20 hover:brightness-110 disabled:opacity-50 flex items-center gap-1.5"
+            >
+              {personalizingBatch ? (
+                <>
+                  <div className="h-3 w-3 animate-spin rounded-full border border-white border-t-transparent" />
+                  <span>Personalizing...</span>
+                </>
+              ) : (
+                <>
+                  <span>✨ Personalize selected</span>
+                </>
+              )}
+            </button>
             <button type="button" disabled={savingDecision} onClick={() => applyBatchDecision('enrichment_requested')} className="rounded-lg border border-white/[0.09] px-3 py-2 text-xs text-white/60 disabled:opacity-50">Request more research</button>
             <button
               type="button"
@@ -358,6 +398,15 @@ export default function ProspectReviewTable({ projectId, initialProspectId, init
               Delete selected
             </button>
             <button type="button" onClick={() => setSelectedIds(new Set())} className="ml-auto text-xs text-white/40 hover:text-white/70">Clear selection</button>
+          </div>
+        )}
+
+        {batchNotice && (
+          <div className="border-b border-cyan-400/20 bg-cyan-400/[0.08] px-4 py-2.5 text-xs text-cyan-200 flex items-center justify-between">
+            <span>{batchNotice}</span>
+            <a href="/outreach" className="font-semibold text-cyan-300 underline hover:text-white ml-2">
+              Go to Outreach →
+            </a>
           </div>
         )}
 
@@ -484,6 +533,7 @@ export default function ProspectReviewTable({ projectId, initialProspectId, init
         <ProspectEvidenceDrawer
           key={openEntry.record.record_id}
           entry={openEntry}
+          projectId={projectId}
           position={openIndex + 1}
           total={items.length}
           saving={savingDecision}

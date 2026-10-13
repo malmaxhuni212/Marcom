@@ -163,10 +163,10 @@
     "review": {
       "project_id": "proj-1791464115518",
       "record_id": "r-fbs-publishing-ltd-mv576sr7",
-      "status": "needs_review",
+      "status": "shortlisted",
       "note": null,
-      "reviewed_at": "2026-10-12T11:57:47.926Z",
-      "reviewed_by": "system"
+      "reviewed_at": "2026-10-13T12:00:26.271Z",
+      "reviewed_by": "user"
     }
   },
   {
@@ -327,10 +327,10 @@
     "review": {
       "project_id": "proj-1791464115518",
       "record_id": "r-the-conrad-press-ltd-mv576pde",
-      "status": "needs_review",
+      "status": "shortlisted",
       "note": null,
-      "reviewed_at": "2026-10-12T11:57:43.542Z",
-      "reviewed_by": "system"
+      "reviewed_at": "2026-10-13T12:00:26.297Z",
+      "reviewed_by": "user"
     }
   },
   {
@@ -546,8 +546,8 @@
     "review": {
       "project_id": "proj-1791464115518",
       "record_id": "r-whitefox-publishing-mv5768yf",
-      "status": "needs_review",
-      "note": null,
+      "status": "shortlisted",
+      "note": "Personalized by Agent 3",
       "reviewed_at": "2026-10-12T11:57:22.266Z",
       "reviewed_by": "system"
     }
@@ -699,8 +699,8 @@
     "review": {
       "project_id": "proj-1791464115518",
       "record_id": "r-american-publishing-company-mv575xu8",
-      "status": "needs_review",
-      "note": null,
+      "status": "shortlisted",
+      "note": "Personalized by Agent 3",
       "reviewed_at": "2026-10-12T11:57:07.859Z",
       "reviewed_by": "system"
     }
@@ -854,8 +854,8 @@
     "review": {
       "project_id": "proj-1791464115518",
       "record_id": "r-vine-publishing-mv575pxy",
-      "status": "needs_review",
-      "note": null,
+      "status": "shortlisted",
+      "note": "Personalized by Agent 3",
       "reviewed_at": "2026-10-12T11:56:57.625Z",
       "reviewed_by": "system"
     }
@@ -1061,8 +1061,8 @@
     "review": {
       "project_id": "proj-1791464115518",
       "record_id": "r-harpercollins-publishers-uk-mv575gt4",
-      "status": "needs_review",
-      "note": null,
+      "status": "shortlisted",
+      "note": "Personalized by Agent 3",
       "reviewed_at": "2026-10-12T11:56:45.787Z",
       "reviewed_by": "system"
     }
@@ -1276,8 +1276,8 @@
     "review": {
       "project_id": "proj-1791464115518",
       "record_id": "r-st-martin-s-press-mv574cww",
-      "status": "needs_review",
-      "note": null,
+      "status": "shortlisted",
+      "note": "Personalized by Agent 3",
       "reviewed_at": "2026-10-12T11:55:54.084Z",
       "reviewed_by": "system"
     }
@@ -1468,8 +1468,8 @@
     "review": {
       "project_id": "proj-1791464115518",
       "record_id": "r-manhattan-book-group-mv572pkd",
-      "status": "needs_review",
-      "note": null,
+      "status": "shortlisted",
+      "note": "Personalized by Agent 3",
       "reviewed_at": "2026-10-12T11:54:37.168Z",
       "reviewed_by": "system"
     }
@@ -1620,8 +1620,8 @@
     "review": {
       "project_id": "proj-1791464115518",
       "record_id": "r-extraordinary-books-mv572fic",
-      "status": "needs_review",
-      "note": null,
+      "status": "shortlisted",
+      "note": "Personalized by Agent 3",
       "reviewed_at": "2026-10-12T11:54:24.134Z",
       "reviewed_by": "system"
     }
@@ -1794,8 +1794,8 @@
     "review": {
       "project_id": "proj-1791464115518",
       "record_id": "r-flame-tree-publishing-mv5724oa",
-      "status": "needs_review",
-      "note": null,
+      "status": "shortlisted",
+      "note": "Personalized by Agent 3",
       "reviewed_at": "2026-10-12T11:54:10.093Z",
       "reviewed_by": "system"
     }
@@ -1974,8 +1974,8 @@
     "review": {
       "project_id": "proj-1791464115518",
       "record_id": "r-hachette-uk-mv571upx",
-      "status": "needs_review",
-      "note": null,
+      "status": "shortlisted",
+      "note": "Personalized by Agent 3",
       "reviewed_at": "2026-10-12T11:53:57.193Z",
       "reviewed_by": "system"
     }
@@ -2177,8 +2177,8 @@
     "review": {
       "project_id": "proj-1791464115518",
       "record_id": "r-publishers-licensing-services-pls-mv570w62",
-      "status": "needs_review",
-      "note": null,
+      "status": "shortlisted",
+      "note": "Personalized by Agent 3",
       "reviewed_at": "2026-10-12T11:53:12.413Z",
       "reviewed_by": "system"
     }
@@ -2380,8 +2380,8 @@
     "review": {
       "project_id": "proj-1791464115518",
       "record_id": "r-allison-busby-mv570dqr",
-      "status": "needs_review",
-      "note": null,
+      "status": "shortlisted",
+      "note": "Personalized by Agent 3",
       "reviewed_at": "2026-10-12T11:52:48.535Z",
       "reviewed_by": "system"
     }
@@ -2526,8 +2526,8 @@
     "review": {
       "project_id": "proj-1791464115518",
       "record_id": "r-publish-authority-mv5707lm",
-      "status": "needs_review",
-      "note": null,
+      "status": "shortlisted",
+      "note": "Personalized by Agent 3",
       "reviewed_at": "2026-10-12T11:52:40.572Z",
       "reviewed_by": "system"
     }
@@ -2741,8 +2741,8 @@
     "review": {
       "project_id": "proj-1791464115518",
       "record_id": "r-penguin-publishing-group-mv570179",
-      "status": "needs_review",
-      "note": null,
+      "status": "shortlisted",
+      "note": "Personalized by Agent 3",
       "reviewed_at": "2026-10-12T11:52:32.280Z",
       "reviewed_by": "system"
     }
@@ -2946,8 +2946,8 @@
     "review": {
       "project_id": "proj-1791464115518",
       "record_id": "r-netgalley-mv56zl0e",
-      "status": "needs_review",
-      "note": null,
+      "status": "shortlisted",
+      "note": "Personalized by Agent 3",
       "reviewed_at": "2026-10-12T11:52:11.296Z",
       "reviewed_by": "system"
     }
@@ -3138,8 +3138,8 @@
     "review": {
       "project_id": "proj-1791464115518",
       "record_id": "r-nunabooks-mv56zez6",
-      "status": "needs_review",
-      "note": null,
+      "status": "shortlisted",
+      "note": "Personalized by Agent 3",
       "reviewed_at": "2026-10-12T11:52:03.478Z",
       "reviewed_by": "system"
     }
@@ -3289,8 +3289,8 @@
     "review": {
       "project_id": "proj-1791464115518",
       "record_id": "r-collective-ink-books-mv56z6m9",
-      "status": "needs_review",
-      "note": null,
+      "status": "shortlisted",
+      "note": "Personalized by Agent 3",
       "reviewed_at": "2026-10-12T11:51:52.644Z",
       "reviewed_by": "system"
     }
@@ -3459,8 +3459,8 @@
     "review": {
       "project_id": "proj-1791464115518",
       "record_id": "r-salt-publishing-mv56yoic",
-      "status": "needs_review",
-      "note": null,
+      "status": "shortlisted",
+      "note": "Personalized by Agent 3",
       "reviewed_at": "2026-10-12T11:51:29.175Z",
       "reviewed_by": "system"
     }
@@ -3650,8 +3650,8 @@
     "review": {
       "project_id": "proj-1791464115518",
       "record_id": "r-publishing-push-mv56yk5f",
-      "status": "needs_review",
-      "note": null,
+      "status": "shortlisted",
+      "note": "Personalized by Agent 3",
       "reviewed_at": "2026-10-12T11:51:23.525Z",
       "reviewed_by": "system"
     }
@@ -3794,10 +3794,10 @@
     "review": {
       "project_id": "proj-1791464115518",
       "record_id": "r-independent-publishers-of-new-england-mv56y01v",
-      "status": "needs_review",
-      "note": null,
-      "reviewed_at": "2026-10-12T11:50:57.478Z",
-      "reviewed_by": "system"
+      "status": "shortlisted",
+      "note": "Personalized by Agent 3",
+      "reviewed_at": "2026-10-13T13:06:41.213Z",
+      "reviewed_by": "user"
     }
   },
   {
@@ -3894,10 +3894,10 @@
     "review": {
       "project_id": "proj-1791464115518",
       "record_id": "r-inpress-ltd-mv56xubv",
-      "status": "needs_review",
-      "note": null,
-      "reviewed_at": "2026-10-12T11:50:50.061Z",
-      "reviewed_by": "system"
+      "status": "shortlisted",
+      "note": "Personalized by Agent 3",
+      "reviewed_at": "2026-10-13T13:06:42.528Z",
+      "reviewed_by": "user"
     }
   },
   {
@@ -4033,10 +4033,10 @@
     "review": {
       "project_id": "proj-1791464115518",
       "record_id": "r-wtaw-press-mv56xq3y",
-      "status": "needs_review",
-      "note": null,
-      "reviewed_at": "2026-10-12T11:50:44.592Z",
-      "reviewed_by": "system"
+      "status": "shortlisted",
+      "note": "Personalized by Agent 3",
+      "reviewed_at": "2026-10-13T13:06:44.481Z",
+      "reviewed_by": "user"
     }
   },
   {
@@ -4237,10 +4237,10 @@
     "review": {
       "project_id": "proj-1791464115518",
       "record_id": "r-authoright-mv56xl08",
-      "status": "needs_review",
-      "note": null,
-      "reviewed_at": "2026-10-12T11:50:37.979Z",
-      "reviewed_by": "system"
+      "status": "shortlisted",
+      "note": "Personalized by Agent 3",
+      "reviewed_at": "2026-10-13T13:06:46.014Z",
+      "reviewed_by": "user"
     }
   },
   {
@@ -4410,10 +4410,10 @@
     "review": {
       "project_id": "proj-1791464115518",
       "record_id": "r-pegasus-publishers-mv56xhqa",
-      "status": "needs_review",
-      "note": null,
-      "reviewed_at": "2026-10-12T11:50:33.737Z",
-      "reviewed_by": "system"
+      "status": "shortlisted",
+      "note": "Personalized by Agent 3",
+      "reviewed_at": "2026-10-13T13:07:17.468Z",
+      "reviewed_by": "user"
     }
   },
   {
@@ -4547,10 +4547,10 @@
     "review": {
       "project_id": "proj-1791464115518",
       "record_id": "r-bowker-mv0z2ysk",
-      "status": "needs_review",
-      "note": null,
-      "reviewed_at": "2026-10-09T12:59:47.494Z",
-      "reviewed_by": "system"
+      "status": "shortlisted",
+      "note": "Personalized by Agent 3",
+      "reviewed_at": "2026-10-13T13:07:22.629Z",
+      "reviewed_by": "user"
     },
     "batch_id": "batch-1",
     "batch_number": 1
@@ -4886,8 +4886,8 @@
     "review": {
       "project_id": "proj-1791464115518",
       "record_id": "r-kate-hewitt-mv0z1mwv",
-      "status": "needs_review",
-      "note": null,
+      "status": "shortlisted",
+      "note": "Personalized by Agent 3",
       "reviewed_at": "2026-10-09T12:58:45.445Z",
       "reviewed_by": "system"
     },
@@ -11179,8 +11179,8 @@
     "review": {
       "project_id": "proj-1791464115518",
       "record_id": "r-shirley-jump-mv0uadz7",
-      "status": "needs_review",
-      "note": null,
+      "status": "shortlisted",
+      "note": "Personalized by Agent 3",
       "reviewed_at": "2026-10-09T10:45:35.688Z",
       "reviewed_by": "system"
     },

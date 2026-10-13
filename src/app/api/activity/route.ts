@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { readProjects } from '@/marcom/memory/project-store';
 import { listResearch } from '@/marcom/memory/research-store';
+import { listPersonalizations } from '@/marcom/memory/personalization-store';
 
 function formatTimestamp(isoString?: string | number | null): { formatted: string; sortTime: number } {
   const d = isoString ? new Date(isoString) : new Date();
@@ -90,11 +91,54 @@ export async function GET() {
         sortTime: sortTime - 100, // keep slightly below batch completion if same timestamp
       });
     }
+
+    // 4. Personalization Agent Activities
+    const personalizations = listPersonalizations(p.project_id);
+    if (personalizations.length > 0) {
+      const latestPersTime = Math.max(
+        ...personalizations.map((pe) => new Date(pe.updated_at || pe.generated_at).getTime()),
+        0
+      );
+      if (latestPersTime > 0) {
+        const { formatted, sortTime } = formatTimestamp(latestPersTime);
+        activities.push({
+          id: `pers-batch-${p.project_id}`,
+          agentName: 'Personalization Agent',
+          agentColor: 'pink',
+          action: `tailored cold outreach & contact routes for ${personalizations.length} prospects`,
+          target: p.name,
+          timestamp: formatted,
+          sortTime: sortTime + 50,
+        });
+      }
+
+      // Individual personalized prospects
+      const recentPersonalized = [...personalizations]
+        .sort((a, b) => new Date(b.updated_at || b.generated_at).getTime() - new Date(a.updated_at || a.generated_at).getTime())
+        .slice(0, 4);
+
+      for (const pe of recentPersonalized) {
+        const timeMs = new Date(pe.updated_at || pe.generated_at).getTime();
+        const { formatted, sortTime } = formatTimestamp(timeMs);
+        const channel = pe.strategy?.recommended_channel ? `via ${pe.strategy.recommended_channel}` : '';
+        const targetDesc = pe.strategy?.contact_audit?.best_contact_target ? ` (${pe.strategy.contact_audit.best_contact_target})` : '';
+
+        activities.push({
+          id: `pers-${pe.record_id}-${timeMs}`,
+          agentName: 'Personalization Agent',
+          agentColor: 'pink',
+          action: `personalized outreach ${channel} & audited contact route for ${pe.prospect_name}${targetDesc}`,
+          target: p.name,
+          timestamp: formatted,
+          sortTime,
+        });
+      }
+    }
   }
 
   // Sort descending by true timestamp
   activities.sort((a, b) => b.sortTime - a.sortTime);
 
-  // Return the last 6-7 genuine actions
-  return NextResponse.json(activities.slice(0, 7));
+  // Return the last 10 genuine actions
+  return NextResponse.json(activities.slice(0, 10));
 }
