@@ -86,13 +86,14 @@ function buildUserPrompt(
 }
 
 function buildSearchQuery(brief: StructuredBrief, plan: ReturnType<typeof planResearch>, seed: ProspectSeed): string {
+  // Omit brief.project.name so it doesn't force matches to the project!
+  // Append a targeted keyword to find official websites and contact pages.
   return [
     seed.name,
     seed.organisation,
     seed.website,
     plan.target.target_type,
-    plan.target.geography.slice(0, 3).join(' '),
-    brief.project.name,
+    'official website OR contact OR email OR about'
   ]
     .filter(Boolean)
     .join(' ')
@@ -111,14 +112,14 @@ function buildEvidence(candidates: SearchCandidate[]): {
     if (!unique.has(key)) unique.set(key, candidate);
   }
   let usedCharacters = 0;
-  const maximumCharacters = 10_000;
+  const maximumCharacters = 8_000;
   const seen: SeenSource[] = [];
   const pages: { url: string; text: string }[] = [];
   const sections: string[] = [];
 
   for (const [index, candidate] of [...unique.values()].entries()) {
     if (usedCharacters >= maximumCharacters) break;
-    const text = [candidate.highlights.join('\n'), candidate.text].filter(Boolean).join('\n').slice(0, 6_000);
+    const text = [candidate.highlights.join('\n'), candidate.text].filter(Boolean).join('\n').slice(0, 2_200);
     const source = [
       `SOURCE ID: S${index + 1}`,
       `URL: ${candidate.url}`,
@@ -137,7 +138,7 @@ function buildEvidence(candidates: SearchCandidate[]): {
 }
 
 const NORMALIZER_SYSTEM = `Convert the research notes into ONE JSON object with exactly these keys:
-{"name","entity_kind","identity_verified","role","organisation","country","location","website","linkedin","other_profiles","contacts":[{"kind","value","source","confidence"}],"background","projects_or_work","achievements","industry_involvement","criteria":[{"criterion","status","note","sources"}],"evidence":[{"claim","field","sources","confidence","quote"}],"sources":[{"id","url","title","type"}],"unknowns":[{"field","reason"}],"contradictions","fit_score","fit_rationale","summary","confidence"}
+{"name","entity_kind","identity_verified","role","organisation","country","location","websites":[{"url","type","title"}],"social_profiles":[{"platform","profile_url","username","display_name","verified_status","confidence","source_ids"}],"public_contact":[{"kind","value","is_professional","source_ids","confidence"}],"background":["string"],"work_and_projects":["string"],"achievements":["string"],"industry_activity":["string"],"criteria":[{"criterion","status","note","sources"}],"evidence":[{"claim","field","sources","confidence","quote"}],"sources":[{"id","url","title","type"}],"unknowns":[{"field","reason"}],"contradictions","fit_score","fit_rationale","summary","confidence"}
 Use ONLY information present in the notes. Never add facts, URLs or contacts. Missing = null or []. Output JSON only.`;
 
 export async function runResearchAgent(input: RunResearchInput): Promise<ResearchEntry> {
@@ -169,7 +170,7 @@ export async function runResearchAgent(input: RunResearchInput): Promise<Researc
       resultLimit: Math.min(10, searchProvider.capabilities().maximumResults),
       includeDomains: [],
       excludeDomains: [],
-      category: target.entity_kind === 'person' ? 'people' : target.entity_kind === 'organisation' ? 'company' : undefined,
+      category: target.entity_kind === 'organisation' ? 'company' : undefined, // Remove 'people' category constraint so it finds personal websites instead of just LinkedIn
     });
   } catch (e) {
     // Never fabricate to compensate for unavailable search.
@@ -231,4 +232,6 @@ export async function runResearchAgent(input: RunResearchInput): Promise<Researc
     search_warnings: search.warnings,
   };
 }
+
+
 

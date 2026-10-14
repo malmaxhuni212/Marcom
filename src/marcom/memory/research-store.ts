@@ -1,3 +1,13 @@
+export function getNextBatchInfo(projectId: string): { batch_id: string; batch_number: number } {
+  const entries = listResearch(projectId);
+  if (entries.length === 0) {
+    return { batch_id: 'batch-1', batch_number: 1 };
+  }
+  const maxBatch = entries.reduce((max, e) => Math.max(max, e.batch_number ?? 1), 1);
+  const nextNum = maxBatch + 1;
+  return { batch_id: `batch-${nextNum}`, batch_number: nextNum };
+}
+
 /**
  * Research storage. Same JSON-file approach as the rest of /memory:
  *   memory/research/<project_id>.json  -> ResearchEntry[] for that project
@@ -20,7 +30,12 @@ export function listResearch(projectId: string): ResearchEntry[] {
   const f = fileFor(projectId);
   if (!existsSync(f)) return [];
   try {
-    return JSON.parse(readFileSync(f, 'utf8')) as ResearchEntry[];
+    const raw = JSON.parse(readFileSync(f, 'utf8')) as ResearchEntry[];
+    return raw.map((e) => ({
+      ...e,
+      batch_id: e.batch_id || 'batch-1',
+      batch_number: e.batch_number || 1,
+    }));
   } catch {
     return [];
   }
@@ -51,6 +66,18 @@ export function findDuplicate(entries: ResearchEntry[], seed: { name: string; we
 export function saveResearch(projectId: string, entry: ResearchEntry): void {
   const entries = listResearch(projectId);
   const dup = findDuplicate(entries, entry.seed);
+
+  if (!entry.batch_id) {
+    if (dup?.batch_id) {
+      entry.batch_id = dup.batch_id;
+      entry.batch_number = dup.batch_number;
+    } else {
+      const nextBatch = getNextBatchInfo(projectId);
+      entry.batch_id = nextBatch.batch_id;
+      entry.batch_number = nextBatch.batch_number;
+    }
+  }
+
   const savedEntry: ResearchEntry = {
     ...entry,
     review: entry.review ?? { project_id: projectId, record_id: entry.record.record_id, status: 'needs_review', note: null, reviewed_at: new Date().toISOString(), reviewed_by: 'system' },
@@ -80,6 +107,29 @@ export function updateResearchReview(
 export function deleteResearch(projectId: string, recordId: string): boolean {
   const entries = listResearch(projectId);
   const next = entries.filter((e) => e.record.record_id !== recordId);
+  if (next.length === entries.length) return false;
+  writeResearch(projectId, next);
+  return true;
+}
+
+export function deleteMultipleResearch(projectId: string, recordIds: string[]): boolean {
+  const entries = listResearch(projectId);
+  const idSet = new Set(recordIds);
+  const next = entries.filter((e) => !idSet.has(e.record.record_id));
+  if (next.length === entries.length) return false;
+  writeResearch(projectId, next);
+  return true;
+}
+
+export function deleteBatchResearch(projectId: string, batchId: string): boolean {
+  const entries = listResearch(projectId);
+  const normalizedBatch = batchId.toLowerCase().trim();
+  const targetNum = normalizedBatch.replace(/^batch-?/, '');
+  const next = entries.filter((e) => {
+    const bId = (e.batch_id || 'batch-1').toLowerCase().trim();
+    const bNum = String(e.batch_number ?? 1);
+    return bId !== normalizedBatch && bNum !== targetNum && bId !== `batch-${targetNum}`;
+  });
   if (next.length === entries.length) return false;
   writeResearch(projectId, next);
   return true;

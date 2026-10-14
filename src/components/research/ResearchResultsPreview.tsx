@@ -1,67 +1,16 @@
 'use client';
 
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import type { ResearchEntry } from '@/marcom/schemas/research-record';
 import { evidenceCoverage, reviewStatus, type ResearchReviewSummary } from '@/marcom/research/review';
 
 const statusLabels = {
   needs_review: 'Needs review',
-  shortlisted: 'Shortlisted',
+  shortlisted: 'Personalized',
   rejected: 'Rejected',
   enrichment_requested: 'More research',
 } as const;
-
-function PreviewCard({ projectId, entry }: { projectId: string; entry: ResearchEntry }) {
-  const record = entry.record;
-  const evidence = evidenceCoverage(entry);
-  const status = reviewStatus(entry);
-  const name = record.identity.name ?? entry.seed.name;
-  return (
-    <article className="rounded-2xl border border-white/[0.07] bg-white/[0.02] p-5 transition hover:border-white/[0.12] hover:bg-white/[0.035]">
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <h4 className="truncate text-base font-semibold text-white/90">{name}</h4>
-            <span className="rounded-full bg-white/[0.06] px-2 py-0.5 text-[10px] capitalize text-white/45">{record.identity.entity_kind}</span>
-          </div>
-          <p className="mt-1 truncate text-xs text-white/40">
-            {[record.role, record.organisation, record.location ?? record.country].filter(Boolean).join(' · ') || 'Profile details require review'}
-          </p>
-        </div>
-        <span className="shrink-0 rounded-full border border-cyan-300/15 bg-cyan-300/[0.06] px-2.5 py-1 text-[10px] font-medium text-cyan-200/80">
-          {statusLabels[status]}
-        </span>
-      </div>
-
-      <p className="mt-4 line-clamp-2 text-[13px] leading-5 text-white/55">{record.summary || 'No profile summary is available.'}</p>
-
-      <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-white/[0.05] pt-3 text-[11px] text-white/40">
-        <span className="capitalize">{record.fit.band.replace(/_/g, ' ')} fit</span>
-        <span>{evidence.supported}/{evidence.total || 0} evidence fields</span>
-        <span className="capitalize">{record.research_confidence} confidence</span>
-        <button 
-          type="button"
-          onClick={async (e) => {
-            e.preventDefault();
-            if (confirm('Are you sure you want to delete this prospect?')) {
-              await fetch(`/api/projects/${projectId}/research?recordId=${encodeURIComponent(record.record_id)}`, { method: 'DELETE' });
-              window.location.reload();
-            }
-          }}
-          className="ml-auto font-medium text-red-400 transition hover:text-red-300"
-        >
-          Delete
-        </button>
-        <Link
-          href={`/projects/${projectId}/research?prospect=${encodeURIComponent(record.record_id)}`}
-          className="font-medium text-cyan-300 transition hover:text-cyan-200"
-        >
-          Review profile →
-        </Link>
-      </div>
-    </article>
-  );
-}
 
 export default function ResearchResultsPreview({
   projectId,
@@ -72,6 +21,55 @@ export default function ResearchResultsPreview({
   entries: ResearchEntry[];
   summary: ResearchReviewSummary;
 }) {
+  const [deletingBatch, setDeletingBatch] = useState<string | null>(null);
+
+  const handleDeleteBatch = async (batchId: string, batchNumber: number, count: number) => {
+    const confirmed = window.confirm(
+      `Are you sure you want to delete all ${count} leads in Batch ${batchNumber}? This action cannot be undone.`
+    );
+    if (!confirmed) return;
+
+    setDeletingBatch(batchId);
+    try {
+      const res = await fetch(`/api/projects/${projectId}/research?batchId=${encodeURIComponent(batchId)}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to delete batch');
+      }
+      window.location.reload();
+    } catch (err) {
+      console.error(err);
+      alert(err instanceof Error ? err.message : 'Failed to delete batch');
+      setDeletingBatch(null);
+    }
+  };
+
+  const batchGroups = useMemo(() => {
+    const map = new Map<number, { id: string; number: number; count: number; sampleNames: string[] }>();
+    for (const e of entries) {
+      const num = e.batch_number ?? 1;
+      const bId = e.batch_id ?? `batch-${num}`;
+      const name = e.record?.identity?.name || e.seed?.name;
+      const existing = map.get(num);
+      if (!existing) {
+        map.set(num, {
+          id: bId,
+          number: num,
+          count: 1,
+          sampleNames: name ? [name] : [],
+        });
+      } else {
+        existing.count += 1;
+        if (name && existing.sampleNames.length < 3 && !existing.sampleNames.includes(name)) {
+          existing.sampleNames.push(name);
+        }
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => b.number - a.number);
+  }, [entries]);
+
   if (summary.total === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-white/[0.07] bg-white/[0.01] py-12 text-center">
@@ -83,19 +81,63 @@ export default function ResearchResultsPreview({
 
   return (
     <section className="space-y-4" aria-labelledby="result-preview-title">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h3 id="result-preview-title" className="text-sm font-medium text-white/90">Newest results</h3>
-          <p className="mt-1 text-xs text-white/35">A preview of the latest evidence-backed prospects.</p>
-        </div>
-        <Link href={`/projects/${projectId}/research`} className="rounded-xl border border-white/[0.09] bg-white/[0.03] px-4 py-2 text-xs font-medium text-white/65 transition hover:bg-white/[0.06] hover:text-white">
-          View all {summary.total} results
-        </Link>
+      <div className="flex items-center justify-between">
+        <h3 id="result-preview-title" className="text-sm font-medium text-white/90">Latest Research Results</h3>
+        <span className="text-xs text-white/40">{batchGroups.length} {batchGroups.length === 1 ? 'batch' : 'batches'} completed</span>
+      </div>
+      
+      <div className="space-y-3">
+        {batchGroups.map((b) => (
+          <article 
+            key={b.id} 
+            className="rounded-2xl border border-white/[0.07] bg-[#111118] p-5 transition hover:border-cyan-500/30 flex flex-wrap items-center justify-between gap-4"
+          >
+            <div>
+              <div className="flex items-center gap-2.5">
+                <h4 className="text-base font-semibold text-white/90">Batch {b.number} Finished</h4>
+                <span className="text-[11px] font-medium text-cyan-300 bg-cyan-500/10 border border-cyan-500/20 px-2.5 py-0.5 rounded-lg">
+                  {b.count} {b.count === 1 ? 'prospect' : 'prospects'}
+                </span>
+              </div>
+              <p className="mt-1.5 text-xs text-white/40">
+                {b.sampleNames.length > 0 
+                  ? `Includes ${b.sampleNames.join(', ')}${b.count > b.sampleNames.length ? ' and more' : ''}.` 
+                  : `Successfully processed ${b.count} evidence-backed records.`}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <Link 
+                href={`/projects/${projectId}/research?batch=${encodeURIComponent(b.id)}`} 
+                className="shrink-0 rounded-xl bg-white text-black px-5 py-2 text-xs font-semibold transition hover:bg-white/90 hover:scale-[1.02]"
+              >
+                Batch {b.number} Page
+              </Link>
+              <button
+                type="button"
+                onClick={() => handleDeleteBatch(b.id, b.number, b.count)}
+                disabled={deletingBatch === b.id}
+                className="rounded-xl border border-red-500/20 bg-red-500/[0.08] px-3 py-2 text-xs font-medium text-red-400 transition hover:bg-red-500/20 hover:border-red-500/40 disabled:opacity-50 flex items-center justify-center text-sm"
+                title={`Delete Batch ${b.number} leads`}
+                aria-label={`Delete Batch ${b.number} leads`}
+              >
+                {deletingBatch === b.id ? '⏳' : '🗑️'}
+              </button>
+            </div>
+          </article>
+        ))}
       </div>
 
-      <div className="grid gap-3">
-        {entries.slice(0, 3).map((entry) => <PreviewCard key={entry.record.record_id} projectId={projectId} entry={entry} />)}
-      </div>
+      {batchGroups.length > 1 && (
+        <div className="text-center pt-2">
+          <Link 
+            href={`/projects/${projectId}/research?batch=all`} 
+            className="text-xs text-white/40 hover:text-cyan-300 transition-colors underline-offset-4 hover:underline"
+          >
+            View all {summary.total} results combined →
+          </Link>
+        </div>
+      )}
     </section>
   );
 }
+

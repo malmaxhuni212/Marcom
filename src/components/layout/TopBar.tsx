@@ -2,6 +2,7 @@
 
 import SearchBar from '@/components/ui/SearchBar';
 import Avatar from '@/components/ui/Avatar';
+import NotificationBell from './NotificationBell';
 
 export default function TopBar() {
   return (
@@ -14,14 +15,7 @@ export default function TopBar() {
       {/* Right side */}
       <div className="flex items-center gap-4 ml-6">
         {/* Notification bell */}
-        <button className="relative p-2 rounded-xl text-white/35 hover:text-white/60 hover:bg-white/[0.04] transition-all duration-200">
-          <svg className="w-[18px] h-[18px]" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M10 2a5 5 0 00-5 5v3l-1.5 2.5a.5.5 0 00.43.75h12.14a.5.5 0 00.43-.75L15 10V7a5 5 0 00-5-5z" />
-            <path d="M8.5 15a1.5 1.5 0 003 0" />
-          </svg>
-          {/* Notification dot */}
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-accent-pink rounded-full animate-subtle-pulse" />
-        </button>
+        <NotificationBell />
 
         {/* Divider */}
         <div className="h-5 w-px bg-white/[0.06]" />

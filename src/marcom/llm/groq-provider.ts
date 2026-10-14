@@ -1,5 +1,5 @@
 import { LLMProvider, LLMRequest } from './provider';
-import { KeyPool } from './key-pool';
+import { getKeyPool, type KeyPoolName } from './key-pool';
 
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 export const GROQ_MODEL = 'openai/gpt-oss-20b';
@@ -25,7 +25,22 @@ export interface GroqCallOptions {
   /** Called when we have to wait for the free-tier rate limit window. */
   onWait?: (seconds: number) => void;
   maxRetries?: number;
+  /** Force Groq JSON mode (response is guaranteed to be a JSON object). */
+  jsonMode?: boolean;
+  /** Override the default temperature schedule. */
+  temperature?: number;
+  /** Reasoning effort — only sent to reasoning models (gpt-oss family). */
+  reasoningEffort?: 'low' | 'medium' | 'high';
 }
+
+export interface GroqProviderOptions {
+  /** Groq model id. Defaults to GROQ_MODEL. */
+  model?: string;
+  /** Which API key pool to draw from. Defaults to 'research'. */
+  pool?: KeyPoolName;
+}
+
+const isReasoningModel = (model: string) => model.startsWith('openai/gpt-oss');
 
 function parseRetrySeconds(res: Response, body: string): number {
   const header = res.headers.get('retry-after');
@@ -39,15 +54,20 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export class GroqProvider implements LLMProvider {
   readonly name = 'groq';
-  readonly model = GROQ_MODEL;
+  readonly model: string;
+  private readonly pool: KeyPoolName;
 
-  constructor() {}
+  constructor(options: GroqProviderOptions = {}) {
+    this.model = options.model ?? GROQ_MODEL;
+    this.pool = options.pool ?? 'research';
+  }
 
-  /** POST with automatic wait-and-retry on 429 using KeyPool. */
+  /** POST with automatic wait-and-retry on 429 using the configured key pool. */
   private async post(payload: Record<string, unknown>, opts: GroqCallOptions = {}): Promise<any> {
     const maxRetries = opts.maxRetries ?? 15;
+    const keyPool = getKeyPool(this.pool);
     for (let attempt = 0; attempt < maxRetries; attempt++) {
-      const apiKey = await KeyPool.getAvailableKey(opts.onWait);
+      const apiKey = await keyPool.getAvailableKey(opts.onWait);
       const body = payload;
       const response = await fetch(GROQ_URL, {
         method: 'POST',
@@ -61,7 +81,7 @@ export class GroqProvider implements LLMProvider {
       const errorText = await response.text();
       if (response.status === 429 || response.status === 413) {
         const wait = response.status === 413 ? 60 : Math.min(parseRetrySeconds(response, errorText), 65);
-        KeyPool.markRateLimited(apiKey, wait);
+        keyPool.markRateLimited(apiKey, wait);
         continue;
       }
       throw new Error(`Groq API Error (${response.status}): ${errorText}`);
@@ -71,16 +91,19 @@ export class GroqProvider implements LLMProvider {
 
   async complete(request: LLMRequest, opts?: GroqCallOptions): Promise<string> {
     for (let attempt = 1; attempt <= 3; attempt++) {
-      const data = await this.post({
-        model: GROQ_MODEL,
-        
+      const payload: Record<string, unknown> = {
+        model: this.model,
         messages: [
           { role: 'system', content: request.system },
           { role: 'user', content: request.user }
         ],
-        temperature: 0.1 + (attempt * 0.1), // slightly higher temp on retry
+        temperature: opts?.temperature ?? 0.1 + (attempt * 0.1), // slightly higher temp on retry
         max_tokens: request.maxTokens ?? 5200
-      }, opts);
+      };
+      if (opts?.jsonMode) payload.response_format = { type: 'json_object' };
+      if (opts?.reasoningEffort && isReasoningModel(this.model)) payload.reasoning_effort = opts.reasoningEffort;
+
+      const data = await this.post(payload, opts);
 
       const text = data.choices?.[0]?.message?.content;
       if (text) return text;
@@ -99,7 +122,7 @@ export class GroqProvider implements LLMProvider {
    */
   async browserSearch(request: LLMRequest, opts?: GroqCallOptions): Promise<BrowserSearchResult> {
     const data = await this.post({
-        model: GROQ_MODEL,
+        model: this.model,
       
       messages: [
         { role: 'system', content: request.system },

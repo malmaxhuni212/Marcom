@@ -61,7 +61,7 @@ test('Exa adapter maps vendor data into the shared search contract', async () =>
   }) as typeof fetch;
 
   const provider = new ExaSearchProvider({
-    apiKey: 'test-key',
+    apiKeys: ['test-key'],
     maximumResults: 25,
     timeoutMs: 5_000,
     fetchImplementation,
@@ -83,7 +83,7 @@ test('Exa adapter maps vendor data into the shared search contract', async () =>
 
 test('Exa adapter maps rate limiting to a retryable provider error', async () => {
   const provider = new ExaSearchProvider({
-    apiKey: 'test-key',
+    apiKeys: ['test-key'],
     maximumResults: 25,
     timeoutMs: 5_000,
     fetchImplementation: (async () => new Response('', { status: 429 })) as typeof fetch,
@@ -97,7 +97,7 @@ test('Exa adapter maps rate limiting to a retryable provider error', async () =>
 
 test('Exa adapter rejects unsafe URLs returned by the provider', async () => {
   const provider = new ExaSearchProvider({
-    apiKey: 'test-key',
+    apiKeys: ['test-key'],
     maximumResults: 25,
     timeoutMs: 5_000,
     fetchImplementation: (async () =>

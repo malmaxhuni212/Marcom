@@ -44,7 +44,7 @@ export interface NormalizeContext {
 // ---------- small coercion helpers ----------
 const str = (v: unknown): string | null => {
   if (v === null || v === undefined) return null;
-  const s = String(v).trim();
+  const s = typeof v === 'object' ? JSON.stringify(v) : String(v).trim();
   return s && !/^(null|n\/a|unknown|none|not found|-)$/i.test(s) ? s : null;
 };
 const strArr = (v: unknown): string[] =>
@@ -142,7 +142,8 @@ export function normalizeAndQA(raw: unknown, ctx: NormalizeContext): { record: R
   // ---------- contacts (verbatim check) ----------
   const contacts: PublicContact[] = [];
   const kinds = ['email', 'contact_form', 'phone', 'agent_or_representative', 'other'] as const;
-  for (const c of Array.isArray(d.contacts) ? d.contacts : []) {
+  const rawContacts = Array.isArray(d.public_contact) ? d.public_contact : Array.isArray(d.contacts) ? d.contacts : [];
+  for (const c of rawContacts) {
     const value = str(c?.value);
     if (!value) continue;
     const kind = oneOf(c?.kind, kinds, 'other');
@@ -186,19 +187,31 @@ export function normalizeAndQA(raw: unknown, ctx: NormalizeContext): { record: R
   }
   if (!contacts.length) addUnknown('contact', 'No legitimate public contact route was verified.');
 
-  // ---------- profile URLs ----------
+  // ---------- websites and socials ----------
   const checkUrl = (field: string, v: unknown): string | null => {
     const url = str(v);
     if (!url) return null;
     if (wasSeen(url)) return url;
-    issue('warning', 'unverified_url', `Removed ${field} "${url}" — not returned by web search.`);
-    addUnknown(field, 'URL could not be verified from search results.');
+    issue("warning", "unverified_url", `Removed ${field} "${url}" - not returned by web search.`);
+    addUnknown(field, "URL could not be verified from search results.");
     return null;
   };
-  const website = checkUrl('website', d.website);
-  const linkedin = checkUrl('linkedin', d.linkedin);
-  const otherProfiles = strArr(d.other_profiles).filter((u) => (wasSeen(u) ? true : (issue('warning', 'unverified_url', `Removed profile "${u}".`), false)));
-  if (!website) addUnknown('website', 'No official website verified.');
+  const websites = (Array.isArray(d.websites) ? d.websites : [])
+    .map(w => ({ url: checkUrl("website", w?.url), type: (str(w?.type) || "personal"), title: str(w?.title) }))
+    .filter(w => w.url);
+  if (!websites.length) addUnknown("website", "No official website verified.");
+
+  const social_profiles = (Array.isArray(d.social_profiles) ? d.social_profiles : [])
+    .map(s => ({
+      platform: (str(s?.platform) || "linkedin"),
+      profile_url: checkUrl("social", s?.profile_url),
+      username: str(s?.username) || null,
+      display_name: str(s?.display_name) || null,
+      verified_status: typeof s?.verified_status === "boolean" ? s.verified_status : false,
+      confidence: conf(s?.confidence),
+      source_ids: keepIds(s?.source_ids)
+    }))
+    .filter(s => s.profile_url);
 
   // ---------- qualification criteria ----------
   const criteria = (Array.isArray(d.criteria) ? d.criteria : [])
@@ -280,13 +293,13 @@ export function normalizeAndQA(raw: unknown, ctx: NormalizeContext): { record: R
     organisation: str(d.organisation),
     country: str(d.country),
     location: str(d.location),
-    websites: [],
-    social_profiles: [],
+    websites: websites as any,
+    social_profiles: social_profiles as any,
     public_contact: contacts,
-    background: strArr(d.background),
-    work_and_projects: strArr(d.projects_or_work),
-    achievements: strArr(d.achievements),
-    industry_activity: strArr(d.industry_involvement),
+    background: Array.isArray(d.background) ? d.background.map(String) : [],
+    work_and_projects: Array.isArray(d.work_and_projects) ? d.work_and_projects.map(String) : [],
+    achievements: Array.isArray(d.achievements) ? d.achievements.map(String) : [],
+    industry_activity: Array.isArray(d.industry_activity) ? d.industry_activity.map(String) : [],
     qualification_assessment: criteria,
     reason_for_relevance: rationale,
     fit: { score, band: fitBand(score), rationale },

@@ -42,7 +42,7 @@ export function resolveSearchProvider(
   if (config.SEARCH_PROVIDER === 'fake') return new FakeSearchProvider();
   if (config.SEARCH_PROVIDER === 'exa') {
     return new ExaSearchProvider({
-      apiKey: config.EXA_API_KEY!,
+      apiKeys: [config.EXA_API_KEY!, process.env.EXA_API_KEY_2, process.env.EXA_API_KEY_3].filter((k): k is string => !!k),
       maximumResults: config.SEARCH_MAX_RESULTS,
       timeoutMs: config.SEARCH_TIMEOUT_MS,
     });

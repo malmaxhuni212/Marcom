@@ -22,7 +22,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const research = listResearch(id);
   return NextResponse.json({
     project,
-    research: research.slice(0, 3),
+    research,
     research_summary: summarizeResearch(research),
   });
 }

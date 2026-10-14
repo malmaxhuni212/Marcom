@@ -165,4 +165,6 @@ export interface ResearchEntry {
   };
   search_warnings: string[];
   review?: ProspectReview;
+  batch_id?: string;
+  batch_number?: number;
 }

@@ -1,0 +1,2820 @@
+[
+  {
+    "personalization_version": "1.0",
+    "record_id": "r-bowker-mv0z2ysk",
+    "project_id": "proj-1791464115518",
+    "prospect_name": "Bowker",
+    "target_type": "Publishers & Book‑Industry Organisations",
+    "batch_id": "batch-1",
+    "batch_number": 1,
+    "status": "needs_more_research",
+    "strategy": {
+      "readiness": "needs_more_research",
+      "readiness_reason": "No verifiable hook (specific book, award, or project) is present in the research record, and the only contact routes are a phone number and a generic company website. Without a concrete hook, the outreach risk is high and the campaign objective cannot be convincingly tied to Bowker.",
+      "prospect_snapshot": "Bowker is a privately held book and periodical publishing company in Chatham, New Jersey, offering author and publisher solutions, data licensing, and ISBN services.",
+      "relevance_thesis": "Bowker’s role as the official ISBN agency and provider of publisher solutions positions it as a key partner for authors and publishers who may benefit from the Maya Book Awards’ international promotion and jury recognition.",
+      "campaign_objective": "Generate 2,000+ quality book submissions from relevant authors.",
+      "outreach_goal": "Invite Bowker to promote the 2026 Maya Book Awards to its network of authors and publishers, encouraging them to submit eligible titles.",
+      "hooks": [],
+      "primary_hook_id": null,
+      "angle": "Highlight how Bowker’s ISBN and publisher services align with the Maya Book Awards’ goal of celebrating high‑quality titles and providing authors with international exposure.",
+      "tone": {
+        "register": "warm_professional",
+        "guidance": "Maintain a respectful, partnership‑oriented tone that acknowledges Bowker’s industry standing without over‑promising."
+      },
+      "recommended_channel": "phone",
+      "channel_reason": "The only verified direct contact is the phone number, which offers the highest likelihood of reaching a decision‑maker quickly. Email addresses are unavailable and the website does not provide a dedicated submission contact.",
+      "contact_audit": {
+        "best_channel": "phone",
+        "best_contact_target": "(908) 795-3500",
+        "why_best_route": "The phone number is a verified, professional line listed on Bowker’s official website, indicating it is a direct line to the organization’s main office. Phone outreach allows for immediate engagement and the opportunity to discuss the Maya Book Awards in a conversational manner, which is preferable when no email or personal LinkedIn profile is available.",
+        "is_direct_contact": true,
+        "email_status": "not_available",
+        "backup_route": "https://www.bowker.com/contact",
+        "evaluated_routes": [
+          {
+            "channel": "phone",
+            "value": "(908) 795-3500",
+            "verdict": "recommended",
+            "quality_assessment": "Verified, professional, direct line to the organization.",
+            "priority": 1
+          },
+          {
+            "channel": "website_contact_form",
+            "value": "https://www.bowker.com/contact",
+            "verdict": "viable_backup",
+            "quality_assessment": "Official company contact page; likely monitored by the marketing or public relations team.",
+            "priority": 2
+          },
+          {
+            "channel": "linkedin_company",
+            "value": "https://linkedin.com/company/bowker",
+            "verdict": "generic_gatekeeper",
+            "quality_assessment": "Company page only; no personal profile to target.",
+            "priority": 3
+          }
+        ]
+      },
+      "call_to_action": "Would it be helpful if I sent you the Maya Book Awards guidelines and discussed how Bowker’s authors and publishers could benefit from the program?",
+      "avoid": [
+        "Generic \"info@\" or \"contact@\" email addresses",
+        "Unverified claims about Bowker’s authors or awards",
+        "Technical jargon unrelated to the awards"
+      ],
+      "human_checks": [
+        "Confirm the phone number is still active and not a shared line.",
+        "Verify that the contact page on Bowker’s website is up‑to‑date and not a generic placeholder.",
+        "Ensure no recent changes to Bowker’s contact policy that might affect outreach."
+      ]
+    },
+    "copy": null,
+    "ai_copy": null,
+    "edited_by_human": false,
+    "qa": null,
+    "auto_revisions": 0,
+    "models": {
+      "strategist": "openai/gpt-oss-20b",
+      "writer": "openai/gpt-oss-20b"
+    },
+    "timings_ms": {
+      "strategist": 5149,
+      "writer": 0
+    },
+    "generated_at": "2026-10-13T13:07:22.623Z",
+    "updated_at": "2026-10-13T13:07:22.624Z",
+    "reviewed_at": null,
+    "reviewer_note": "Strategist: No verifiable hook (specific book, award, or project) is present in the research record, and the only contact routes are a phone number and a generic company website. Without a concrete hook, the outreach risk is high and the campaign objective cannot be convincingly tied to Bowker.",
+    "error": null
+  },
+  {
+    "personalization_version": "1.0",
+    "record_id": "r-pegasus-publishers-mv56xhqa",
+    "project_id": "proj-1791464115518",
+    "prospect_name": "Pegasus Publishers",
+    "target_type": "Publishers & Book‑Industry Organisations",
+    "batch_id": "batch-4",
+    "batch_number": 4,
+    "status": "needs_more_research",
+    "strategy": {
+      "readiness": "needs_more_research",
+      "readiness_reason": "No strong or moderate hooks identified; only a weak generic fact about the publisher’s history and location is available. A verified direct contact route exists but the prospect’s role and specific achievements are unknown, limiting the ability to craft a highly personalized outreach.",
+      "prospect_snapshot": "Pegasus Publishers is an independent book publisher headquartered in Cambridge, UK, operating since 1999 and distributing books worldwide.",
+      "relevance_thesis": "As an independent publisher with a global author network, Pegasus could be a valuable partner for promoting the 2026 Maya Book Awards and encouraging their authors to submit.",
+      "campaign_objective": "Generate 2,000+ quality book submissions from relevant authors.",
+      "outreach_goal": "Invite Pegasus Publishers to submit titles and/or encourage their authors to enter the Maya Book Awards.",
+      "hooks": [
+        {
+          "id": "H1",
+          "fact": "Pegasus Publishers has been operating since 1999, distributing books worldwide from Cambridge, UK.",
+          "evidence_quote": "Pegasus Publishers is an independent book publisher based in Cambridge, UK, working with authors across the UK and around the world since 1999.",
+          "source_ids": [
+            "S1"
+          ],
+          "why_it_resonates": "Shows longevity and a global reach, indicating a potential audience for the awards.",
+          "strength": "weak"
+        }
+      ],
+      "primary_hook_id": "H1",
+      "angle": "Highlight how the Maya Book Awards can elevate Pegasus’s authors on an international stage.",
+      "tone": {
+        "register": "warm_professional",
+        "guidance": "Maintain a respectful, partnership‑oriented tone that acknowledges Pegasus’s independent status and global author network."
+      },
+      "recommended_channel": "email",
+      "channel_reason": "The editors@pegasuspublishers.com address is a verified, professional inbox suitable for outreach to an independent publisher.",
+      "contact_audit": {
+        "best_channel": "email",
+        "best_contact_target": "editors@pegasuspublishers.com",
+        "why_best_route": "This is a verified, professional inbox belonging to the publisher’s editorial team, making it the most appropriate and likely to receive a response for a submission invitation. It is not a generic info@ address but a role‑specific contact, aligning with the campaign’s preference for organizational outreach.",
+        "is_direct_contact": false,
+        "email_status": "generic_inbox",
+        "backup_route": "+44 (0)1223 665568",
+        "evaluated_routes": [
+          {
+            "channel": "email",
+            "value": "editors@pegasuspublishers.com",
+            "verdict": "recommended",
+            "quality_assessment": "Verified professional editorial inbox; appropriate for publisher outreach.",
+            "priority": 1
+          },
+          {
+            "channel": "phone",
+            "value": "+44 (0)1223 665568",
+            "verdict": "viable_backup",
+            "quality_assessment": "Verified phone number; can be used if email is ignored.",
+            "priority": 2
+          },
+          {
+            "channel": "phone",
+            "value": "1223 370012",
+            "verdict": "viable_backup",
+            "quality_assessment": "Alternate verified phone number; secondary option.",
+            "priority": 3
+          },
+          {
+            "channel": "website",
+            "value": "https://pegasuspublishers.com/",
+            "verdict": "generic_gatekeeper",
+            "quality_assessment": "Main website; no dedicated contact form identified.",
+            "priority": 4
+          },
+          {
+            "channel": "linkedin_company",
+            "value": "https://linkedin.com/company/pegasus-elliot-mackenzie-publishers-limited",
+            "verdict": "generic_gatekeeper",
+            "quality_assessment": "Company page; lower response rate than direct email.",
+            "priority": 5
+          }
+        ]
+      },
+      "call_to_action": "Would you be interested in learning how the Maya Book Awards can spotlight your authors on an international platform? I can share the entry guidelines and discuss potential collaboration.",
+      "avoid": [
+        "Generic praise without specific reference to Pegasus’s work.",
+        "Assuming a specific author or title without evidence.",
+        "Using the term ‘personal’ to describe the email address."
+      ],
+      "human_checks": [
+        "Verify that editors@pegasuspublishers.com is still active and not a legacy address.",
+        "Confirm the phone numbers correspond to the editorial or submissions team.",
+        "Ensure the LinkedIn company page is the correct representation of Pegasus Publishers."
+      ]
+    },
+    "copy": null,
+    "ai_copy": null,
+    "edited_by_human": false,
+    "qa": null,
+    "auto_revisions": 0,
+    "models": {
+      "strategist": "openai/gpt-oss-20b",
+      "writer": "openai/gpt-oss-20b"
+    },
+    "timings_ms": {
+      "strategist": 31442,
+      "writer": 0
+    },
+    "generated_at": "2026-10-13T13:07:17.462Z",
+    "updated_at": "2026-10-13T13:07:17.462Z",
+    "reviewed_at": null,
+    "reviewer_note": "Strategist: No strong or moderate hooks identified; only a weak generic fact about the publisher’s history and location is available. A verified direct contact route exists but the prospect’s role and specific achievements are unknown, limiting the ability to craft a highly personalized outreach.",
+    "error": null
+  },
+  {
+    "personalization_version": "1.0",
+    "record_id": "r-authoright-mv56xl08",
+    "project_id": "proj-1791464115518",
+    "prospect_name": "Authoright",
+    "target_type": "Publishers & Book‑Industry Organisations",
+    "batch_id": "batch-4",
+    "batch_number": 4,
+    "status": "needs_more_research",
+    "strategy": {
+      "readiness": "needs_more_research",
+      "readiness_reason": "No specific, verifiable achievements or projects are documented for Authoright, and the prospect’s identity remains unverified. The only available hook is a generic description of the company’s services, which is weak and does not provide a strong personalized angle.",
+      "prospect_snapshot": "Authoright is a London‑based independent publishing company that partners with authors to produce, market, distribute, and sell books globally.",
+      "relevance_thesis": "As a publisher that works with independent authors, Authoright is a natural stakeholder for the Maya Book Awards, which seeks to promote and recognize both debut and established authors.",
+      "campaign_objective": "Generate 2,000+ quality book submissions from relevant authors.",
+      "outreach_goal": "Invite Authoright to encourage its author partners to submit to the 2026 Maya Book Awards and to explore potential partnership opportunities.",
+      "hooks": [
+        {
+          "id": "H1",
+          "fact": "Authoright partners with independent authors to produce, market, distribute, and sell books globally.",
+          "evidence_quote": "Authoright is a full‑service publishing company that partners with independent authors to produce, market, distribute, and sell their books to a global audience.",
+          "source_ids": [
+            "S1"
+          ],
+          "why_it_resonates": "Shows a direct link to the target audience (independent authors) that the campaign seeks to engage.",
+          "strength": "weak"
+        }
+      ],
+      "primary_hook_id": "H1",
+      "angle": "Highlight how the Maya Book Awards can elevate Authoright’s author partners through international promotion and jury recognition.",
+      "tone": {
+        "register": "warm_professional",
+        "guidance": "Maintain a respectful, partnership‑oriented tone that acknowledges Authoright’s role in supporting independent authors."
+      },
+      "recommended_channel": "email",
+      "channel_reason": "The organization’s official email (info@authoright.com) is a legitimate, monitored inbox suitable for outreach to a publisher.",
+      "contact_audit": {
+        "best_channel": "email",
+        "best_contact_target": "info@authoright.com",
+        "why_best_route": "The email is a verified organisational address provided by the prospect and is appropriate for contacting a publisher. It is likely monitored by the relevant team and offers a direct line to decision‑makers without the risk of hitting a personal gatekeeper inbox.",
+        "is_direct_contact": false,
+        "email_status": "generic_inbox",
+        "backup_route": "44-2079938225",
+        "evaluated_routes": [
+          {
+            "channel": "email",
+            "value": "info@authoright.com",
+            "verdict": "recommended",
+            "quality_assessment": "Verified organisational email, appropriate for publisher outreach.",
+            "priority": 1
+          },
+          {
+            "channel": "phone",
+            "value": "44-2079938225",
+            "verdict": "viable_backup",
+            "quality_assessment": "Verified phone number, can be used for a brief call or voicemail if email is ignored.",
+            "priority": 2
+          },
+          {
+            "channel": "website",
+            "value": "https://authoright.com/",
+            "verdict": "generic_gatekeeper",
+            "quality_assessment": "Website provides general information but no dedicated contact form or submission portal.",
+            "priority": 3
+          },
+          {
+            "channel": "linkedin",
+            "value": "https://linkedin.com/company/authoright-pr",
+            "verdict": "generic_gatekeeper",
+            "quality_assessment": "Company page; lower response rate than personal profiles or direct email.",
+            "priority": 4
+          }
+        ]
+      },
+      "call_to_action": "Would it be useful if I sent over the entry guidelines and discussed how the Maya Book Awards could support your author partners?",
+      "avoid": [
+        "Generic statements about authorship without specific titles.",
+        "Any mention of unverified achievements or awards.",
+        "Technical jargon or overly formal language."
+      ],
+      "human_checks": [
+        "Confirm that info@authoright.com is still the current primary contact email.",
+        "Verify that the phone number is active and not a shared line.",
+        "Ensure the prospect’s identity is still unverified; if new information emerges, update the dossier."
+      ]
+    },
+    "copy": null,
+    "ai_copy": null,
+    "edited_by_human": false,
+    "qa": null,
+    "auto_revisions": 0,
+    "models": {
+      "strategist": "openai/gpt-oss-20b",
+      "writer": "openai/gpt-oss-20b"
+    },
+    "timings_ms": {
+      "strategist": 1523,
+      "writer": 0
+    },
+    "generated_at": "2026-10-13T13:06:46.009Z",
+    "updated_at": "2026-10-13T13:06:46.009Z",
+    "reviewed_at": null,
+    "reviewer_note": "Strategist: No specific, verifiable achievements or projects are documented for Authoright, and the prospect’s identity remains unverified. The only available hook is a generic description of the company’s services, which is weak and does not provide a strong personalized angle.",
+    "error": null
+  },
+  {
+    "personalization_version": "1.0",
+    "record_id": "r-wtaw-press-mv56xq3y",
+    "project_id": "proj-1791464115518",
+    "prospect_name": "WTAW Press",
+    "target_type": "Publishers & Book‑Industry Organisations",
+    "batch_id": "batch-4",
+    "batch_number": 4,
+    "status": "needs_more_research",
+    "strategy": {
+      "readiness": "needs_more_research",
+      "readiness_reason": "No verified direct contact route (email, phone, or personal LinkedIn) is available; only a company website and LinkedIn company page exist, and the website does not provide a clear contact form or submission email in the research record.",
+      "prospect_snapshot": "WTAW Press is a nonprofit independent publisher based in Santa Rosa, California, known for its literary fiction, nonfiction, and the Alcove Chapbook Series, as well as the annual Kevin McIlvoy Book Prize.",
+      "relevance_thesis": "WTAW Press’s focus on literary works and its community‑building initiatives align with Maya’s goal of attracting quality book submissions from publishers and literary organisations.",
+      "campaign_objective": "Generate 2,000+ quality book submissions from relevant authors.",
+      "outreach_goal": "Invite WTAW Press to submit a title for the 2026 Maya Book Awards and encourage them to share the call with their authors and community.",
+      "hooks": [
+        {
+          "id": "H1",
+          "fact": "WTAW Press publishes the Alcove Chapbook Series",
+          "evidence_quote": "WTAW Press operates Alcove Chapbook Series",
+          "source_ids": [
+            "S1"
+          ],
+          "why_it_resonates": "Shows active engagement in literary publishing and a platform for emerging writers, matching Maya’s interest in debut authors.",
+          "strength": "moderate"
+        },
+        {
+          "id": "H2",
+          "fact": "WTAW Press runs the annual Kevin McIlvoy Book Prize",
+          "evidence_quote": "offers annual Kevin McIlvoy Book Prize",
+          "source_ids": [
+            "S1"
+          ],
+          "why_it_resonates": "Demonstrates a history of literary awards, indicating a culture that values recognition and could be receptive to Maya’s award program.",
+          "strength": "moderate"
+        },
+        {
+          "id": "H3",
+          "fact": "WTAW Press is a nonprofit independent publisher",
+          "evidence_quote": "WTAW Press is a nonprofit independent publisher that distributes and promotes books to authors.",
+          "source_ids": [
+            "S1"
+          ],
+          "why_it_resonates": "Nonprofit status suggests a mission‑driven focus on literary community, aligning with Maya’s partnership ethos.",
+          "strength": "weak"
+        }
+      ],
+      "primary_hook_id": "H2",
+      "angle": "Highlight how Maya’s award can amplify the prestige of WTAW Press’s Kevin McIlvoy Book Prize and provide international promotion for their authors.",
+      "tone": {
+        "register": "warm_professional",
+        "guidance": "Maintain a respectful, partnership‑oriented tone that acknowledges WTAW Press’s community work without sounding salesy."
+      },
+      "recommended_channel": "contact_form",
+      "channel_reason": "The website is the only publicly available route that may host a contact or submission form; it is the safest way to reach the organization without risking a generic inbox.",
+      "contact_audit": {
+        "best_channel": "contact_form",
+        "best_contact_target": "https://wtawpress.org/contact",
+        "why_best_route": "The company website is the sole public channel that could host a contact or submission form. A direct email or phone number is not available, and the LinkedIn company page is not a personal contact. Using the website’s contact form is the most appropriate and likely monitored route for an organization.",
+        "is_direct_contact": false,
+        "email_status": "not_available",
+        "backup_route": "https://linkedin.com/company/wtaw-press",
+        "evaluated_routes": [
+          {
+            "channel": "website",
+            "value": "https://wtawpress.org/",
+            "verdict": "viable_backup",
+            "quality_assessment": "Website exists but no explicit contact form or email found in the research record.",
+            "priority": 2
+          },
+          {
+            "channel": "linkedin_company",
+            "value": "https://linkedin.com/company/wtaw-press",
+            "verdict": "generic_gatekeeper",
+            "quality_assessment": "Company page may not respond to direct outreach; best used for awareness.",
+            "priority": 3
+          }
+        ]
+      },
+      "call_to_action": "Would it be helpful if I sent you the Maya 2026 submission guidelines and discussed how your authors could benefit from the award?",
+      "avoid": [
+        "Using a generic info@ address as a personal contact",
+        "Mentioning any unverified awards or achievements",
+        "Assuming a personal email exists"
+      ],
+      "human_checks": [
+        "Verify that https://wtawpress.org/contact exists and is functional.",
+        "Confirm that the contact form is monitored and not a generic inbox.",
+        "Ensure the LinkedIn company page is up to date before using it as a backup."
+      ]
+    },
+    "copy": null,
+    "ai_copy": null,
+    "edited_by_human": false,
+    "qa": null,
+    "auto_revisions": 0,
+    "models": {
+      "strategist": "openai/gpt-oss-20b",
+      "writer": "openai/gpt-oss-20b"
+    },
+    "timings_ms": {
+      "strategist": 1939,
+      "writer": 0
+    },
+    "generated_at": "2026-10-13T13:06:44.475Z",
+    "updated_at": "2026-10-13T13:06:44.475Z",
+    "reviewed_at": null,
+    "reviewer_note": "Strategist: No verified direct contact route (email, phone, or personal LinkedIn) is available; only a company website and LinkedIn company page exist, and the website does not provide a clear contact form or submission email in the research record.",
+    "error": null
+  },
+  {
+    "personalization_version": "1.0",
+    "record_id": "r-inpress-ltd-mv56xubv",
+    "project_id": "proj-1791464115518",
+    "prospect_name": "Inpress Ltd",
+    "target_type": "Publishers & Book‑Industry Organisations",
+    "batch_id": "batch-4",
+    "batch_number": 4,
+    "status": "failed",
+    "strategy": null,
+    "copy": null,
+    "ai_copy": null,
+    "edited_by_human": false,
+    "qa": null,
+    "auto_revisions": 0,
+    "models": {
+      "strategist": "openai/gpt-oss-20b",
+      "writer": "openai/gpt-oss-20b"
+    },
+    "timings_ms": {
+      "strategist": 1303,
+      "writer": 0
+    },
+    "generated_at": "2026-10-13T13:06:42.521Z",
+    "updated_at": "2026-10-13T13:06:42.521Z",
+    "reviewed_at": null,
+    "reviewer_note": null,
+    "error": "Strategist model failed: [\n  {\n    \"origin\": \"string\",\n    \"code\": \"too_small\",\n    \"minimum\": 1,\n    \"inclusive\": true,\n    \"path\": [\n      \"angle\"\n    ],\n    \"message\": \"Too small: expected string to have >=1 characters\"\n  },\n  {\n    \"expected\": \"string\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"contact_audit\",\n      \"best_contact_target\"\n    ],\n    \"message\": \"Invalid input: expected string, received null\"\n  }\n]"
+  },
+  {
+    "personalization_version": "1.0",
+    "record_id": "r-independent-publishers-of-new-england-mv56y01v",
+    "project_id": "proj-1791464115518",
+    "prospect_name": "Independent Publishers of New England",
+    "target_type": "Publishers & Book‑Industry Organisations",
+    "batch_id": "batch-4",
+    "batch_number": 4,
+    "status": "needs_more_research",
+    "strategy": {
+      "readiness": "needs_more_research",
+      "readiness_reason": "No specific, verifiable hooks (e.g., book titles, awards, or community initiatives) are available in the research record to personalize the outreach. Contact routes exist, but without a strong hook the campaign risk of low engagement is higher.",
+      "prospect_snapshot": "Independent Publishers of New England is a nonprofit organization based in New England that collaborates with independent publishers to improve and distribute books.",
+      "relevance_thesis": "As a nonprofit that supports independent publishers, IPNE aligns with Maya’s goal of engaging the book‑industry ecosystem and could help amplify the 2026 Maya Book Awards to its network.",
+      "campaign_objective": "Generate 2,000+ quality book submissions from relevant authors.",
+      "outreach_goal": "Invite IPNE to promote the 2026 Maya Book Awards to its member publishers and encourage them to submit or share the call with their authors.",
+      "hooks": [],
+      "primary_hook_id": null,
+      "angle": "Highlight how the Maya Book Awards can elevate the visibility of IPNE’s member publishers and authors through international promotion and jury recognition.",
+      "tone": {
+        "register": "warm_professional",
+        "guidance": "Use a respectful, partnership‑oriented tone that acknowledges IPNE’s role in supporting independent publishing."
+      },
+      "recommended_channel": "email",
+      "channel_reason": "The verified email address (talktous@ipne.org) is a direct, professional contact that is appropriate for an organization and is likely monitored.",
+      "contact_audit": {
+        "best_channel": "email",
+        "best_contact_target": "talktous@ipne.org",
+        "why_best_route": "This is a verified, professional email address belonging to the organization’s contact point. For a nonprofit publisher network, a direct email is the most appropriate and likely to be read by the decision‑maker or outreach coordinator.",
+        "is_direct_contact": true,
+        "email_status": "verified_direct",
+        "backup_route": "+1 339-368-8229",
+        "evaluated_routes": [
+          {
+            "channel": "email",
+            "value": "talktous@ipne.org",
+            "verdict": "recommended",
+            "quality_assessment": "Verified, professional, organization‑specific address.",
+            "priority": 1
+          },
+          {
+            "channel": "phone",
+            "value": "+1 339-368-8229",
+            "verdict": "viable_backup",
+            "quality_assessment": "Verified phone number; can be used if email outreach fails.",
+            "priority": 2
+          },
+          {
+            "channel": "website",
+            "value": "https://ipne.org/",
+            "verdict": "generic_gatekeeper",
+            "quality_assessment": "Website provides general information but no dedicated submission form.",
+            "priority": 3
+          },
+          {
+            "channel": "linkedin",
+            "value": "https://linkedin.com/company/board-member-independent-publishers-of-new-england",
+            "verdict": "generic_gatekeeper",
+            "quality_assessment": "Company page; lower response rate than direct email.",
+            "priority": 4
+          }
+        ]
+      },
+      "call_to_action": "Would it be useful if I sent over the entry guidelines and a brief on how the Maya Book Awards can benefit your member publishers?",
+      "avoid": [
+        "Generic info@ or contact@ addresses as a personal contact.",
+        "Unverified claims about IPNE’s activities or achievements.",
+        "Technical jargon or overly promotional language."
+      ],
+      "human_checks": [
+        "Confirm that the email address is still active and monitored.",
+        "Verify the phone number’s current status.",
+        "Ensure the call to action aligns with IPNE’s current outreach policies."
+      ]
+    },
+    "copy": null,
+    "ai_copy": null,
+    "edited_by_human": false,
+    "qa": null,
+    "auto_revisions": 0,
+    "models": {
+      "strategist": "openai/gpt-oss-20b",
+      "writer": "openai/gpt-oss-20b"
+    },
+    "timings_ms": {
+      "strategist": 1632,
+      "writer": 0
+    },
+    "generated_at": "2026-10-13T13:06:41.208Z",
+    "updated_at": "2026-10-13T13:06:41.208Z",
+    "reviewed_at": null,
+    "reviewer_note": "Strategist: No specific, verifiable hooks (e.g., book titles, awards, or community initiatives) are available in the research record to personalize the outreach. Contact routes exist, but without a strong hook the campaign risk of low engagement is higher.",
+    "error": null
+  },
+  {
+    "personalization_version": "1.0",
+    "record_id": "r-publishing-push-mv56yk5f",
+    "project_id": "proj-1791464115518",
+    "prospect_name": "Publishing Push",
+    "target_type": "Publishers & Book‑Industry Organisations",
+    "batch_id": "batch-4",
+    "batch_number": 4,
+    "status": "draft",
+    "strategy": {
+      "readiness": "needs_more_research",
+      "readiness_reason": "No verified email or direct contact route is available; only a phone number and a company LinkedIn page exist, and no specific hooks or achievements are documented.",
+      "prospect_snapshot": "Publishing Push is an independent London‑based publishing company offering editorial services, self‑publishing, book distribution, and design resources.",
+      "relevance_thesis": "The organization’s focus on publishing and book distribution aligns with Maya’s goal of attracting quality book submissions, but no concrete evidence of recent titles or authors to target.",
+      "campaign_objective": "Generate 2,000+ quality book submissions from relevant authors.",
+      "outreach_goal": "Invite Publishing Push to consider submitting a title or to promote the Maya Book Awards to their authors and network.",
+      "hooks": [],
+      "primary_hook_id": null,
+      "angle": "None – no specific project or award to reference.",
+      "tone": {
+        "register": "formal",
+        "guidance": "Maintain a professional, respectful tone; avoid any assumption of personal connection or unpublished achievements."
+      },
+      "recommended_channel": "other",
+      "channel_reason": "The only verified contact route is the phone number; no email or contact form was found, and the LinkedIn page is a company profile rather than a personal contact.",
+      "contact_audit": {
+        "best_channel": "phone",
+        "best_contact_target": "+44 203-318-6848",
+        "why_best_route": "The phone number is the sole verified contact detail provided. It is a direct line to the organization, offering the highest chance of reaching a decision maker or the appropriate department. Email or LinkedIn routes are either missing or non‑personal, making them less reliable for outreach.",
+        "is_direct_contact": false,
+        "email_status": "not_available",
+        "backup_route": "https://linkedin.com/company/publishing-push",
+        "evaluated_routes": [
+          {
+            "channel": "phone",
+            "value": "+44 203-318-6848",
+            "verdict": "recommended",
+            "quality_assessment": "Verified professional number; likely to connect to a relevant staff member.",
+            "priority": 1
+          },
+          {
+            "channel": "linkedin",
+            "value": "https://linkedin.com/company/publishing-push",
+            "verdict": "viable_backup",
+            "quality_assessment": "Company page; useful for gathering additional context but not a personal contact.",
+            "priority": 2
+          },
+          {
+            "channel": "website",
+            "value": "https://publishingpush.com/",
+            "verdict": "not_worth_it",
+            "quality_assessment": "No contact form or email address found on the site.",
+            "priority": 3
+          }
+        ]
+      },
+      "call_to_action": "Would you be interested in learning how the Maya Book Awards could showcase titles from Publishing Push’s authors?",
+      "avoid": [
+        "Generic info@ or contact@ addresses (none provided)",
+        "Assumptions about unpublished titles or authors",
+        "Any fabricated achievements or personal details"
+      ],
+      "human_checks": [
+        "Verify that the phone number is active and not a shared line.",
+        "Confirm that the LinkedIn company page is current and not a legacy profile.",
+        "Ensure no email address is hidden behind a contact form on the website before deciding to use the phone."
+      ]
+    },
+    "copy": {
+      "subject_lines": [
+        {
+          "text": "Explore Maya Book Awards for Publishing Push titles",
+          "style": "direct"
+        },
+        {
+          "text": "Could Publishing Push authors win international recognition?",
+          "style": "curiosity"
+        },
+        {
+          "text": "Showcase your authors at the Maya Book Awards",
+          "style": "value"
+        }
+      ],
+      "email_body": "Hi Publishing Push team,\n\nMaya Book Awards is currently accepting submissions from both published and debut authors. Winning and shortlisted titles receive international promotion, author spotlights, and jury recognition.\n\nWould you be interested in learning how the Maya Book Awards could showcase titles from Publishing Push’s authors? You can review the guidelines and eligibility details on our portal.\n\nWarm regards,\nMaya Editorial Team\nsubmissions@mayabookawards.com",
+      "linkedin_message": "Hi Publishing Push team, Maya Book Awards is open for submissions from published and debut authors. Winning titles get international promotion and jury recognition. Would you like to explore how your authors could benefit? https://mayabookawards.com/guidelines",
+      "follow_up_body": "Hi Publishing Push team,\n\nJust wanted to share that the Maya Book Awards continues to offer international promotion and author spotlights for shortlisted titles. If you’re interested in discussing how your authors could participate, let me know.\n\nWarm regards,\nMaya Editorial Team",
+      "hook_usage": "No specific hook used; outreach focuses on the general opportunity of Maya Book Awards."
+    },
+    "ai_copy": {
+      "subject_lines": [
+        {
+          "text": "Explore Maya Book Awards for Publishing Push titles",
+          "style": "direct"
+        },
+        {
+          "text": "Could Publishing Push authors win international recognition?",
+          "style": "curiosity"
+        },
+        {
+          "text": "Showcase your authors at the Maya Book Awards",
+          "style": "value"
+        }
+      ],
+      "email_body": "Hi Publishing Push team,\n\nMaya Book Awards is currently accepting submissions from both published and debut authors. Winning and shortlisted titles receive international promotion, author spotlights, and jury recognition.\n\nWould you be interested in learning how the Maya Book Awards could showcase titles from Publishing Push’s authors? You can review the guidelines and eligibility details on our portal.\n\nWarm regards,\nMaya Editorial Team\nsubmissions@mayabookawards.com",
+      "linkedin_message": "Hi Publishing Push team, Maya Book Awards is open for submissions from published and debut authors. Winning titles get international promotion and jury recognition. Would you like to explore how your authors could benefit? https://mayabookawards.com/guidelines",
+      "follow_up_body": "Hi Publishing Push team,\n\nJust wanted to share that the Maya Book Awards continues to offer international promotion and author spotlights for shortlisted titles. If you’re interested in discussing how your authors could participate, let me know.\n\nWarm regards,\nMaya Editorial Team",
+      "hook_usage": "No specific hook used; outreach focuses on the general opportunity of Maya Book Awards."
+    },
+    "edited_by_human": false,
+    "qa": {
+      "status": "passed",
+      "score": 100,
+      "issues": [],
+      "verified_hook_ids": []
+    },
+    "auto_revisions": 0,
+    "models": {
+      "strategist": "openai/gpt-oss-20b",
+      "writer": "openai/gpt-oss-20b"
+    },
+    "timings_ms": {
+      "strategist": 2044,
+      "writer": 746
+    },
+    "generated_at": "2026-10-13T12:41:45.951Z",
+    "updated_at": "2026-10-13T12:41:45.951Z",
+    "reviewed_at": null,
+    "reviewer_note": null,
+    "error": null
+  },
+  {
+    "personalization_version": "1.0",
+    "record_id": "r-salt-publishing-mv56yoic",
+    "project_id": "proj-1791464115518",
+    "prospect_name": "Salt Publishing",
+    "target_type": "Publishers & Book‑Industry Organisations",
+    "batch_id": "batch-4",
+    "batch_number": 4,
+    "status": "needs_more_research",
+    "strategy": {
+      "readiness": "needs_more_research",
+      "readiness_reason": "Only generic information about Salt Publishing is available; no specific titles, awards, or contact method preference are documented, limiting the ability to craft a compelling, personalized hook.",
+      "prospect_snapshot": "Salt Publishing is an independent literary publisher based in Cromer, Norfolk, founded in 1999. They specialize in award‑winning fiction and non‑fiction books.",
+      "relevance_thesis": "Salt Publishing’s focus on award‑winning titles aligns with Maya’s objective to showcase high‑quality books and authors.",
+      "campaign_objective": "Generate 2,000+ quality book submissions from relevant authors.",
+      "outreach_goal": "Encourage Salt Publishing to consider submitting their titles or authors to the Maya Book Awards.",
+      "hooks": [
+        {
+          "id": "H1",
+          "fact": "Salt Publishing publishes award‑winning fiction and non‑fiction books.",
+          "evidence_quote": "Salt Publishing is a Book Publishing company. Salt Publishing is an independent literary publisher that has been in operation since 1999. They offer award‑winning fiction and non‑fiction books.",
+          "source_ids": [
+            "S1"
+          ],
+          "why_it_resonates": "Shows they publish award‑winning titles, which is a key criterion for Maya’s award‑winning focus.",
+          "strength": "weak"
+        }
+      ],
+      "primary_hook_id": "H1",
+      "angle": "Show how Maya Book Awards can elevate Salt Publishing’s award‑winning titles and authors through international promotion and jury recognition.",
+      "tone": {
+        "register": "warm_professional",
+        "guidance": "Maintain a respectful, partnership‑oriented tone; avoid pressure or generic language."
+      },
+      "recommended_channel": "email",
+      "channel_reason": "A verified sales email (sales@saltpublishing.com) is available in the research record.",
+      "call_to_action": "Would it be helpful if I sent you the submission guidelines and details on how your titles could benefit from Maya’s international promotion?",
+      "avoid": [
+        "generic info@ addresses",
+        "fabricated details",
+        "pressure tactics",
+        "technical jargon unless necessary"
+      ],
+      "human_checks": [
+        "Confirm Salt Publishing’s identity and current email address.",
+        "Verify that the email is not a generic info@ address.",
+        "Ensure no conflict with existing prospect in memory."
+      ]
+    },
+    "copy": null,
+    "ai_copy": null,
+    "edited_by_human": false,
+    "qa": null,
+    "auto_revisions": 0,
+    "models": {
+      "strategist": "openai/gpt-oss-20b",
+      "writer": "openai/gpt-oss-20b"
+    },
+    "timings_ms": {
+      "strategist": 5191,
+      "writer": 0
+    },
+    "generated_at": "2026-10-13T12:05:16.393Z",
+    "updated_at": "2026-10-13T12:05:16.393Z",
+    "reviewed_at": null,
+    "reviewer_note": "Strategist: Only generic information about Salt Publishing is available; no specific titles, awards, or contact method preference are documented, limiting the ability to craft a compelling, personalized hook.",
+    "error": null
+  },
+  {
+    "personalization_version": "1.0",
+    "record_id": "r-collective-ink-books-mv56z6m9",
+    "project_id": "proj-1791464115518",
+    "prospect_name": "Collective Ink Books",
+    "target_type": "Publishers & Book‑Industry Organisations",
+    "batch_id": "batch-4",
+    "batch_number": 4,
+    "status": "draft",
+    "strategy": {
+      "readiness": "ready",
+      "readiness_reason": "At least one verified hook and a usable contact route (LinkedIn) are available.",
+      "prospect_snapshot": "Collective Ink Books is an independent London‑based publisher that welcomes unsolicited manuscript submissions and promotes books to authors worldwide.",
+      "relevance_thesis": "Their focus on unsolicited manuscripts aligns with Maya's call for new and debut authors, offering a mutually beneficial platform for authors they represent.",
+      "campaign_objective": "Generate 2,000+ quality book submissions from relevant authors.",
+      "outreach_goal": "Encourage Collective Ink Books to consider the Maya Book Awards as a platform for authors they publish.",
+      "hooks": [
+        {
+          "id": "H1",
+          "fact": "Welcoming unsolicited manuscript submissions",
+          "evidence_quote": "\"Collective Ink Books is a Book Publishing company. ... Headquartered in London, England, United Kingdom.\"",
+          "source_ids": [
+            "S1"
+          ],
+          "why_it_resonates": "It demonstrates the publisher actively seeks new manuscripts, directly matching Maya's open call for new and debut authors.",
+          "strength": "moderate"
+        },
+        {
+          "id": "H2",
+          "fact": "Promoting books to authors worldwide",
+          "evidence_quote": "\"Collective Ink Books is a Book Publishing company. ... Headquartered in London, England, United Kingdom.\"",
+          "source_ids": [
+            "S1"
+          ],
+          "why_it_resonates": "It shows a global outreach strategy that could amplify the international promotion benefits of the Maya Book Awards.",
+          "strength": "moderate"
+        }
+      ],
+      "primary_hook_id": "H1",
+      "angle": "Given Collective Ink Books' openness to unsolicited manuscripts, the Maya Book Awards could offer authors they publish a chance for international recognition and promotion.",
+      "tone": {
+        "register": "warm_professional",
+        "guidance": "Maintain a respectful, partnership‑oriented tone without pressure or invasive language."
+      },
+      "recommended_channel": "linkedin",
+      "channel_reason": "A LinkedIn profile exists for the organization; no verified email is available.",
+      "call_to_action": "Would you be interested in learning how the Maya Book Awards could support authors you publish?",
+      "avoid": [
+        "Using generic info@ addresses as personal contact",
+        "Fabricated or unverified details",
+        "Invasive or overly familiar language",
+        "Technical jargon unless necessary",
+        "Pressure or hard‑sell tactics"
+      ],
+      "human_checks": [
+        "Confirm that the LinkedIn profile belongs to a decision‑maker at Collective Ink Books.",
+        "Verify that no email address is publicly available to avoid using a generic contact.",
+        "Ensure no conflict of interest or prior engagement that would disqualify outreach.",
+        "Double‑check that the hook facts are still current and accurate."
+      ]
+    },
+    "copy": {
+      "subject_lines": [
+        {
+          "text": "Collective Ink Books and the Maya Book Awards",
+          "style": "direct"
+        },
+        {
+          "text": "Could your unsolicited manuscripts win international recognition?",
+          "style": "curiosity"
+        },
+        {
+          "text": "Maya Book Awards: a platform for your authors' promotion",
+          "style": "value"
+        }
+      ],
+      "email_body": "Hi Collective Ink Books team,\n\nI noticed your openness to unsolicited manuscript submissions and thought the Maya Book Awards could be a natural fit. We’re currently accepting entries from new and debut authors, and winners receive international promotion, author spotlights, and jury recognition. It could give the authors you publish a chance to reach a wider audience and gain global visibility.\n\nWould you be interested in learning how the Maya Book Awards could support authors you publish?\n\nWarm regards,\nMaya Editorial Team\nsubmissions@mayabookawards.com",
+      "linkedin_message": "Collective Ink Books welcomes unsolicited manuscripts, and the Maya Book Awards are open to new and debut authors. Could we discuss how the awards could give your authors international exposure?",
+      "follow_up_body": "Hi Collective Ink Books team, I wanted to share that the Maya Book Awards guidelines and eligibility details are available on our portal. If you’re curious about how this could benefit your authors, let me know.\n\nWarm regards,\nMaya Editorial Team",
+      "hook_usage": "Used hook H1: Welcoming unsolicited manuscript submissions in the opening sentence."
+    },
+    "ai_copy": {
+      "subject_lines": [
+        {
+          "text": "Collective Ink Books and the Maya Book Awards",
+          "style": "direct"
+        },
+        {
+          "text": "Could your unsolicited manuscripts win international recognition?",
+          "style": "curiosity"
+        },
+        {
+          "text": "Maya Book Awards: a platform for your authors' promotion",
+          "style": "value"
+        }
+      ],
+      "email_body": "Hi Collective Ink Books team,\n\nI noticed your openness to unsolicited manuscript submissions and thought the Maya Book Awards could be a natural fit. We’re currently accepting entries from new and debut authors, and winners receive international promotion, author spotlights, and jury recognition. It could give the authors you publish a chance to reach a wider audience and gain global visibility.\n\nWould you be interested in learning how the Maya Book Awards could support authors you publish?\n\nWarm regards,\nMaya Editorial Team\nsubmissions@mayabookawards.com",
+      "linkedin_message": "Collective Ink Books welcomes unsolicited manuscripts, and the Maya Book Awards are open to new and debut authors. Could we discuss how the awards could give your authors international exposure?",
+      "follow_up_body": "Hi Collective Ink Books team, I wanted to share that the Maya Book Awards guidelines and eligibility details are available on our portal. If you’re curious about how this could benefit your authors, let me know.\n\nWarm regards,\nMaya Editorial Team",
+      "hook_usage": "Used hook H1: Welcoming unsolicited manuscript submissions in the opening sentence."
+    },
+    "edited_by_human": false,
+    "qa": {
+      "status": "passed",
+      "score": 100,
+      "issues": [],
+      "verified_hook_ids": [
+        "H1",
+        "H2"
+      ]
+    },
+    "auto_revisions": 0,
+    "models": {
+      "strategist": "openai/gpt-oss-20b",
+      "writer": "openai/gpt-oss-20b"
+    },
+    "timings_ms": {
+      "strategist": 10841,
+      "writer": 10269
+    },
+    "generated_at": "2026-10-13T12:05:11.197Z",
+    "updated_at": "2026-10-13T12:05:11.197Z",
+    "reviewed_at": null,
+    "reviewer_note": null,
+    "error": null
+  },
+  {
+    "personalization_version": "1.0",
+    "record_id": "r-nunabooks-mv56zez6",
+    "project_id": "proj-1791464115518",
+    "prospect_name": "Nunabooks",
+    "target_type": "Publishers & Book‑Industry Organisations",
+    "batch_id": "batch-4",
+    "batch_number": 4,
+    "status": "draft",
+    "strategy": {
+      "readiness": "ready",
+      "readiness_reason": "Verified email contact and strong hook about manuscript database and author sourcing.",
+      "prospect_snapshot": "Nunabooks is a London-based independent publishing company founded in 2014 that offers a database of professionally edited manuscripts and self‑published data tracking to aid literary agents and publishers, positioning them as a bridge between indie and traditional publishing.",
+      "relevance_thesis": "Nunabooks’ focus on manuscript evaluation and author sourcing aligns with Maya’s goal of attracting quality book submissions, making them a strategic partner to promote the awards to their network.",
+      "campaign_objective": "Generate 2,000+ quality book submissions from relevant authors.",
+      "outreach_goal": "Invite Nunabooks to promote the 2026 Maya Book Awards to their database users and authors, encouraging submissions.",
+      "hooks": [
+        {
+          "id": "H1",
+          "fact": "Provides a database of professionally edited manuscripts and self‑published data tracking for literary agents and publishers",
+          "evidence_quote": "\"We provide a database of professionally edited manuscripts and self‑published data tracking\"",
+          "source_ids": [
+            "S1"
+          ],
+          "why_it_resonates": "Their database directly serves authors and publishers, making them well‑placed to disseminate award opportunities.",
+          "strength": "strong"
+        },
+        {
+          "id": "H2",
+          "fact": "Offers an innovative approach to sourcing talented authors",
+          "evidence_quote": "\"and offers an innovative approach to sourcing talented authors\"",
+          "source_ids": [
+            "S1"
+          ],
+          "why_it_resonates": "Their author‑sourcing focus aligns with Maya’s aim to attract high‑quality submissions.",
+          "strength": "moderate"
+        }
+      ],
+      "primary_hook_id": "H1",
+      "angle": "Leverage Nunabooks’ manuscript database and author‑sourcing network to amplify the Maya Book Awards, positioning the platform as a key partner for discovering and promoting emerging and established authors.",
+      "tone": {
+        "register": "warm_professional",
+        "guidance": "Maintain a respectful, collaborative tone, highlighting mutual benefits and the value of the awards for their authors."
+      },
+      "recommended_channel": "email",
+      "channel_reason": "Verified email hello@nunabooks.com is available and appropriate for organizational outreach.",
+      "call_to_action": "Would it be useful if I sent over the entry details and a brief on how Nunabooks can share the awards with their authors and database users?",
+      "avoid": [
+        "generic praise",
+        "fabricated achievements",
+        "invasive language",
+        "pressure to act"
+      ],
+      "human_checks": [
+        "Confirm that hello@nunabooks.com is an appropriate contact for outreach and not a generic info@ address.",
+        "Verify that the outreach aligns with current marketing strategy and partnership guidelines."
+      ]
+    },
+    "copy": {
+      "subject_lines": [
+        {
+          "text": "Invite Nunabooks to promote 2026 Maya Book Awards",
+          "style": "direct"
+        },
+        {
+          "text": "How can Nunabooks help authors win the Maya Book Awards?",
+          "style": "curiosity"
+        },
+        {
+          "text": "Maya Book Awards offer international promotion for Nunabooks authors",
+          "style": "value"
+        }
+      ],
+      "email_body": "Hi Nunabooks team,\nI noticed your database of professionally edited manuscripts and self‑published data tracking. The 2026 Maya Book Awards are now open for submissions from both published and debut authors. Winning titles receive international promotion, author spotlights, and jury recognition.\nWould it be useful if I sent over the entry details and a brief on how Nunabooks can share the awards with their authors and database users?\nWarm regards,\nMaya Editorial Team\nsubmissions@mayabookawards.com",
+      "linkedin_message": "Hi Nunabooks team, I noticed your database of professionally edited manuscripts and self‑published data tracking. We’re launching the 2026 Maya Book Awards and think your authors could benefit. Could we share details?",
+      "follow_up_body": "Just wanted to share that the 2026 Maya Book Awards also offer international promotion, author spotlights, and jury recognition for winners and shortlists. If your authors are interested, I can send the entry details and a brief on how Nunabooks can share the awards.",
+      "hook_usage": "Used hook H1 in the opening sentence to reference Nunabooks' database of professionally edited manuscripts and self‑published data tracking."
+    },
+    "ai_copy": {
+      "subject_lines": [
+        {
+          "text": "Invite Nunabooks to promote 2026 Maya Book Awards",
+          "style": "direct"
+        },
+        {
+          "text": "How can Nunabooks help authors win the Maya Book Awards?",
+          "style": "curiosity"
+        },
+        {
+          "text": "Maya Book Awards offer international promotion for Nunabooks authors",
+          "style": "value"
+        }
+      ],
+      "email_body": "Hi Nunabooks team,\nI noticed your database of professionally edited manuscripts and self‑published data tracking. The 2026 Maya Book Awards are now open for submissions from both published and debut authors. Winning titles receive international promotion, author spotlights, and jury recognition.\nWould it be useful if I sent over the entry details and a brief on how Nunabooks can share the awards with their authors and database users?\nWarm regards,\nMaya Editorial Team\nsubmissions@mayabookawards.com",
+      "linkedin_message": "Hi Nunabooks team, I noticed your database of professionally edited manuscripts and self‑published data tracking. We’re launching the 2026 Maya Book Awards and think your authors could benefit. Could we share details?",
+      "follow_up_body": "Just wanted to share that the 2026 Maya Book Awards also offer international promotion, author spotlights, and jury recognition for winners and shortlists. If your authors are interested, I can send the entry details and a brief on how Nunabooks can share the awards.",
+      "hook_usage": "Used hook H1 in the opening sentence to reference Nunabooks' database of professionally edited manuscripts and self‑published data tracking."
+    },
+    "edited_by_human": false,
+    "qa": {
+      "status": "passed",
+      "score": 90,
+      "issues": [
+        {
+          "severity": "warning",
+          "code": "subject_line_too_long",
+          "field": "subject",
+          "message": "Subject line \"Maya Book Awards offer interna...\" is 68 chars (keep under 60 chars for mobile previews)."
+        }
+      ],
+      "verified_hook_ids": [
+        "H1",
+        "H2"
+      ]
+    },
+    "auto_revisions": 0,
+    "models": {
+      "strategist": "openai/gpt-oss-20b",
+      "writer": "openai/gpt-oss-20b"
+    },
+    "timings_ms": {
+      "strategist": 6063,
+      "writer": 2871
+    },
+    "generated_at": "2026-10-13T12:04:50.081Z",
+    "updated_at": "2026-10-13T12:04:50.081Z",
+    "reviewed_at": null,
+    "reviewer_note": null,
+    "error": null
+  },
+  {
+    "personalization_version": "1.0",
+    "record_id": "r-netgalley-mv56zl0e",
+    "project_id": "proj-1791464115518",
+    "prospect_name": "NetGalley",
+    "target_type": "Publishers & Book‑Industry Organisations",
+    "batch_id": "batch-4",
+    "batch_number": 4,
+    "status": "draft",
+    "strategy": {
+      "readiness": "ready",
+      "readiness_reason": "Strong hook and verified email contact available.",
+      "prospect_snapshot": "NetGalley is a software development company that provides a platform for publishers and authors to distribute digital review copies, headquartered in Newburyport, Massachusetts.",
+      "relevance_thesis": "NetGalley’s platform can amplify the Maya Book Awards to authors, directly supporting the goal of generating 2,000+ quality submissions.",
+      "campaign_objective": "Generate 2,000+ quality book submissions from relevant authors.",
+      "outreach_goal": "Invite NetGalley to promote the Maya Book Awards to their community of authors and reviewers.",
+      "hooks": [
+        {
+          "id": "H1",
+          "fact": "NetGalley helps publishers and authors promote digital review copies to book advocates and industry professionals.",
+          "evidence_quote": "NetGalley helps publishers and authors promote digital review copies to book advocates and industry professionals.",
+          "source_ids": [
+            "S1"
+          ],
+          "why_it_resonates": "Shows NetGalley’s role in connecting publishers and authors, aligning with Maya’s goal to reach authors.",
+          "strength": "strong"
+        }
+      ],
+      "primary_hook_id": "H1",
+      "angle": "Leverage NetGalley’s digital review copy distribution to boost Maya Book Awards submissions.",
+      "tone": {
+        "register": "warm_professional",
+        "guidance": "Use a friendly yet professional tone, focus on partnership and mutual benefit."
+      },
+      "recommended_channel": "email",
+      "channel_reason": "Verified email address concierge@netgalley.com is available.",
+      "call_to_action": "Would it be useful if I sent over the entry details and how NetGalley could help promote the awards to your community?",
+      "avoid": [
+        "Generic info@ addresses as personal contact",
+        "Invasive or overly familiar language",
+        "Fabricated or unverified details",
+        "Technical jargon unless necessary"
+      ],
+      "human_checks": [
+        "Confirm NetGalley’s current contact email is concierge@netgalley.com",
+        "Ensure NetGalley’s platform is still active and relevant to authors",
+        "Verify that the campaign link https://mayabookawards.com/guidelines is correct",
+        "Check that the hook accurately reflects NetGalley’s current services"
+      ]
+    },
+    "copy": {
+      "subject_lines": [
+        {
+          "text": "Invite NetGalley to promote Maya Book Awards",
+          "style": "direct"
+        },
+        {
+          "text": "How can NetGalley boost Maya Book Awards submissions?",
+          "style": "curiosity"
+        },
+        {
+          "text": "Help Maya Book Awards reach 2,000+ authors via NetGalley",
+          "style": "value"
+        }
+      ],
+      "email_body": "Hi NetGalley team,\n\nNetGalley helps publishers and authors promote digital review copies to book advocates and industry professionals. Maya Book Awards is now open for submissions and we’re looking for partners who can amplify our reach to authors.\n\nWould it be useful if I sent over the entry details and how NetGalley could help promote the awards to your community?\n\nWarm regards,\nMaya Editorial Team\nsubmissions@mayabookawards.com",
+      "linkedin_message": "NetGalley helps publishers and authors promote digital review copies to book advocates and industry professionals. Maya Book Awards is open for submissions. Could we explore how your platform could boost our author community?",
+      "follow_up_body": "Hi NetGalley team,\n\nJust wanted to share that winning and shortlisted titles receive international promotion, author spotlights, and jury recognition. If you’re interested in learning how this could benefit your community, let me know.\n\nWarm regards,\nMaya Editorial Team",
+      "hook_usage": "Used hook H1 in the opening sentence of the email body."
+    },
+    "ai_copy": {
+      "subject_lines": [
+        {
+          "text": "Invite NetGalley to promote Maya Book Awards",
+          "style": "direct"
+        },
+        {
+          "text": "How can NetGalley boost Maya Book Awards submissions?",
+          "style": "curiosity"
+        },
+        {
+          "text": "Help Maya Book Awards reach 2,000+ authors via NetGalley",
+          "style": "value"
+        }
+      ],
+      "email_body": "Hi NetGalley team,\n\nNetGalley helps publishers and authors promote digital review copies to book advocates and industry professionals. Maya Book Awards is now open for submissions and we’re looking for partners who can amplify our reach to authors.\n\nWould it be useful if I sent over the entry details and how NetGalley could help promote the awards to your community?\n\nWarm regards,\nMaya Editorial Team\nsubmissions@mayabookawards.com",
+      "linkedin_message": "NetGalley helps publishers and authors promote digital review copies to book advocates and industry professionals. Maya Book Awards is open for submissions. Could we explore how your platform could boost our author community?",
+      "follow_up_body": "Hi NetGalley team,\n\nJust wanted to share that winning and shortlisted titles receive international promotion, author spotlights, and jury recognition. If you’re interested in learning how this could benefit your community, let me know.\n\nWarm regards,\nMaya Editorial Team",
+      "hook_usage": "Used hook H1 in the opening sentence of the email body."
+    },
+    "edited_by_human": false,
+    "qa": {
+      "status": "passed",
+      "score": 100,
+      "issues": [],
+      "verified_hook_ids": [
+        "H1"
+      ]
+    },
+    "auto_revisions": 0,
+    "models": {
+      "strategist": "openai/gpt-oss-20b",
+      "writer": "openai/gpt-oss-20b"
+    },
+    "timings_ms": {
+      "strategist": 10964,
+      "writer": 6374
+    },
+    "generated_at": "2026-10-13T12:04:41.142Z",
+    "updated_at": "2026-10-13T12:04:41.142Z",
+    "reviewed_at": null,
+    "reviewer_note": null,
+    "error": null
+  },
+  {
+    "personalization_version": "1.0",
+    "record_id": "r-penguin-publishing-group-mv570179",
+    "project_id": "proj-1791464115518",
+    "prospect_name": "Penguin Publishing Group",
+    "target_type": "Publishers & Book‑Industry Organisations",
+    "batch_id": "batch-4",
+    "batch_number": 4,
+    "status": "needs_more_research",
+    "strategy": {
+      "readiness": "needs_more_research",
+      "readiness_reason": "No specific books, awards, or community involvement were found in the research record; only a generic statement that Penguin publishes books.",
+      "prospect_snapshot": "Penguin Publishing Group is a large, global book and periodical publisher headquartered in New York, employing over 1,200 staff and operating multiple imprints worldwide.",
+      "relevance_thesis": "As a major publisher with a broad author base, Penguin could help amplify the Maya Book Awards to a wide range of authors, potentially driving high‑quality submissions.",
+      "campaign_objective": "Generate 2,000+ quality book submissions from relevant authors.",
+      "outreach_goal": "Encourage Penguin to share the Maya Book Awards call with its authors and partners.",
+      "hooks": [],
+      "primary_hook_id": null,
+      "angle": "Invite Penguin to promote the Maya Book Awards to its authors and imprints.",
+      "tone": {
+        "register": "warm_professional",
+        "guidance": "Maintain a respectful, professional tone that acknowledges Penguin’s stature while offering a clear, low‑friction way to get involved."
+      },
+      "recommended_channel": "email",
+      "channel_reason": "A verified email address (ecommerce@us.penguingroup.com) is available in the research record.",
+      "call_to_action": "Would it be helpful if I sent you the submission guidelines and a brief overview of the awards so you could share them with your authors?",
+      "avoid": [
+        "Generic or fabricated details about Penguin’s books or authors",
+        "Invasive or overly familiar language",
+        "Technical jargon unless necessary",
+        "Using generic info@ addresses as a personal contact"
+      ],
+      "human_checks": [
+        "Confirm the email address is still active and appropriate for outreach",
+        "Ensure no conflict with internal policy regarding outreach to large publishers",
+        "Verify that the call to action aligns with the campaign’s tone and objectives"
+      ]
+    },
+    "copy": null,
+    "ai_copy": null,
+    "edited_by_human": false,
+    "qa": null,
+    "auto_revisions": 0,
+    "models": {
+      "strategist": "openai/gpt-oss-20b",
+      "writer": "openai/gpt-oss-20b"
+    },
+    "timings_ms": {
+      "strategist": 2997,
+      "writer": 0
+    },
+    "generated_at": "2026-10-13T12:04:23.800Z",
+    "updated_at": "2026-10-13T12:04:23.800Z",
+    "reviewed_at": null,
+    "reviewer_note": "Strategist: No specific books, awards, or community involvement were found in the research record; only a generic statement that Penguin publishes books.",
+    "error": null
+  },
+  {
+    "personalization_version": "1.0",
+    "record_id": "r-publish-authority-mv5707lm",
+    "project_id": "proj-1791464115518",
+    "prospect_name": "Publish Authority",
+    "target_type": "Publishers & Book‑Industry Organisations",
+    "batch_id": "batch-4",
+    "batch_number": 4,
+    "status": "needs_more_research",
+    "strategy": {
+      "readiness": "needs_more_research",
+      "readiness_reason": "Only a weak, generic hook is available and no email contact is present; additional specific achievements or book titles are needed to craft a compelling outreach.",
+      "prospect_snapshot": "Publish Authority is a hybrid publishing company headquartered in Roswell, Georgia, that specializes in professional-quality books for independent authors.",
+      "relevance_thesis": "As a publisher that works with independent authors, Publish Authority aligns with Maya’s goal of attracting high‑quality book submissions.",
+      "campaign_objective": "Generate 2,000+ quality book submissions from relevant authors.",
+      "outreach_goal": "Invite Publish Authority to consider submitting or to encourage their authors to submit to the 2026 Maya Book Awards.",
+      "hooks": [
+        {
+          "id": "H1",
+          "fact": "Publish Authority is a hybrid publishing company that publishes professional-quality books for independent authors.",
+          "evidence_quote": "Publish Authority is a Book Publishing company. Excellence In Book Publishing is a hybrid publishing company that specializes in publishing professional-quality books for independent authors.",
+          "source_ids": [
+            "S1"
+          ],
+          "why_it_resonates": "Shows they publish independent authors, directly matching Maya’s focus on authorship and publishing.",
+          "strength": "weak"
+        }
+      ],
+      "primary_hook_id": "H1",
+      "angle": "Highlight how Maya Book Awards can elevate the visibility and prestige of Publish Authority’s authors.",
+      "tone": {
+        "register": "warm_professional",
+        "guidance": "Maintain a respectful, human tone that acknowledges their publishing expertise without sounding generic."
+      },
+      "recommended_channel": "linkedin",
+      "channel_reason": "A verified LinkedIn company profile exists; no email address is available.",
+      "call_to_action": "Would it be useful if I sent you the submission guidelines and details for the 2026 Maya Book Awards?",
+      "avoid": [
+        "Generic info@ addresses",
+        "Fabricated or unverified details",
+        "Technical jargon unless necessary"
+      ],
+      "human_checks": [
+        "Confirm the phone number is active and reachable.",
+        "Verify that no email address is publicly available to avoid using a generic info@.",
+        "Ensure the LinkedIn profile is current and reflects the company’s publishing focus."
+      ]
+    },
+    "copy": null,
+    "ai_copy": null,
+    "edited_by_human": false,
+    "qa": null,
+    "auto_revisions": 0,
+    "models": {
+      "strategist": "openai/gpt-oss-20b",
+      "writer": "openai/gpt-oss-20b"
+    },
+    "timings_ms": {
+      "strategist": 8504,
+      "writer": 0
+    },
+    "generated_at": "2026-10-13T12:04:20.798Z",
+    "updated_at": "2026-10-13T12:04:20.798Z",
+    "reviewed_at": null,
+    "reviewer_note": "Strategist: Only a weak, generic hook is available and no email contact is present; additional specific achievements or book titles are needed to craft a compelling outreach.",
+    "error": null
+  },
+  {
+    "personalization_version": "1.0",
+    "record_id": "r-allison-busby-mv570dqr",
+    "project_id": "proj-1791464115518",
+    "prospect_name": "ALLISON & BUSBY",
+    "target_type": "Publishers & Book‑Industry Organisations",
+    "batch_id": "batch-4",
+    "batch_number": 4,
+    "status": "draft",
+    "strategy": {
+      "readiness": "ready",
+      "readiness_reason": "Verified email contact and at least one strong hook from the research record.",
+      "prospect_snapshot": "Allison & Busby is an independent publishing house founded in 1967, based in central London, focusing on crime, historical and literary fiction.",
+      "relevance_thesis": "Their established presence and genre focus align with Maya Book Awards’ goal of attracting diverse, high‑quality literary submissions.",
+      "campaign_objective": "Encourage Allison & Busby to submit their own titles or promote the call to their authors for the 2026 Maya Book Awards.",
+      "outreach_goal": "Obtain interest in submitting or sharing the award opportunity.",
+      "hooks": [
+        {
+          "id": "H1",
+          "fact": "Founded in 1967, independent publishing house based in central London.",
+          "evidence_quote": "\"Founded in 1967, Allison & Busby are an independent publishing house based in central London.\"",
+          "source_ids": [
+            "S1"
+          ],
+          "why_it_resonates": "Demonstrates long‑standing credibility and a London base, matching Maya’s international promotion focus.",
+          "strength": "strong"
+        },
+        {
+          "id": "H2",
+          "fact": "Focus on crime, historical and literary fiction.",
+          "evidence_quote": "\"Publishes fiction and non-fiction with a core focus on crime, historical and literary fiction.\"",
+          "source_ids": [
+            "S1"
+          ],
+          "why_it_resonates": "Shows alignment with the literary genres that Maya celebrates.",
+          "strength": "strong"
+        },
+        {
+          "id": "H3",
+          "fact": "Distribution via Turnaround Publisher Services (UK) and Baker & Taylor Publisher Services (US).",
+          "evidence_quote": "\"Distribution: Turnaround Publisher Services (UK), Baker & Taylor Publisher Services (US).\"",
+          "source_ids": [
+            "S1"
+          ],
+          "why_it_resonates": "Highlights their distribution reach, indicating potential for wide award exposure.",
+          "strength": "moderate"
+        }
+      ],
+      "primary_hook_id": "H1",
+      "angle": "Leverage Allison & Busby’s historic London base and genre focus to position the Maya Book Awards as a prestigious platform for their authors.",
+      "tone": {
+        "register": "warm_professional",
+        "guidance": "Maintain a respectful, partnership‑oriented tone that acknowledges their publishing expertise."
+      },
+      "recommended_channel": "email",
+      "channel_reason": "Verified email address susie@allisonandbusby.com is available and appropriate for outreach.",
+      "call_to_action": "Would it be useful if I sent over the entry details for the 2026 Maya Book Awards?",
+      "avoid": [
+        "Generic info@ addresses",
+        "Fabricated or unverified details",
+        "Invasive or overly familiar language",
+        "Technical jargon unless necessary",
+        "Generic statements such as \"you are a publisher\" without specifics"
+      ],
+      "human_checks": [
+        "Confirm that the email address susie@allisonandbusby.com is still active and belongs to the target contact.",
+        "Verify that the prospect’s identity and role are still accurate and that no new exclusion criteria apply.",
+        "Ensure no conflict with the memory rule about using generic info@ addresses.",
+        "Double‑check that the hook facts are still current and have not changed since the last update."
+      ]
+    },
+    "copy": {
+      "subject_lines": [
+        {
+          "text": "Maya Book Awards 2026: A fit for Allison & Busby",
+          "style": "direct"
+        },
+        {
+          "text": "Could Allison & Busby’s London legacy shine in Maya Awards?",
+          "style": "curiosity"
+        },
+        {
+          "text": "Maya Awards offers international promotion for your authors",
+          "style": "value"
+        }
+      ],
+      "email_body": "Hi Allison & Busby team,\n\nFounded in 1967, Allison & Busby have been a cornerstone of London’s literary scene.\n\nMaya Book Awards celebrates diverse, high‑quality fiction, and your crime, historical, and literary titles would resonate with our international jury.\n\nWould it be useful if I sent over the entry details for the 2026 Maya Book Awards?\n\nWarm regards,\nMaya Editorial Team\nsubmissions@mayabookawards.com",
+      "linkedin_message": "Founded in 1967, Allison & Busby have long been a London literary staple. Maya Book Awards celebrates crime, historical, and literary fiction. Would you be interested in sharing our 2026 entry details with your authors?",
+      "follow_up_body": "Just wanted to share that winning titles at Maya Book Awards receive international promotion, author spotlights, and jury recognition. If you think this could benefit your authors, let me know and I can send the entry details. We’re currently accepting submissions for 2026, and the deadline is approaching soon.",
+      "hook_usage": "Used hook H1 in the opening sentence to reference Allison & Busby’s founding year and London base."
+    },
+    "ai_copy": {
+      "subject_lines": [
+        {
+          "text": "Maya Book Awards 2026: A fit for Allison & Busby",
+          "style": "direct"
+        },
+        {
+          "text": "Could Allison & Busby’s London legacy shine in Maya Awards?",
+          "style": "curiosity"
+        },
+        {
+          "text": "Maya Awards offers international promotion for your authors",
+          "style": "value"
+        }
+      ],
+      "email_body": "Hi Allison & Busby team,\n\nFounded in 1967, Allison & Busby have been a cornerstone of London’s literary scene.\n\nMaya Book Awards celebrates diverse, high‑quality fiction, and your crime, historical, and literary titles would resonate with our international jury.\n\nWould it be useful if I sent over the entry details for the 2026 Maya Book Awards?\n\nWarm regards,\nMaya Editorial Team\nsubmissions@mayabookawards.com",
+      "linkedin_message": "Founded in 1967, Allison & Busby have long been a London literary staple. Maya Book Awards celebrates crime, historical, and literary fiction. Would you be interested in sharing our 2026 entry details with your authors?",
+      "follow_up_body": "Just wanted to share that winning titles at Maya Book Awards receive international promotion, author spotlights, and jury recognition. If you think this could benefit your authors, let me know and I can send the entry details. We’re currently accepting submissions for 2026, and the deadline is approaching soon.",
+      "hook_usage": "Used hook H1 in the opening sentence to reference Allison & Busby’s founding year and London base."
+    },
+    "edited_by_human": false,
+    "qa": {
+      "status": "passed",
+      "score": 100,
+      "issues": [],
+      "verified_hook_ids": [
+        "H1",
+        "H2",
+        "H3"
+      ]
+    },
+    "auto_revisions": 0,
+    "models": {
+      "strategist": "openai/gpt-oss-20b",
+      "writer": "openai/gpt-oss-20b"
+    },
+    "timings_ms": {
+      "strategist": 13309,
+      "writer": 24090
+    },
+    "generated_at": "2026-10-13T12:04:12.290Z",
+    "updated_at": "2026-10-13T12:04:12.290Z",
+    "reviewed_at": null,
+    "reviewer_note": null,
+    "error": null
+  },
+  {
+    "personalization_version": "1.0",
+    "record_id": "r-publishers-licensing-services-pls-mv570w62",
+    "project_id": "proj-1791464115518",
+    "prospect_name": "Publishers' Licensing Services (PLS)",
+    "target_type": "Publishers & Book‑Industry Organisations",
+    "batch_id": "batch-4",
+    "batch_number": 4,
+    "status": "draft",
+    "strategy": {
+      "readiness": "ready",
+      "readiness_reason": "At least one strong hook (£49.3 million rights distribution) and a verified email contact route are available.",
+      "prospect_snapshot": "Publishers' Licensing Services (PLS) is a London‑based nonprofit collective management organisation that represents over 4,500 publishers and managed £49.3 million in rights and licensing in 2025‑26.",
+      "relevance_thesis": "PLS’s extensive publisher network and recent high‑volume rights activity position it to effectively disseminate the Maya Book Awards call to a large pool of authors and publishers, directly supporting the campaign’s goal of generating 2,000+ quality submissions.",
+      "campaign_objective": "Encourage PLS to share the Maya Book Awards call with its publisher members to drive high‑quality book submissions.",
+      "outreach_goal": "Obtain permission to provide PLS with award details and a ready‑to‑share promotional package for its members.",
+      "hooks": [
+        {
+          "id": "H1",
+          "fact": "Collected and distributed more than £49.3 million in 2025‑26.",
+          "evidence_quote": "\"Collected and distributed more than £49.3 million in 2025‑26.\"",
+          "source_ids": [
+            "S1"
+          ],
+          "why_it_resonates": "Demonstrates PLS’s large scale and influence in the publishing market, making it a powerful channel for reaching authors and publishers.",
+          "strength": "strong"
+        },
+        {
+          "id": "H2",
+          "fact": "Represents over 4,500 publishers.",
+          "evidence_quote": "\"Representing over 4,500 publishers.\"",
+          "source_ids": [
+            "S1"
+          ],
+          "why_it_resonates": "Shows the breadth of PLS’s network, indicating a wide audience for the awards call.",
+          "strength": "moderate"
+        },
+        {
+          "id": "H3",
+          "fact": "Provides rights and licensing services to the publishing industry.",
+          "evidence_quote": "\"Provides rights and licensing services to the publishing industry.\"",
+          "source_ids": [
+            "S1"
+          ],
+          "why_it_resonates": "Aligns with the awards’ focus on publishing professionals and authors, making the partnership contextually relevant.",
+          "strength": "moderate"
+        }
+      ],
+      "primary_hook_id": "H1",
+      "angle": "Leverage PLS’s extensive publisher network and recent £49.3 million rights distribution to amplify the Maya Book Awards call, encouraging high‑quality submissions from their members.",
+      "tone": {
+        "register": "warm_professional",
+        "guidance": "Maintain a respectful, partnership‑oriented tone that highlights specific achievements without sounding promotional or pressuring."
+      },
+      "recommended_channel": "email",
+      "channel_reason": "A verified email address (pls@pls.org.uk) is available and appropriate for organisational outreach.",
+      "call_to_action": "Would it be helpful if I sent you a brief with the award details and a ready‑to‑share email template for your members?",
+      "avoid": [
+        "Generic praise or vague statements about publishing.",
+        "Fabricated or unverified details about PLS.",
+        "Invasive or overly familiar language.",
+        "Technical jargon unless necessary.",
+        "Pressure to act or request a meeting."
+      ],
+      "human_checks": [
+        "Confirm that pls@pls.org.uk is still an active contact.",
+        "Verify that PLS is open to external promotional collaborations.",
+        "Ensure no conflict with existing agreements or obligations.",
+        "Double‑check the £49.3 million figure for accuracy.",
+        "Confirm the campaign link (https://mayabookawards.com/guidelines) is correct."
+      ]
+    },
+    "copy": {
+      "subject_lines": [
+        {
+          "text": "Maya Book Awards: Invitation for PLS to share with members",
+          "style": "direct"
+        },
+        {
+          "text": "How can PLS help 2,000 authors win Maya Book Awards?",
+          "style": "curiosity"
+        },
+        {
+          "text": "Maya Book Awards offers international promotion to members",
+          "style": "value"
+        }
+      ],
+      "email_body": "Hi PLS team,\n\nYour recent collection and distribution of over £49.3 million in rights shows the reach you have across the publishing world.\n\nThe Maya Book Awards, open to all authors, could benefit from that reach to attract high‑quality submissions.\n\nWould it be helpful if I sent you a brief with award details and a ready‑to‑share email template for your members?\n\nWarm regards,\nMaya Editorial Team\nsubmissions@mayabookawards.com",
+      "linkedin_message": "PLS, your recent £49.3 million rights distribution shows the reach you have. The Maya Book Awards is open to all authors and could use that reach to attract quality submissions. Would you be interested in a brief with award details and a ready‑to‑share template?",
+      "follow_up_body": "Just wanted to share that winners of the Maya Book Awards receive international promotion, author spotlights, and jury recognition. If you think a brief with award details and a ready‑to‑share template would help your members, let me know. The guidelines are available on our portal if you’d like to review them.",
+      "hook_usage": "Used hook H1 in the opening sentence of the email body."
+    },
+    "ai_copy": {
+      "subject_lines": [
+        {
+          "text": "Maya Book Awards: Invitation for PLS to share with members",
+          "style": "direct"
+        },
+        {
+          "text": "How can PLS help 2,000 authors win Maya Book Awards?",
+          "style": "curiosity"
+        },
+        {
+          "text": "Maya Book Awards offers international promotion to members",
+          "style": "value"
+        }
+      ],
+      "email_body": "Hi PLS team,\n\nYour recent collection and distribution of over £49.3 million in rights shows the reach you have across the publishing world.\n\nThe Maya Book Awards, open to all authors, could benefit from that reach to attract high‑quality submissions.\n\nWould it be helpful if I sent you a brief with award details and a ready‑to‑share email template for your members?\n\nWarm regards,\nMaya Editorial Team\nsubmissions@mayabookawards.com",
+      "linkedin_message": "PLS, your recent £49.3 million rights distribution shows the reach you have. The Maya Book Awards is open to all authors and could use that reach to attract quality submissions. Would you be interested in a brief with award details and a ready‑to‑share template?",
+      "follow_up_body": "Just wanted to share that winners of the Maya Book Awards receive international promotion, author spotlights, and jury recognition. If you think a brief with award details and a ready‑to‑share template would help your members, let me know. The guidelines are available on our portal if you’d like to review them.",
+      "hook_usage": "Used hook H1 in the opening sentence of the email body."
+    },
+    "edited_by_human": false,
+    "qa": {
+      "status": "passed",
+      "score": 100,
+      "issues": [],
+      "verified_hook_ids": [
+        "H1",
+        "H2",
+        "H3"
+      ]
+    },
+    "auto_revisions": 0,
+    "models": {
+      "strategist": "openai/gpt-oss-20b",
+      "writer": "openai/gpt-oss-20b"
+    },
+    "timings_ms": {
+      "strategist": 6128,
+      "writer": 30663
+    },
+    "generated_at": "2026-10-13T12:03:34.886Z",
+    "updated_at": "2026-10-13T12:03:34.886Z",
+    "reviewed_at": null,
+    "reviewer_note": null,
+    "error": null
+  },
+  {
+    "personalization_version": "1.0",
+    "record_id": "r-hachette-uk-mv571upx",
+    "project_id": "proj-1791464115518",
+    "prospect_name": "Hachette UK",
+    "target_type": "Publishers & Book‑Industry Organisations",
+    "batch_id": "batch-4",
+    "batch_number": 4,
+    "status": "needs_more_research",
+    "strategy": {
+      "readiness": "needs_more_research",
+      "readiness_reason": "Only a weak hook is available; no specific project, award, or recent activity to personalize the outreach.",
+      "prospect_snapshot": "Hachette UK is a leading UK trade publishing group with multiple imprints and a robust distribution network.",
+      "relevance_thesis": "As a major publisher, Hachette UK could encourage its authors to submit to the Maya Book Awards, aligning with the campaign's goal of increasing author submissions.",
+      "campaign_objective": "Generate 2,000+ quality book submissions from relevant authors.",
+      "outreach_goal": "Invite Hachette UK to promote the Maya Book Awards to its authors and encourage submissions.",
+      "hooks": [
+        {
+          "id": "H1",
+          "fact": "Hachette UK Distribution provides leading-edge fulfilment and warehousing services to over thirty publishers.",
+          "evidence_quote": "\"Hachette UK Distribution provides leading-edge fulfilment and warehousing services to over thirty publishers\"",
+          "source_ids": [
+            "S5"
+          ],
+          "why_it_resonates": "Shows Hachette's extensive distribution capabilities, which could support award promotion and author visibility.",
+          "strength": "weak"
+        }
+      ],
+      "primary_hook_id": "H1",
+      "angle": "Highlight Hachette's distribution strength as a benefit for award promotion and author exposure.",
+      "tone": {
+        "register": "warm_professional",
+        "guidance": "Use a professional, human tone that respects the prospect’s role and avoids generic language."
+      },
+      "recommended_channel": "email",
+      "channel_reason": "A verified organisational email (enquiries@hachette.co.uk) is available.",
+      "call_to_action": "Would it be useful if I sent over the entry details and the guidelines link for your authors?",
+      "avoid": [
+        "Generic info@ addresses as personal contact",
+        "Unverified claims or fabricated details",
+        "Technical jargon unless necessary",
+        "Invasive or overly familiar language"
+      ],
+      "human_checks": [
+        "Confirm that the email address is still active and appropriate for outreach.",
+        "Verify that the distribution fact remains current.",
+        "Ensure there are no existing partnership agreements that would conflict with this outreach."
+      ]
+    },
+    "copy": null,
+    "ai_copy": null,
+    "edited_by_human": false,
+    "qa": null,
+    "auto_revisions": 0,
+    "models": {
+      "strategist": "openai/gpt-oss-20b",
+      "writer": "openai/gpt-oss-20b"
+    },
+    "timings_ms": {
+      "strategist": 9648,
+      "writer": 0
+    },
+    "generated_at": "2026-10-13T12:02:58.090Z",
+    "updated_at": "2026-10-13T12:02:58.090Z",
+    "reviewed_at": null,
+    "reviewer_note": "Strategist: Only a weak hook is available; no specific project, award, or recent activity to personalize the outreach.",
+    "error": null
+  },
+  {
+    "personalization_version": "1.0",
+    "record_id": "r-flame-tree-publishing-mv5724oa",
+    "project_id": "proj-1791464115518",
+    "prospect_name": "Flame Tree Publishing",
+    "target_type": "Publishers & Book‑Industry Organisations",
+    "batch_id": "batch-4",
+    "batch_number": 4,
+    "status": "draft",
+    "strategy": {
+      "readiness": "ready",
+      "readiness_reason": "At least one moderate hook is available and a verified organisational email contact route exists.",
+      "prospect_snapshot": "Flame Tree Publishing is an independent book and periodical publisher based in London, distributing books through major distributors and offering a range of publication types.",
+      "relevance_thesis": "Flame Tree Publishing’s distribution network and publication breadth align with Maya’s goal of promoting diverse titles, making them a suitable partner to encourage submissions.",
+      "campaign_objective": "Generate 2,000+ quality book submissions from relevant authors.",
+      "outreach_goal": "Invite Flame Tree Publishing to promote the 2026 Maya Book Awards to their authors and catalogue.",
+      "hooks": [
+        {
+          "id": "H1",
+          "fact": "Flame Tree Publishing distributes books via Hachette UK Distribution, Peribo, and Simon & Schuster.",
+          "evidence_quote": "Distribution: Hachette UK Distribution (UK), Peribo (Australia), Simon & Schuster (US).",
+          "source_ids": [
+            "S1"
+          ],
+          "why_it_resonates": "Their extensive distribution network can amplify award visibility for participating authors.",
+          "strength": "moderate"
+        },
+        {
+          "id": "H2",
+          "fact": "Flame Tree Publishing offers books, calendars, ebooks, and gift stationery.",
+          "evidence_quote": "Publication types: Books, calendars, ebooks, gift stationery.",
+          "source_ids": [
+            "S1"
+          ],
+          "why_it_resonates": "Their diverse publication types indicate a broad author base that could benefit from the award’s promotion.",
+          "strength": "moderate"
+        },
+        {
+          "id": "H3",
+          "fact": "Flame Tree Publishing is headquartered in London, SW6, United Kingdom.",
+          "evidence_quote": "Headquartered in London, England, United Kingdom.",
+          "source_ids": [
+            "S1"
+          ],
+          "why_it_resonates": "Local presence in the UK aligns with Maya’s international promotion goals.",
+          "strength": "weak"
+        }
+      ],
+      "primary_hook_id": "H1",
+      "angle": "Leverage Flame Tree Publishing’s wide distribution to amplify the Maya Book Awards and attract high‑quality submissions.",
+      "tone": {
+        "register": "warm_professional",
+        "guidance": "Maintain a respectful, partnership‑oriented tone, highlighting mutual benefits."
+      },
+      "recommended_channel": "email",
+      "channel_reason": "Verified organisational email (info@flametreepublishing.com) is available and aligns with the human decision to use organisational contacts.",
+      "call_to_action": "Would it be useful if I sent over the entry details and how your authors could benefit from the Maya Book Awards?",
+      "avoid": [
+        "generic info@ addresses as personal contact",
+        "unverified claims",
+        "fabricated details",
+        "technical jargon",
+        "invasive language"
+      ],
+      "human_checks": [
+        "Confirm that the email address is still active and appropriate for outreach.",
+        "Verify that no prior outreach has been done to this organisation.",
+        "Ensure the distribution fact remains current."
+      ]
+    },
+    "copy": {
+      "subject_lines": [
+        {
+          "text": "Flame Tree Publishing: Amplify your authors with Maya Awards",
+          "style": "direct"
+        },
+        {
+          "text": "How can your distribution network boost award visibility?",
+          "style": "curiosity"
+        },
+        {
+          "text": "Maya Awards: International promotion for your authors",
+          "style": "value"
+        }
+      ],
+      "email_body": "Hi Flame Tree Publishing team,\n\nFlame Tree Publishing’s distribution via Hachette UK, Peribo, and Simon & Schuster positions your authors for wide reach.\n\nMaya Book Awards celebrates diverse titles and offers international promotion, author spotlights, and jury recognition—perfect for authors in your catalogue.\n\nWould it be useful if I sent over the entry details and how your authors could benefit from the Maya Book Awards?\n\nWarm regards,\nMaya Editorial Team\nsubmissions@mayabookawards.com",
+      "linkedin_message": "Flame Tree Publishing’s distribution via Hachette UK, Peribo, Simon & Schuster gives your authors a wide reach. Maya Book Awards offers international promotion and jury recognition. Would you share this with your authors?",
+      "follow_up_body": "Hi Flame Tree Publishing team, just wanted to share that Maya Book Awards winners receive international promotion and author spotlights, plus jury recognition. If you’d like the entry details for your authors, let me know.\n\nWarm regards,\nMaya Editorial Team",
+      "hook_usage": "Used hook H1 in the hook sentence of the email body."
+    },
+    "ai_copy": {
+      "subject_lines": [
+        {
+          "text": "Flame Tree Publishing: Amplify your authors with Maya Awards",
+          "style": "direct"
+        },
+        {
+          "text": "How can your distribution network boost award visibility?",
+          "style": "curiosity"
+        },
+        {
+          "text": "Maya Awards: International promotion for your authors",
+          "style": "value"
+        }
+      ],
+      "email_body": "Hi Flame Tree Publishing team,\n\nFlame Tree Publishing’s distribution via Hachette UK, Peribo, and Simon & Schuster positions your authors for wide reach.\n\nMaya Book Awards celebrates diverse titles and offers international promotion, author spotlights, and jury recognition—perfect for authors in your catalogue.\n\nWould it be useful if I sent over the entry details and how your authors could benefit from the Maya Book Awards?\n\nWarm regards,\nMaya Editorial Team\nsubmissions@mayabookawards.com",
+      "linkedin_message": "Flame Tree Publishing’s distribution via Hachette UK, Peribo, Simon & Schuster gives your authors a wide reach. Maya Book Awards offers international promotion and jury recognition. Would you share this with your authors?",
+      "follow_up_body": "Hi Flame Tree Publishing team, just wanted to share that Maya Book Awards winners receive international promotion and author spotlights, plus jury recognition. If you’d like the entry details for your authors, let me know.\n\nWarm regards,\nMaya Editorial Team",
+      "hook_usage": "Used hook H1 in the hook sentence of the email body."
+    },
+    "edited_by_human": false,
+    "qa": {
+      "status": "passed",
+      "score": 100,
+      "issues": [],
+      "verified_hook_ids": [
+        "H1",
+        "H2",
+        "H3"
+      ]
+    },
+    "auto_revisions": 0,
+    "models": {
+      "strategist": "openai/gpt-oss-20b",
+      "writer": "openai/gpt-oss-20b"
+    },
+    "timings_ms": {
+      "strategist": 9704,
+      "writer": 41028
+    },
+    "generated_at": "2026-10-13T12:02:48.437Z",
+    "updated_at": "2026-10-13T12:02:48.437Z",
+    "reviewed_at": null,
+    "reviewer_note": null,
+    "error": null
+  },
+  {
+    "personalization_version": "1.0",
+    "record_id": "r-extraordinary-books-mv572fic",
+    "project_id": "proj-1791464115518",
+    "prospect_name": "Extraordinary Books",
+    "target_type": "Publishers & Book‑Industry Organisations",
+    "batch_id": "batch-4",
+    "batch_number": 4,
+    "status": "needs_more_research",
+    "strategy": {
+      "readiness": "needs_more_research",
+      "readiness_reason": "Identity of Extraordinary Books is not verified, no contact routes are confirmed, and no specific hooks or author relationships are documented.",
+      "prospect_snapshot": "Extraordinary Books is an independent publishing company based in Ann Arbor, Michigan, with no publicly documented authors, distribution channels, or promotional activities.",
+      "relevance_thesis": "As a publisher, Extraordinary Books could potentially have authors eligible for the Maya Book Awards, making them a relevant partner for generating submissions.",
+      "campaign_objective": "Generate 2,000+ quality book submissions from relevant authors.",
+      "outreach_goal": "Encourage Extraordinary Books to promote the Maya Book Awards to their authors and literary network.",
+      "hooks": [],
+      "primary_hook_id": null,
+      "angle": "Invite the publisher to share the Maya Book Awards with their authors and partners.",
+      "tone": {
+        "register": "warm_professional",
+        "guidance": "Maintain a respectful, partnership‑oriented tone; avoid pressure or generic outreach."
+      },
+      "recommended_channel": "other",
+      "channel_reason": "No verified contact route (email, LinkedIn, or form) is available; further research is required to identify a suitable channel.",
+      "call_to_action": "Would it be useful if I sent over the entry details?",
+      "avoid": [
+        "Generic info@ addresses",
+        "Unverified claims about the organization",
+        "Sensitive or private personal information",
+        "Technical jargon unless necessary",
+        "Pressure or hard‑sell language"
+      ],
+      "human_checks": [
+        "Verify the identity and legitimacy of Extraordinary Books using reliable sources.",
+        "Confirm a valid contact route (email, LinkedIn, or contact form).",
+        "Determine whether the organization has authors who could submit to the Maya Book Awards.",
+        "Ensure no conflict with campaign rules or existing partnerships.",
+        "Avoid using generic info@ addresses; use a verified organizational contact if available."
+      ]
+    },
+    "copy": null,
+    "ai_copy": null,
+    "edited_by_human": false,
+    "qa": null,
+    "auto_revisions": 0,
+    "models": {
+      "strategist": "openai/gpt-oss-20b",
+      "writer": "openai/gpt-oss-20b"
+    },
+    "timings_ms": {
+      "strategist": 5594,
+      "writer": 0
+    },
+    "generated_at": "2026-10-13T12:01:57.699Z",
+    "updated_at": "2026-10-13T12:01:57.699Z",
+    "reviewed_at": null,
+    "reviewer_note": "Strategist: Identity of Extraordinary Books is not verified, no contact routes are confirmed, and no specific hooks or author relationships are documented.",
+    "error": null
+  },
+  {
+    "personalization_version": "1.0",
+    "record_id": "r-manhattan-book-group-mv572pkd",
+    "project_id": "proj-1791464115518",
+    "prospect_name": "Manhattan Book Group",
+    "target_type": "Publishers & Book‑Industry Organisations",
+    "batch_id": "batch-4",
+    "batch_number": 4,
+    "status": "draft",
+    "strategy": {
+      "readiness": "ready",
+      "readiness_reason": "Strong hook (Amazon bestseller guarantee) and verified organisational email route available.",
+      "prospect_snapshot": "Manhattan Book Group is a hybrid publisher in New York that guarantees Amazon bestseller status and media placements for authors, positioning them as a key partner to promote the Maya Book Awards.",
+      "relevance_thesis": "Their hybrid publishing model and promotion expertise align directly with the Maya Book Awards’ goal of elevating authors and books to international audiences.",
+      "campaign_objective": "Generate 2,000+ quality book submissions from relevant authors.",
+      "outreach_goal": "Invite Manhattan Book Group to share the Maya Book Awards call with their author community and explore a partnership to drive submissions.",
+      "hooks": [
+        {
+          "id": "H1",
+          "fact": "Guarantee Amazon bestseller status for selected titles",
+          "evidence_quote": "Manhattan Book Group is a premier hybrid book publisher based in Manhattan, New York, providing top hybrid book publishing services, with a twist: We GUARANTEE Amazon bestseller status and major media placements through the use of bestseller ad campaigns and advanced publicity strategies.",
+          "source_ids": [
+            "S1"
+          ],
+          "why_it_resonates": "Authors seeking high-impact promotion will value the award’s international exposure, mirroring the publisher’s bestseller guarantee.",
+          "strength": "strong"
+        },
+        {
+          "id": "H2",
+          "fact": "Hybrid publishing services",
+          "evidence_quote": "Manhattan Book Group is a premier hybrid book publisher based in Manhattan, New York, providing top hybrid book publishing services, with a twist: We GUARANTEE Amazon bestseller status and major media placements through the use of bestseller ad campaigns and advanced publicity strategies.",
+          "source_ids": [
+            "S1"
+          ],
+          "why_it_resonates": "Their service model means they work closely with authors, making them an ideal conduit for award submissions.",
+          "strength": "moderate"
+        },
+        {
+          "id": "H3",
+          "fact": "Media placements through ad campaigns and advanced publicity strategies",
+          "evidence_quote": "Manhattan Book Group is a premier hybrid book publisher based in Manhattan, New York, providing top hybrid book publishing services, with a twist: We GUARANTEE Amazon bestseller status and major media placements through the use of bestseller ad campaigns and advanced publicity strategies.",
+          "source_ids": [
+            "S1"
+          ],
+          "why_it_resonates": "The award’s promotion aligns with the publisher’s media placement expertise.",
+          "strength": "moderate"
+        },
+        {
+          "id": "H4",
+          "fact": "Book and Periodical Publishing",
+          "evidence_quote": "Manhattan Book Group is a Book and Periodical Publishing company...",
+          "source_ids": [
+            "S1"
+          ],
+          "why_it_resonates": "General industry relevance.",
+          "strength": "weak"
+        }
+      ],
+      "primary_hook_id": "H1",
+      "angle": "Leverage Manhattan Book Group’s bestseller guarantee to amplify Maya Book Awards submissions from authors seeking high-impact promotion.",
+      "tone": {
+        "register": "warm_professional",
+        "guidance": "Maintain a respectful, partnership‑oriented tone that highlights mutual benefits without pressure."
+      },
+      "recommended_channel": "email",
+      "channel_reason": "Verified organisational email (info@manhattanbookgroup.com) is available; aligns with human decision to use organisational contacts.",
+      "call_to_action": "Would it be useful if I sent over the entry details and how your authors could benefit from the Maya Book Awards?",
+      "avoid": [
+        "Using the generic info@ address as a personal contact",
+        "Invasive or overly familiar language",
+        "Fabricated or unverified details",
+        "Technical jargon unless necessary",
+        "Pressuring the prospect for a partnership"
+      ],
+      "human_checks": [
+        "Confirm the email address is still active and appropriate for outreach",
+        "Verify that Manhattan Book Group has not previously declined partnership or outreach",
+        "Ensure no conflict of interest with the Maya Book Awards",
+        "Double‑check that the hook facts are still current"
+      ]
+    },
+    "copy": {
+      "subject_lines": [
+        {
+          "text": "Invite to share Maya Book Awards with your authors",
+          "style": "direct"
+        },
+        {
+          "text": "How your bestseller guarantee can boost Maya Book Awards?",
+          "style": "curiosity"
+        },
+        {
+          "text": "Boost your authors' reach with Maya Book Awards promotion",
+          "style": "value"
+        }
+      ],
+      "email_body": "Hi Manhattan Book Group team,\n\nYour guarantee of Amazon bestseller status for selected titles is a powerful promise that authors chase. The Maya Book Awards, open to both published and debut authors, offer international promotion, author spotlights, and jury recognition—an opportunity that complements your bestseller guarantee. If your authors are looking for a platform that amplifies their reach beyond Amazon, the Maya Book Awards could be a natural fit.\n\nWould it be useful if I sent over the entry details and how your authors could benefit from the Maya Book Awards?\n\nWarm regards,\nMaya Editorial Team\nsubmissions@mayabookawards.com",
+      "linkedin_message": "Hi Manhattan Book Group team, your Amazon bestseller guarantee aligns with the Maya Book Awards’ international promotion and author spotlights. Could we share the award call with your authors? Let me know!",
+      "follow_up_body": "Hi Manhattan Book Group team,\n\nJust checking in—did you see the Maya Book Awards call? Winning titles receive international promotion, author spotlights, and jury recognition, which could complement your bestseller guarantee. If you’d like, I can share the entry details and how your authors could benefit.\n\nWarm regards,\nMaya Editorial Team",
+      "hook_usage": "Used hook H1 in opening sentence."
+    },
+    "ai_copy": {
+      "subject_lines": [
+        {
+          "text": "Invite to share Maya Book Awards with your authors",
+          "style": "direct"
+        },
+        {
+          "text": "How your bestseller guarantee can boost Maya Book Awards?",
+          "style": "curiosity"
+        },
+        {
+          "text": "Boost your authors' reach with Maya Book Awards promotion",
+          "style": "value"
+        }
+      ],
+      "email_body": "Hi Manhattan Book Group team,\n\nYour guarantee of Amazon bestseller status for selected titles is a powerful promise that authors chase. The Maya Book Awards, open to both published and debut authors, offer international promotion, author spotlights, and jury recognition—an opportunity that complements your bestseller guarantee. If your authors are looking for a platform that amplifies their reach beyond Amazon, the Maya Book Awards could be a natural fit.\n\nWould it be useful if I sent over the entry details and how your authors could benefit from the Maya Book Awards?\n\nWarm regards,\nMaya Editorial Team\nsubmissions@mayabookawards.com",
+      "linkedin_message": "Hi Manhattan Book Group team, your Amazon bestseller guarantee aligns with the Maya Book Awards’ international promotion and author spotlights. Could we share the award call with your authors? Let me know!",
+      "follow_up_body": "Hi Manhattan Book Group team,\n\nJust checking in—did you see the Maya Book Awards call? Winning titles receive international promotion, author spotlights, and jury recognition, which could complement your bestseller guarantee. If you’d like, I can share the entry details and how your authors could benefit.\n\nWarm regards,\nMaya Editorial Team",
+      "hook_usage": "Used hook H1 in opening sentence."
+    },
+    "edited_by_human": false,
+    "qa": {
+      "status": "passed",
+      "score": 100,
+      "issues": [],
+      "verified_hook_ids": [
+        "H1",
+        "H2",
+        "H3",
+        "H4"
+      ]
+    },
+    "auto_revisions": 0,
+    "models": {
+      "strategist": "openai/gpt-oss-20b",
+      "writer": "openai/gpt-oss-20b"
+    },
+    "timings_ms": {
+      "strategist": 4709,
+      "writer": 26758
+    },
+    "generated_at": "2026-10-13T12:01:52.100Z",
+    "updated_at": "2026-10-13T12:01:52.100Z",
+    "reviewed_at": null,
+    "reviewer_note": null,
+    "error": null
+  },
+  {
+    "personalization_version": "1.0",
+    "record_id": "r-st-martin-s-press-mv574cww",
+    "project_id": "proj-1791464115518",
+    "prospect_name": "St. Martin's Press",
+    "target_type": "Publishers & Book‑Industry Organisations",
+    "batch_id": "batch-4",
+    "batch_number": 4,
+    "status": "needs_more_research",
+    "strategy": {
+      "readiness": "needs_more_research",
+      "readiness_reason": "No specific books, awards, or projects identified in the research record to serve as hooks; only generic publisher information is available.",
+      "prospect_snapshot": "St. Martin's Press is a New York‑based publisher under the St. Martin’s Publishing Group, part of Macmillan, with a workforce of 397 employees.",
+      "relevance_thesis": "As a major publisher, St. Martin's Press can influence authors and readers, making them a valuable partner to amplify the Maya Book Awards call.",
+      "campaign_objective": "Generate 2,000+ quality book submissions from relevant authors.",
+      "outreach_goal": "Encourage St. Martin's Press to share the Maya Book Awards submission opportunity with their authors and authorship community.",
+      "hooks": [],
+      "primary_hook_id": null,
+      "angle": "Invite St. Martin's Press to help promote the Maya Book Awards to their authors.",
+      "tone": {
+        "register": "warm_professional",
+        "guidance": "Maintain a respectful, professional tone; avoid pressure or generic statements."
+      },
+      "recommended_channel": "email",
+      "channel_reason": "Verified press.inquiries@macmillan.com email is available.",
+      "call_to_action": "Would it be helpful if I sent you the submission guidelines so you could share them with your authors?",
+      "avoid": [
+        "generic info@ addresses",
+        "fabricated details",
+        "invasive language",
+        "technical jargon"
+      ],
+      "human_checks": [
+        "Confirm that press.inquiries@macmillan.com is still an active contact",
+        "Verify that St. Martin's Press is not on a do-not-contact list",
+        "Ensure no conflict of interest with the Maya Book Awards",
+        "Check that the campaign link https://mayabookawards.com/guidelines is correct and up to date"
+      ]
+    },
+    "copy": null,
+    "ai_copy": null,
+    "edited_by_human": false,
+    "qa": null,
+    "auto_revisions": 0,
+    "models": {
+      "strategist": "openai/gpt-oss-20b",
+      "writer": "openai/gpt-oss-20b"
+    },
+    "timings_ms": {
+      "strategist": 13403,
+      "writer": 0
+    },
+    "generated_at": "2026-10-13T12:01:20.629Z",
+    "updated_at": "2026-10-13T12:01:20.629Z",
+    "reviewed_at": null,
+    "reviewer_note": "Strategist: No specific books, awards, or projects identified in the research record to serve as hooks; only generic publisher information is available.",
+    "error": null
+  },
+  {
+    "personalization_version": "1.0",
+    "record_id": "r-vine-publishing-mv575pxy",
+    "project_id": "proj-1791464115518",
+    "prospect_name": "Vine Publishing",
+    "target_type": "Publishers & Book‑Industry Organisations",
+    "batch_id": "batch-4",
+    "batch_number": 4,
+    "status": "draft",
+    "strategy": {
+      "readiness": "ready",
+      "readiness_reason": "Verified email and a strong hook about marketing and promotion services for authors.",
+      "prospect_snapshot": "Vine Publishing is a New York‑based hybrid publisher that offers marketing, design, and promotion services—including press releases—to authors.",
+      "relevance_thesis": "Their focus on author promotion aligns with the Maya Book Awards' goal of showcasing quality titles and authors.",
+      "campaign_objective": "Generate 2,000+ quality book submissions from relevant authors.",
+      "outreach_goal": "Encourage Vine Publishing to submit their authors' titles for the 2026 Maya Book Awards.",
+      "hooks": [
+        {
+          "id": "H1",
+          "fact": "Vine Publishing provides marketing and promotion services for authors, including press releases to outlets.",
+          "evidence_quote": "marketing and promotion for your title, which includes a press release to outlets.",
+          "source_ids": [
+            "S1"
+          ],
+          "why_it_resonates": "Their promotion services directly support authors in gaining visibility, which aligns with the awards' promotion and spotlight benefits.",
+          "strength": "strong"
+        }
+      ],
+      "primary_hook_id": "H1",
+      "angle": "Highlight how the Maya Book Awards' international promotion and author spotlights complement Vine Publishing's existing promotion services, encouraging them to submit their authors' titles.",
+      "tone": {
+        "register": "warm_professional",
+        "guidance": "Use a respectful, partnership‑oriented tone that acknowledges their promotion expertise."
+      },
+      "recommended_channel": "email",
+      "channel_reason": "Verified email address info@vinepublish.com is available and appropriate for organisational contact.",
+      "call_to_action": "Would it be useful if I sent over the entry details and guidelines for your authors?",
+      "avoid": [
+        "generic info@ addresses as personal contact",
+        "fabricated details",
+        "invasive or overly familiar language",
+        "technical jargon unless necessary"
+      ],
+      "human_checks": [
+        "Confirm that Vine Publishing has an interest in author promotion and awards",
+        "Ensure the email is still active and not a generic inbox",
+        "Verify that the campaign link is correct and up to date"
+      ]
+    },
+    "copy": {
+      "subject_lines": [
+        {
+          "text": "Vine Publishing: Submit your authors to the Maya Book Awards",
+          "style": "direct"
+        },
+        {
+          "text": "Could Vine Publishing’s press releases win international acclaim?",
+          "style": "curiosity"
+        },
+        {
+          "text": "Showcase Vine Publishing authors with Maya Book Awards promotion",
+          "style": "value"
+        }
+      ],
+      "email_body": "Hi Vine Publishing team,\n\nI noticed Vine Publishing provides marketing and promotion services for authors, including press releases to outlets. The Maya Book Awards offer international promotion, author spotlights, and jury recognition—an excellent fit for your authors.\n\nWould it be useful if I sent over the entry details and guidelines for your authors?\n\nWarm regards,\nMaya Editorial Team\nsubmissions@mayabookawards.com",
+      "linkedin_message": "Hi Vine Publishing team, I noticed your press release service for authors. The Maya Book Awards offer international promotion and author spotlights that could boost your authors’ visibility. Would you be interested in submitting them?",
+      "follow_up_body": "Hi Vine Publishing team,\n\nJust wanted to share that winning titles at the Maya Book Awards receive international promotion, author spotlights, and jury recognition—an added boost for your authors’ visibility. If you’d like the entry details and guidelines, let me know.\n\nWarm regards,\nMaya Editorial Team",
+      "hook_usage": "Used hook H1 in the opening sentence."
+    },
+    "ai_copy": {
+      "subject_lines": [
+        {
+          "text": "Vine Publishing: Submit your authors to the Maya Book Awards",
+          "style": "direct"
+        },
+        {
+          "text": "Could Vine Publishing’s press releases win international acclaim?",
+          "style": "curiosity"
+        },
+        {
+          "text": "Showcase Vine Publishing authors with Maya Book Awards promotion",
+          "style": "value"
+        }
+      ],
+      "email_body": "Hi Vine Publishing team,\n\nI noticed Vine Publishing provides marketing and promotion services for authors, including press releases to outlets. The Maya Book Awards offer international promotion, author spotlights, and jury recognition—an excellent fit for your authors.\n\nWould it be useful if I sent over the entry details and guidelines for your authors?\n\nWarm regards,\nMaya Editorial Team\nsubmissions@mayabookawards.com",
+      "linkedin_message": "Hi Vine Publishing team, I noticed your press release service for authors. The Maya Book Awards offer international promotion and author spotlights that could boost your authors’ visibility. Would you be interested in submitting them?",
+      "follow_up_body": "Hi Vine Publishing team,\n\nJust wanted to share that winning titles at the Maya Book Awards receive international promotion, author spotlights, and jury recognition—an added boost for your authors’ visibility. If you’d like the entry details and guidelines, let me know.\n\nWarm regards,\nMaya Editorial Team",
+      "hook_usage": "Used hook H1 in the opening sentence."
+    },
+    "edited_by_human": false,
+    "qa": {
+      "status": "passed",
+      "score": 100,
+      "issues": [],
+      "verified_hook_ids": [
+        "H1"
+      ]
+    },
+    "auto_revisions": 0,
+    "models": {
+      "strategist": "openai/gpt-oss-20b",
+      "writer": "openai/gpt-oss-20b"
+    },
+    "timings_ms": {
+      "strategist": 10923,
+      "writer": 4601
+    },
+    "generated_at": "2026-10-13T12:01:07.221Z",
+    "updated_at": "2026-10-13T12:01:07.221Z",
+    "reviewed_at": null,
+    "reviewer_note": null,
+    "error": null
+  },
+  {
+    "personalization_version": "1.0",
+    "record_id": "r-american-publishing-company-mv575xu8",
+    "project_id": "proj-1791464115518",
+    "prospect_name": "American Publishing Company",
+    "target_type": "Publishers & Book‑Industry Organisations",
+    "batch_id": "batch-4",
+    "batch_number": 4,
+    "status": "needs_more_research",
+    "strategy": {
+      "readiness": "needs_more_research",
+      "readiness_reason": "No verified hooks or specific achievements are available, and the prospect’s identity has not been confirmed from reliable sources. The only contact route is an uncertain generic email address, which requires verification before use.",
+      "prospect_snapshot": "American Publishing Company is an independent publishing house that offers writing, editing, design, marketing, and audiobook publishing services for authors and creators.",
+      "relevance_thesis": "As a publisher, American Publishing Company could help amplify the Maya Book Awards to its authors, potentially driving a higher volume of quality submissions.",
+      "campaign_objective": "Generate 2,000+ quality book submissions from relevant authors.",
+      "outreach_goal": "Introduce the Maya Book Awards and invite the company to share the call with its authors.",
+      "hooks": [],
+      "primary_hook_id": null,
+      "angle": "Invite American Publishing Company to share the Maya Book Awards call with its authors to broaden the pool of submissions.",
+      "tone": {
+        "register": "warm_professional",
+        "guidance": "Use a respectful, collaborative tone, avoid pressure, and keep the message concise."
+      },
+      "recommended_channel": "email",
+      "channel_reason": "An organisational email address is available and suitable for outreach to the company.",
+      "call_to_action": "Would it be helpful if I sent you the award guidelines and a brief on how your authors could benefit?",
+      "avoid": [
+        "generic info@ addresses as personal contact",
+        "fabricated details",
+        "technical jargon",
+        "pressure",
+        "unverified claims"
+      ],
+      "human_checks": [
+        "Verify the identity of American Publishing Company from reliable sources.",
+        "Confirm the email address is correct and active.",
+        "Ensure no personal contact is used; treat the email as an organisational contact.",
+        "Check that the prospect is not on a do_not_contact list.",
+        "Confirm the prospect is relevant to the campaign objectives."
+      ]
+    },
+    "copy": null,
+    "ai_copy": null,
+    "edited_by_human": false,
+    "qa": null,
+    "auto_revisions": 0,
+    "models": {
+      "strategist": "openai/gpt-oss-20b",
+      "writer": "openai/gpt-oss-20b"
+    },
+    "timings_ms": {
+      "strategist": 6630,
+      "writer": 0
+    },
+    "generated_at": "2026-10-13T12:00:51.692Z",
+    "updated_at": "2026-10-13T12:00:51.692Z",
+    "reviewed_at": null,
+    "reviewer_note": "Strategist: No verified hooks or specific achievements are available, and the prospect’s identity has not been confirmed from reliable sources. The only contact route is an uncertain generic email address, which requires verification before use.",
+    "error": null
+  },
+  {
+    "personalization_version": "1.0",
+    "record_id": "r-whitefox-publishing-mv5768yf",
+    "project_id": "proj-1791464115518",
+    "prospect_name": "Whitefox Publishing",
+    "target_type": "Publishers & Book‑Industry Organisations",
+    "batch_id": "batch-4",
+    "batch_number": 4,
+    "status": "draft",
+    "strategy": {
+      "readiness": "ready",
+      "readiness_reason": "At least one moderate hook is available and a verified organisational email contact route exists.",
+      "prospect_snapshot": "Whitefox Publishing is a London‑based independent book and periodical publisher that partners with authors and brands to produce books that amplify voices and spark conversation.",
+      "relevance_thesis": "Whitefox Publishing’s partnership model and author‑centric focus align with Maya’s goal of encouraging high‑quality book submissions and providing authors with international exposure.",
+      "campaign_objective": "Generate 2,000+ quality book submissions from relevant authors.",
+      "outreach_goal": "Invite Whitefox Publishing to learn how the Maya Book Awards can support its authors and partners, and to consider submitting a title themselves if applicable.",
+      "hooks": [
+        {
+          "id": "H1",
+          "fact": "Whitefox Publishing partners with authors and brands to create exceptional books that amplify voices, start conversations, and inspire new ways of thinking.",
+          "evidence_quote": "\"Whitefox is a company that partners with authors and brands to create exceptional books\"",
+          "source_ids": [
+            "S1"
+          ],
+          "why_it_resonates": "Shows their collaborative publishing model directly supports the Maya Book Awards’ mission to amplify diverse voices.",
+          "strength": "moderate"
+        }
+      ],
+      "primary_hook_id": "H1",
+      "angle": "Highlight how Whitefox Publishing’s collaborative publishing model can help authors gain international exposure through the Maya Book Awards.",
+      "tone": {
+        "register": "warm_professional",
+        "guidance": "Maintain a respectful, partnership‑oriented tone that focuses on mutual benefit without pressure."
+      },
+      "recommended_channel": "email",
+      "channel_reason": "A verified organisational email address (info@wearewhitefox.com) is available.",
+      "call_to_action": "Would it be useful if I sent over the entry details and how Whitefox can support its authors in submitting?",
+      "avoid": [
+        "Using the generic info@ address as a personal contact",
+        "Fabricated or unverified claims",
+        "Invasive or overly familiar language",
+        "Technical jargon unless necessary",
+        "Pressuring the prospect for a response"
+      ],
+      "human_checks": [
+        "Confirm the email address is still active and appropriate for outreach",
+        "Verify that Whitefox has an author submission process that could benefit from the Maya Book Awards",
+        "Ensure no conflict of interest with existing partnerships",
+        "Double‑check that the hook remains current and accurate"
+      ]
+    },
+    "copy": {
+      "subject_lines": [
+        {
+          "text": "Whitefox Publishing and the Maya Book Awards",
+          "style": "direct"
+        },
+        {
+          "text": "How can Whitefox help authors gain international exposure?",
+          "style": "curiosity"
+        },
+        {
+          "text": "Whitefox authors could win international promotion",
+          "style": "value"
+        }
+      ],
+      "email_body": "Hi Whitefox Publishing team,\n\nWhitefox partners with authors and brands to create exceptional books that amplify voices, spark conversation, and inspire new ways of thinking. That collaborative spirit aligns with the Maya Book Awards, where winning and shortlisted titles receive international promotion, author spotlights, and jury recognition.\n\nWould it be useful if I sent over the entry details and how Whitefox can support its authors in submitting?\n\nWarm regards,\nMaya Editorial Team\nsubmissions@mayabookawards.com",
+      "linkedin_message": "Whitefox partners with authors and brands to create exceptional books that amplify voices and spark conversation. Maya Book Awards could give your authors international exposure. Would you be interested in learning more?",
+      "follow_up_body": "Hi Whitefox Publishing team,\n\nJust wanted to share that submissions for the 2026 Maya Book Awards are still open. Authors can benefit from international promotion and jury recognition. If you’d like, I can send the entry guidelines and show how Whitefox can help authors submit.\n\nWarm regards,\nMaya Editorial Team",
+      "hook_usage": "Used hook H1 in the opening sentence to reference Whitefox Publishing's partnership model."
+    },
+    "ai_copy": {
+      "subject_lines": [
+        {
+          "text": "Whitefox Publishing and the Maya Book Awards",
+          "style": "direct"
+        },
+        {
+          "text": "How can Whitefox help authors gain international exposure?",
+          "style": "curiosity"
+        },
+        {
+          "text": "Whitefox authors could win international promotion",
+          "style": "value"
+        }
+      ],
+      "email_body": "Hi Whitefox Publishing team,\n\nWhitefox partners with authors and brands to create exceptional books that amplify voices, spark conversation, and inspire new ways of thinking. That collaborative spirit aligns with the Maya Book Awards, where winning and shortlisted titles receive international promotion, author spotlights, and jury recognition.\n\nWould it be useful if I sent over the entry details and how Whitefox can support its authors in submitting?\n\nWarm regards,\nMaya Editorial Team\nsubmissions@mayabookawards.com",
+      "linkedin_message": "Whitefox partners with authors and brands to create exceptional books that amplify voices and spark conversation. Maya Book Awards could give your authors international exposure. Would you be interested in learning more?",
+      "follow_up_body": "Hi Whitefox Publishing team,\n\nJust wanted to share that submissions for the 2026 Maya Book Awards are still open. Authors can benefit from international promotion and jury recognition. If you’d like, I can send the entry guidelines and show how Whitefox can help authors submit.\n\nWarm regards,\nMaya Editorial Team",
+      "hook_usage": "Used hook H1 in the opening sentence to reference Whitefox Publishing's partnership model."
+    },
+    "edited_by_human": false,
+    "qa": {
+      "status": "passed",
+      "score": 100,
+      "issues": [],
+      "verified_hook_ids": [
+        "H1"
+      ]
+    },
+    "auto_revisions": 0,
+    "models": {
+      "strategist": "openai/gpt-oss-20b",
+      "writer": "openai/gpt-oss-20b"
+    },
+    "timings_ms": {
+      "strategist": 2451,
+      "writer": 14538
+    },
+    "generated_at": "2026-10-13T12:00:45.058Z",
+    "updated_at": "2026-10-13T12:00:45.058Z",
+    "reviewed_at": null,
+    "reviewer_note": null,
+    "error": null
+  },
+  {
+    "personalization_version": "1.0",
+    "record_id": "r-fbs-publishing-ltd-mv576sr7",
+    "project_id": "proj-1791464115518",
+    "prospect_name": "FBS Publishing Ltd",
+    "target_type": "Publishers & Book‑Industry Organisations",
+    "batch_id": "batch-4",
+    "batch_number": 4,
+    "status": "needs_more_research",
+    "strategy": {
+      "readiness": "needs_more_research",
+      "readiness_reason": "Identity not verified and no verified contact route available; cannot proceed without further research.",
+      "prospect_snapshot": "FBS Publishing Ltd is a small independent book publisher based in Thetford, Norfolk, founded in 2014, with no publicly listed contact details or notable publications.",
+      "relevance_thesis": "No evidence of recent publications or awards that align with Maya Book Awards; limited public presence.",
+      "campaign_objective": "Generate 2,000+ quality book submissions from relevant authors.",
+      "outreach_goal": "Identify and engage FBS Publishing to encourage their authors to submit.",
+      "hooks": [],
+      "primary_hook_id": null,
+      "angle": "No specific angle identified due to lack of public data.",
+      "tone": {
+        "register": "warm_professional",
+        "guidance": "Use professional, human tone; avoid generic language."
+      },
+      "recommended_channel": "linkedin",
+      "channel_reason": "LinkedIn company page is the only publicly available contact route.",
+      "call_to_action": "Would it be useful if I sent over the entry details?",
+      "avoid": [
+        "Generic claims about the publisher's achievements",
+        "Fabricated contact details",
+        "Sensitive personal information"
+      ],
+      "human_checks": [
+        "Confirm identity of FBS Publishing Ltd from reliable sources.",
+        "Locate a direct contact email or phone number.",
+        "Verify whether the publisher has authors eligible for the Maya Book Awards.",
+        "Ensure no conflict with campaign rules or exclusion criteria."
+      ]
+    },
+    "copy": null,
+    "ai_copy": null,
+    "edited_by_human": false,
+    "qa": null,
+    "auto_revisions": 0,
+    "models": {
+      "strategist": "openai/gpt-oss-20b",
+      "writer": "openai/gpt-oss-20b"
+    },
+    "timings_ms": {
+      "strategist": 1721,
+      "writer": 0
+    },
+    "generated_at": "2026-10-13T12:00:28.064Z",
+    "updated_at": "2026-10-13T12:00:28.064Z",
+    "reviewed_at": null,
+    "reviewer_note": "Strategist: Identity not verified and no verified contact route available; cannot proceed without further research.",
+    "error": null
+  },
+  {
+    "personalization_version": "1.0",
+    "record_id": "r-harpercollins-publishers-uk-mv575gt4",
+    "project_id": "proj-1791464115518",
+    "prospect_name": "HarperCollins Publishers UK",
+    "target_type": "Publishers & Book‑Industry Organisations",
+    "batch_id": "batch-4",
+    "batch_number": 4,
+    "status": "draft",
+    "strategy": {
+      "readiness": "ready",
+      "readiness_reason": "HarperCollins Publishers UK has a verified generic inbox suitable for publisher outreach and a strong hook referencing a recent best-selling author they publish.",
+      "prospect_snapshot": "HarperCollins Publishers UK is a major London‑based publisher with a global footprint, releasing around 1,500 titles annually and representing high‑profile authors such as Chimamanda Ngozi Adichie.",
+      "relevance_thesis": "As a leading publisher, HarperCollins has a vested interest in promoting new and established titles; the Maya Book Awards offer international exposure and jury recognition that aligns with their promotional objectives.",
+      "campaign_objective": "Generate 2,000+ quality book submissions from relevant authors.",
+      "outreach_goal": "Encourage HarperCollins to submit a title or nominate an author for the 2026 Maya Book Awards.",
+      "hooks": [
+        {
+          "id": "H1",
+          "fact": "HarperCollins publishes best‑selling author Chimamanda Ngozi Adichie.",
+          "evidence_quote": "\"HarperCollins UK publishes around 1,500 books a year for readers of all ages and interests.\"",
+          "source_ids": [
+            "S1"
+          ],
+          "why_it_resonates": "Adichie’s international acclaim and the award’s global promotion create a natural synergy.",
+          "strength": "strong"
+        }
+      ],
+      "primary_hook_id": "H1",
+      "angle": "Highlight how the Maya Book Awards’ international promotion can amplify HarperCollins’ high‑profile titles and support their authors’ global reach.",
+      "tone": {
+        "register": "warm_professional",
+        "guidance": "Use a respectful, partnership‑oriented tone that acknowledges HarperCollins’ publishing stature without sounding salesy."
+      },
+      "recommended_channel": "email",
+      "channel_reason": "The verified generic inbox (enquiries@harpercollins.co.uk) is the most appropriate and safe channel for publisher outreach, per the campaign rules and human decision.",
+      "contact_audit": {
+        "best_channel": "email",
+        "best_contact_target": "enquiries@harpercollins.co.uk",
+        "why_best_route": "This is a verified, professional generic inbox specifically for publisher inquiries. For an organisation of HarperCollins’ size, a generic inbox is the correct point of contact and is likely monitored by the appropriate team. It avoids the risk of hitting a gatekeeper or a bot trap and aligns with the human decision to treat generic addresses as organisational contacts.",
+        "is_direct_contact": false,
+        "email_status": "generic_inbox",
+        "backup_route": "https://harpercollins.co.uk/contact",
+        "evaluated_routes": [
+          {
+            "channel": "email",
+            "value": "enquiries@harpercollins.co.uk",
+            "verdict": "recommended",
+            "quality_assessment": "Verified, professional, organisational inbox suitable for publisher outreach.",
+            "priority": 1
+          },
+          {
+            "channel": "phone",
+            "value": "+44 0141 306 31",
+            "verdict": "viable_backup",
+            "quality_assessment": "Phone number provided but less suitable for initial outreach; can be used if email fails.",
+            "priority": 2
+          },
+          {
+            "channel": "website:company",
+            "value": "https://harpercollins.co.uk/",
+            "verdict": "viable_backup",
+            "quality_assessment": "Website contains a contact form; useful if email is blocked.",
+            "priority": 3
+          },
+          {
+            "channel": "website:company",
+            "value": "https://harpercollins.com/",
+            "verdict": "viable_backup",
+            "quality_assessment": "Global site; contact form available but less targeted to UK operations.",
+            "priority": 4
+          },
+          {
+            "channel": "social:linkedin",
+            "value": "https://linkedin.com/company/harpercollins",
+            "verdict": "generic_gatekeeper",
+            "quality_assessment": "Company page; low response rate for direct outreach.",
+            "priority": 5
+          },
+          {
+            "channel": "social:linkedin",
+            "value": "https://linkedin.com/company/collings-limited",
+            "verdict": "generic_gatekeeper",
+            "quality_assessment": "Company page; not the primary publisher entity.",
+            "priority": 6
+          }
+        ]
+      },
+      "call_to_action": "Would it be useful if I sent over the 2026 Maya Book Awards entry guidelines and discussed how your titles could benefit from our international promotion?",
+      "avoid": [
+        "Generic statements about publishing industry.",
+        "Unverified claims about specific titles or authors.",
+        "Any mention of phone contact as the primary outreach method."
+      ],
+      "human_checks": [
+        "Confirm that the email address is still active and not a legacy trap.",
+        "Verify the recipient’s name or department on the contact form before sending.",
+        "Ensure the campaign link https://mayabookawards.com/guidelines is up‑to‑date."
+      ]
+    },
+    "copy": {
+      "subject_lines": [
+        {
+          "text": "HarperCollins and the Maya Book Awards",
+          "style": "direct"
+        },
+        {
+          "text": "How Maya Awards could spotlight Adichie’s work",
+          "style": "curiosity"
+        },
+        {
+          "text": "International promotion for HarperCollins titles",
+          "style": "value"
+        }
+      ],
+      "email_body": "Hi HarperCollins team,\n\nHarperCollins publishes best‑selling author Chimamanda Ngozi Adichie, whose international reach aligns with the Maya Book Awards’ global promotion.\n\nWe believe a submission could amplify your titles and offer jury recognition. Would it be useful if I sent over the 2026 Maya Book Awards entry guidelines and discussed how your titles could benefit from our international promotion?\n\nWarm regards,\nMaya Editorial Team\nsubmissions@mayabookawards.com",
+      "linkedin_message": "HarperCollins publishes best‑selling author Chimamanda Ngozi Adichie. Our Maya Book Awards offer international promotion and jury recognition. Could we discuss how a submission might amplify your titles?",
+      "follow_up_body": "Hi HarperCollins team,\n\nJust wanted to share that the 2026 Maya Book Awards also feature author spotlights, giving shortlisted writers a platform across multiple markets. Let me know if you’d like the guidelines or a quick chat.\n\nWarm regards,\nMaya Editorial Team",
+      "hook_usage": "Used hook H1 in the opening sentence of the email body."
+    },
+    "ai_copy": {
+      "subject_lines": [
+        {
+          "text": "HarperCollins and the Maya Book Awards",
+          "style": "direct"
+        },
+        {
+          "text": "How Maya Awards could spotlight Adichie’s work",
+          "style": "curiosity"
+        },
+        {
+          "text": "International promotion for HarperCollins titles",
+          "style": "value"
+        }
+      ],
+      "email_body": "Hi HarperCollins team,\n\nHarperCollins publishes best‑selling author Chimamanda Ngozi Adichie, whose international reach aligns with the Maya Book Awards’ global promotion.\n\nWe believe a submission could amplify your titles and offer jury recognition. Would it be useful if I sent over the 2026 Maya Book Awards entry guidelines and discussed how your titles could benefit from our international promotion?\n\nWarm regards,\nMaya Editorial Team\nsubmissions@mayabookawards.com",
+      "linkedin_message": "HarperCollins publishes best‑selling author Chimamanda Ngozi Adichie. Our Maya Book Awards offer international promotion and jury recognition. Could we discuss how a submission might amplify your titles?",
+      "follow_up_body": "Hi HarperCollins team,\n\nJust wanted to share that the 2026 Maya Book Awards also feature author spotlights, giving shortlisted writers a platform across multiple markets. Let me know if you’d like the guidelines or a quick chat.\n\nWarm regards,\nMaya Editorial Team",
+      "hook_usage": "Used hook H1 in the opening sentence of the email body."
+    },
+    "edited_by_human": false,
+    "qa": {
+      "status": "passed",
+      "score": 100,
+      "issues": [],
+      "verified_hook_ids": [
+        "H1"
+      ]
+    },
+    "auto_revisions": 0,
+    "models": {
+      "strategist": "openai/gpt-oss-20b",
+      "writer": "openai/gpt-oss-20b"
+    },
+    "timings_ms": {
+      "strategist": 56036,
+      "writer": 758
+    },
+    "generated_at": "2026-10-13T12:26:58.146Z",
+    "updated_at": "2026-10-13T12:26:58.146Z",
+    "reviewed_at": null,
+    "reviewer_note": null,
+    "error": null
+  },
+  {
+    "personalization_version": "1.0",
+    "record_id": "r-the-conrad-press-ltd-mv576pde",
+    "project_id": "proj-1791464115518",
+    "prospect_name": "The Conrad Press Ltd",
+    "target_type": "Publishers & Book‑Industry Organisations",
+    "batch_id": "batch-4",
+    "batch_number": 4,
+    "status": "needs_more_research",
+    "strategy": {
+      "readiness": "needs_more_research",
+      "readiness_reason": "No specific books, awards, or community involvement identified; identity not verified from reliable sources; only generic publishing company description available.",
+      "prospect_snapshot": "The Conrad Press Ltd is a UK‑based book and periodical publishing company founded in 2015, offering publishing, editing, marketing, author support and ghostwriting services.",
+      "relevance_thesis": "As a publishing house, The Conrad Press could be a strategic partner for promoting the Maya Book Awards to its authors and network, but concrete evidence of recent projects or awards is lacking.",
+      "campaign_objective": "Generate 2,000+ quality book submissions from relevant authors.",
+      "outreach_goal": "Introduce the Maya Book Awards and gauge interest in partnership or author promotion.",
+      "hooks": [],
+      "primary_hook_id": null,
+      "angle": "Present the Maya Book Awards as a valuable platform for The Conrad Press’s authors and partners, highlighting potential international promotion and author spotlight opportunities.",
+      "tone": {
+        "register": "warm_professional",
+        "guidance": "Maintain a respectful, professional tone; avoid generic praise; focus on concrete benefits and partnership potential."
+      },
+      "recommended_channel": "email",
+      "channel_reason": "Verified email addresses are available; email is the most direct channel for initial outreach.",
+      "call_to_action": "Would it be useful if I sent over the entry details and partnership possibilities?",
+      "avoid": [
+        "generic claims about the press’s achievements",
+        "fabricated book titles or awards",
+        "invasive or overly familiar language",
+        "technical jargon unless necessary"
+      ],
+      "human_checks": [
+        "Confirm the identity of The Conrad Press Ltd from reliable sources",
+        "Verify that the email addresses belong to the appropriate contact person",
+        "Ensure no conflict of interest or prior outreach has occurred",
+        "Check that the prospect is not on a do_not_contact list"
+      ]
+    },
+    "copy": null,
+    "ai_copy": null,
+    "edited_by_human": false,
+    "qa": null,
+    "auto_revisions": 0,
+    "models": {
+      "strategist": "openai/gpt-oss-20b",
+      "writer": "openai/gpt-oss-20b"
+    },
+    "timings_ms": {
+      "strategist": 1801,
+      "writer": 0
+    },
+    "generated_at": "2026-10-13T11:53:19.124Z",
+    "updated_at": "2026-10-13T11:53:19.124Z",
+    "reviewed_at": null,
+    "reviewer_note": "Strategist: No specific books, awards, or community involvement identified; identity not verified from reliable sources; only generic publishing company description available.",
+    "error": null
+  },
+  {
+    "personalization_version": "1.0",
+    "record_id": "r-shirley-jump-mv0uadz7",
+    "project_id": "proj-1791464115518",
+    "prospect_name": "Shirley Jump",
+    "target_type": "Authors & Writers",
+    "batch_id": "batch-1",
+    "batch_number": 1,
+    "status": "needs_more_research",
+    "strategy": {
+      "readiness": "needs_more_research",
+      "readiness_reason": "No verified contact route (email, LinkedIn, or other) is available for Shirley Jump; further research needed to identify a legitimate outreach channel.",
+      "prospect_snapshot": "Shirley Jump is a New York Times and USA Today bestselling author who has published over 70 novels in 24 countries and served as a content and creative editor for 40 books, while actively engaging in writing communities.",
+      "relevance_thesis": "Her prolific publication record, award recognitions, and active community involvement align with Maya’s objective of attracting high‑quality submissions from independent authors.",
+      "campaign_objective": "Encourage Shirley Jump to submit her next work to the 2026 Maya Book Awards.",
+      "outreach_goal": "Obtain her interest in submitting her next work to Maya Book Awards.",
+      "hooks": [
+        {
+          "id": "H1",
+          "fact": "Recipient of the Bookseller’s Best Award",
+          "evidence_quote": "\"recipient of several awards, including the Bookseller’s Best Award, the HOLT Medallion for Outstanding Literary Talent, the Colorado Romance Writers Award of Excellence\"",
+          "source_ids": [
+            "S1"
+          ],
+          "why_it_resonates": "The award signals industry recognition and prestige, positioning Maya as a platform that can further elevate her celebrated work.",
+          "strength": "strong"
+        },
+        {
+          "id": "H2",
+          "fact": "Recipient of the HOLT Medallion for Outstanding Literary Talent",
+          "evidence_quote": "\"recipient of several awards, including the Bookseller’s Best Award, the HOLT Medallion for Outstanding Literary Talent, the Colorado Romance Writers Award of Excellence\"",
+          "source_ids": [
+            "S1"
+          ],
+          "why_it_resonates": "Highlights her literary excellence and aligns with Maya’s focus on quality authors.",
+          "strength": "strong"
+        },
+        {
+          "id": "H3",
+          "fact": "Recipient of the Colorado Romance Writers Award of Excellence",
+          "evidence_quote": "\"recipient of several awards, including the Bookseller’s Best Award, the HOLT Medallion for Outstanding Literary Talent, the Colorado Romance Writers Award of Excellence\"",
+          "source_ids": [
+            "S1"
+          ],
+          "why_it_resonates": "Demonstrates her standing within genre communities that Maya seeks to engage.",
+          "strength": "strong"
+        },
+        {
+          "id": "H4",
+          "fact": "Published over 70 novels in 24 countries",
+          "evidence_quote": "\"She has published more than 70 novels in 24 countries\"",
+          "source_ids": [
+            "S1"
+          ],
+          "why_it_resonates": "Shows her global reach and prolific output, key criteria for Maya’s submission pool.",
+          "strength": "strong"
+        }
+      ],
+      "primary_hook_id": "H1",
+      "angle": "Leverage Shirley’s award‑winning status and international publication record to position Maya Book Awards as a prestigious platform that can amplify her already celebrated work.",
+      "tone": {
+        "register": "warm_professional",
+        "guidance": "Maintain a respectful, partnership‑oriented tone that acknowledges her achievements without sounding overly familiar or pressuring."
+      },
+      "recommended_channel": "other",
+      "channel_reason": "No verified contact route is available; further research is required to identify a legitimate outreach channel.",
+      "call_to_action": "Would it be useful if I sent over the entry details for the 2026 Maya Book Awards?",
+      "avoid": [
+        "Generic praise such as \"you are a great author\"",
+        "Unverified claims about her contact details",
+        "Any mention of private personal information",
+        "Pressure to submit",
+        "Technical jargon"
+      ],
+      "human_checks": [
+        "Confirm that a LinkedIn profile is publicly accessible and verify any available contact method",
+        "Ensure no existing outreach or partnership conflicts",
+        "Verify that outreach complies with privacy and data protection policies"
+      ]
+    },
+    "copy": null,
+    "ai_copy": null,
+    "edited_by_human": false,
+    "qa": null,
+    "auto_revisions": 0,
+    "models": {
+      "strategist": "openai/gpt-oss-20b",
+      "writer": "openai/gpt-oss-20b"
+    },
+    "timings_ms": {
+      "strategist": 3209,
+      "writer": 0
+    },
+    "generated_at": "2026-10-13T11:53:12.068Z",
+    "updated_at": "2026-10-13T11:53:12.068Z",
+    "reviewed_at": null,
+    "reviewer_note": "Strategist: No verified contact route (email, LinkedIn, or other) is available for Shirley Jump; further research needed to identify a legitimate outreach channel.",
+    "error": null
+  },
+  {
+    "personalization_version": "1.0",
+    "record_id": "r-kate-hewitt-mv0z1mwv",
+    "project_id": "proj-1791464115518",
+    "prospect_name": "Kate Hewitt",
+    "target_type": "Authors & Writers",
+    "batch_id": "batch-1",
+    "batch_number": 1,
+    "status": "draft",
+    "strategy": {
+      "readiness": "ready",
+      "readiness_reason": "Strong, verifiable hooks and a clear, personal contact route via LinkedIn.",
+      "prospect_snapshot": "Kate Hewitt is a USA Today bestselling author and Core Editor at Cornerstones Literary Consultancy, known for her Hartley-by-the-Sea and Willoughby Close series.",
+      "relevance_thesis": "Kate’s dual role as a bestselling author and editorial mentor aligns with Maya’s goal of attracting quality submissions from established yet emerging writers.",
+      "campaign_objective": "Generate 2,000+ quality book submissions from relevant authors.",
+      "outreach_goal": "Invite Kate to submit a manuscript for the 2026 Maya Book Awards.",
+      "hooks": [
+        {
+          "id": "H1",
+          "fact": "Author of the Hartley-by-the-Sea series",
+          "evidence_quote": null,
+          "source_ids": [
+            "S8"
+          ],
+          "why_it_resonates": "Shows Kate’s proven track record in publishing successful series, a key indicator of high‑quality submissions.",
+          "strength": "strong"
+        },
+        {
+          "id": "H2",
+          "fact": "USA Today bestselling author with over 8 million copies sold",
+          "evidence_quote": null,
+          "source_ids": [
+            "S8",
+            "S4"
+          ],
+          "why_it_resonates": "Demonstrates commercial success and a large readership, aligning with Maya’s aim for impactful entries.",
+          "strength": "strong"
+        },
+        {
+          "id": "H3",
+          "fact": "Royal Literary Fellow 2023-2024",
+          "evidence_quote": null,
+          "source_ids": [
+            "S9"
+          ],
+          "why_it_resonates": "Highlights recent recognition within the literary community, indicating ongoing relevance.",
+          "strength": "moderate"
+        },
+        {
+          "id": "H4",
+          "fact": "Runs writing retreats at Wye Valley Writers Retreats",
+          "evidence_quote": null,
+          "source_ids": [
+            "S4"
+          ],
+          "why_it_resonates": "Shows active engagement with emerging writers, a demographic Maya targets.",
+          "strength": "moderate"
+        }
+      ],
+      "primary_hook_id": "H1",
+      "angle": "Leverage Kate’s bestselling status and editorial expertise to position Maya as a prestigious platform for her next manuscript.",
+      "tone": {
+        "register": "warm_professional",
+        "guidance": "Use a respectful, collaborative tone that acknowledges Kate’s achievements without sounding salesy."
+      },
+      "recommended_channel": "linkedin",
+      "channel_reason": "LinkedIn personal profile offers the highest response rate for individual authors and bypasses generic inbox gatekeepers.",
+      "contact_audit": {
+        "best_channel": "linkedin",
+        "best_contact_target": "https://www.linkedin.com/in/kate-hewitt-38b44521a",
+        "why_best_route": "The LinkedIn personal profile is a direct, verified channel to Kate herself, avoiding the generic contact@ address which is a gatekeeper inbox. Personal outreach via LinkedIn DM is known to yield higher engagement for authors.",
+        "is_direct_contact": true,
+        "email_status": "generic_inbox",
+        "backup_route": "https://katehewittbooks.com/contact/",
+        "evaluated_routes": [
+          {
+            "channel": "email",
+            "value": "contact@katehewittbooks.com",
+            "verdict": "generic_gatekeeper",
+            "quality_assessment": "Generic inbox likely routed to a team; low personal response probability.",
+            "priority": 2
+          },
+          {
+            "channel": "linkedin",
+            "value": "https://www.linkedin.com/in/kate-hewitt-38b44521a",
+            "verdict": "recommended",
+            "quality_assessment": "Personal profile with high likelihood of direct contact.",
+            "priority": 1
+          },
+          {
+            "channel": "website_contact_form",
+            "value": "https://katehewittbooks.com/contact/",
+            "verdict": "viable_backup",
+            "quality_assessment": "Contact form may route to a team; acceptable backup if LinkedIn is unavailable.",
+            "priority": 3
+          }
+        ]
+      },
+      "call_to_action": "Would you be interested in submitting a manuscript for the 2026 Maya Book Awards? I can share the entry guidelines if that would be helpful.",
+      "avoid": [
+        "Generic info@ or contact@ addresses as a personal contact",
+        "Unverified claims about Kate’s work or achievements",
+        "Overly familiar or invasive language"
+      ],
+      "human_checks": [
+        "Confirm that the LinkedIn profile belongs to Kate Hewitt and is active.",
+        "Verify that the contact form on katehewittbooks.com is functional and not a bot trap.",
+        "Ensure the email address contact@katehewittbooks.com is indeed a generic inbox and not a personal address."
+      ]
+    },
+    "copy": {
+      "subject_lines": [
+        {
+          "text": "Your Hartley-by-the-Sea series could shine at Maya",
+          "style": "direct"
+        },
+        {
+          "text": "What if your next manuscript got international spotlight?",
+          "style": "curiosity"
+        },
+        {
+          "text": "Maya Book Awards: a platform for your next bestseller",
+          "style": "value"
+        }
+      ],
+      "email_body": "Hi Kate,\n\nYour Hartley-by-the-Sea series has set a high bar for engaging coastal tales. Maya Book Awards is looking for fresh, quality manuscripts from authors who already know how to captivate readers.\n\nWould you be interested in submitting a manuscript for the 2026 Maya Book Awards? I can share the entry guidelines if that would be helpful.\n\nWarm regards,\nMaya Editorial Team\nsubmissions@mayabookawards.com",
+      "linkedin_message": "Hi Kate, your Hartley-by-the-Sea series showcases the kind of engaging storytelling Maya Book Awards celebrates. Would you consider submitting a manuscript for the 2026 awards? I can share the guidelines if that helps.",
+      "follow_up_body": "Hi Kate, just wanted to share that shortlisted titles at Maya receive international promotion and author spotlights. If you’re curious about the process, let me know—I’d be happy to send the guidelines.",
+      "hook_usage": "Used hook H1 in the opening sentence of the email and LinkedIn message."
+    },
+    "ai_copy": {
+      "subject_lines": [
+        {
+          "text": "Your Hartley-by-the-Sea series could shine at Maya",
+          "style": "direct"
+        },
+        {
+          "text": "What if your next manuscript got international spotlight?",
+          "style": "curiosity"
+        },
+        {
+          "text": "Maya Book Awards: a platform for your next bestseller",
+          "style": "value"
+        }
+      ],
+      "email_body": "Hi Kate,\n\nYour Hartley-by-the-Sea series has set a high bar for engaging coastal tales. Maya Book Awards is looking for fresh, quality manuscripts from authors who already know how to captivate readers.\n\nWould you be interested in submitting a manuscript for the 2026 Maya Book Awards? I can share the entry guidelines if that would be helpful.\n\nWarm regards,\nMaya Editorial Team\nsubmissions@mayabookawards.com",
+      "linkedin_message": "Hi Kate, your Hartley-by-the-Sea series showcases the kind of engaging storytelling Maya Book Awards celebrates. Would you consider submitting a manuscript for the 2026 awards? I can share the guidelines if that helps.",
+      "follow_up_body": "Hi Kate, just wanted to share that shortlisted titles at Maya receive international promotion and author spotlights. If you’re curious about the process, let me know—I’d be happy to send the guidelines.",
+      "hook_usage": "Used hook H1 in the opening sentence of the email and LinkedIn message."
+    },
+    "edited_by_human": false,
+    "qa": {
+      "status": "passed",
+      "score": 100,
+      "issues": [],
+      "verified_hook_ids": [
+        "H1",
+        "H2",
+        "H3",
+        "H4"
+      ]
+    },
+    "auto_revisions": 0,
+    "models": {
+      "strategist": "openai/gpt-oss-20b",
+      "writer": "openai/gpt-oss-20b"
+    },
+    "timings_ms": {
+      "strategist": 2786,
+      "writer": 738
+    },
+    "generated_at": "2026-10-13T12:27:44.579Z",
+    "updated_at": "2026-10-13T12:27:44.579Z",
+    "reviewed_at": null,
+    "reviewer_note": null,
+    "error": null
+  }
+]

@@ -1,4 +1,5 @@
 'use client';
+import { useState, useEffect } from 'react';
 
 import SectionHeader from '@/components/ui/SectionHeader';
 import type { AgentActivity } from '@/types';
@@ -12,12 +13,30 @@ export default function AgentActivitySection() {
     cyan: 'bg-accent-cyan/10 border-accent-cyan/20 text-accent-cyan',
   };
 
-  // Currently we return empty state since we don't have real activity feed implemented yet
-  // The user explicitly requested to NOT use fake/mock data in production
-  const activities: AgentActivity[] = []; // removed recentActivity mock usage
+  const [activities, setActivities] = useState<AgentActivity[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/activity')
+      .then(res => res.json())
+      .then(data => {
+        setActivities(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error('Failed to load activity', err);
+        setLoading(false);
+      });
+
+    if (typeof window !== 'undefined' && window.location.hash === '#agent-activity') {
+      setTimeout(() => {
+        document.getElementById('agent-activity')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 300);
+    }
+  }, []);
 
   return (
-    <section className="py-6 h-full flex flex-col">
+    <section id="agent-activity" className="py-6 h-full flex flex-col scroll-mt-6">
       <SectionHeader 
         title="Recent Activity" 
         subtitle="Live feed of agent operations." 
@@ -25,7 +44,11 @@ export default function AgentActivitySection() {
       />
 
       <div className="flex-1 flex flex-col gap-3">
-        {activities.length === 0 ? (
+        {loading ? (
+          <div className="flex-1 flex items-center justify-center border border-white/[0.05] rounded-2xl p-6">
+            <p className="text-[13px] text-white/40 text-center animate-pulse">Loading activity...</p>
+          </div>
+        ) : activities.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center border border-dashed border-white/[0.08] rounded-2xl p-6">
             <svg className="w-6 h-6 text-white/20 mb-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
               <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -52,12 +75,6 @@ export default function AgentActivitySection() {
               </div>
             </div>
           ))
-        )}
-
-        {activities.length > 0 && (
-          <button className="w-full p-3 rounded-xl border border-dashed border-white/[0.08] text-[12px] font-medium text-white/40 hover:text-white/70 hover:bg-white/[0.02] hover:border-white/[0.12] transition-all mt-1">
-            View All Activity
-          </button>
         )}
       </div>
     </section>

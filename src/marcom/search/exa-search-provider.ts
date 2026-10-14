@@ -31,7 +31,7 @@ const ExaResponseSchema = z.object({
 });
 
 export interface ExaSearchProviderOptions {
-  apiKey: string;
+  apiKeys: string[];
   maximumResults: number;
   timeoutMs: number;
   fetchImplementation?: typeof fetch;
@@ -39,13 +39,13 @@ export interface ExaSearchProviderOptions {
 
 export class ExaSearchProvider implements SearchProvider {
   readonly key = 'exa';
-  readonly #apiKey: string;
+  readonly #apiKeys: string[];
   readonly #maximumResults: number;
   readonly #timeoutMs: number;
   readonly #fetch: typeof fetch;
 
   constructor(options: ExaSearchProviderOptions) {
-    this.#apiKey = options.apiKey;
+    this.#apiKeys = options.apiKeys;
     this.#maximumResults = Math.min(100, Math.max(1, options.maximumResults));
     this.#timeoutMs = options.timeoutMs;
     this.#fetch = options.fetchImplementation ?? fetch;
@@ -92,7 +92,7 @@ export class ExaSearchProvider implements SearchProvider {
     try {
       response = await this.#fetch(EXA_SEARCH_URL, {
         method: 'POST',
-        headers: { 'content-type': 'application/json', 'x-api-key': this.#apiKey },
+        headers: { 'content-type': 'application/json', 'x-api-key': this.#apiKeys[0] },
         body: JSON.stringify(body),
         signal,
       });
@@ -178,3 +178,4 @@ function isSafePublicUrl(value: string): boolean {
     return false;
   }
 }
+

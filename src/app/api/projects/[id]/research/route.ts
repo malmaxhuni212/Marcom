@@ -6,7 +6,7 @@ import { pickTarget, runResearchAgent, type ResearchProgress } from '@/marcom/ag
 import { discoverProspectSeeds } from '@/marcom/agents/research/discovery';
 import { resolveSearchProvider } from '@/marcom/search/registry';
 import type { SearchProvider } from '@/marcom/search/provider';
-import { deleteResearch, deleteProjectResearch, findDuplicate, listResearch, saveResearch, updateResearchReview, upsertProspectMemory } from '@/marcom/memory/research-store';
+import { deleteResearch, deleteMultipleResearch, deleteBatchResearch, deleteProjectResearch, findDuplicate, getNextBatchInfo, listResearch, saveResearch, updateResearchReview, upsertProspectMemory } from '@/marcom/memory/research-store';
 import { ReviewStatusSchema, type ProspectSeed, type ResearchEntry } from '@/marcom/schemas/research-record';
 import { evidenceCoverage, reviewStatus, summarizeResearch } from '@/marcom/research/review';
 
@@ -50,6 +50,7 @@ export async function GET(req: Request, { params }: RouteCtx) {
   const location = search.get('location')?.trim().toLowerCase() ?? '';
   const confidence = search.get('confidence') ?? 'all';
   const coverage = search.get('coverage') ?? 'all';
+  const batch = search.get('batch') ?? 'all';
   const sort = search.get('sort') ?? 'newest';
   const page = Math.max(1, Number.parseInt(search.get('page') ?? '1', 10) || 1);
   const pageSize = Math.min(50, Math.max(5, Number.parseInt(search.get('pageSize') ?? '20', 10) || 20));
@@ -57,6 +58,16 @@ export async function GET(req: Request, { params }: RouteCtx) {
   const allEntries = listResearch(projectId);
   const locations = [...new Set(allEntries.flatMap((entry) => [entry.record.location, entry.record.country]).filter((value): value is string => Boolean(value)))].sort();
   const targets = [...new Set(allEntries.map((entry) => entry.record.target_type).filter(Boolean))].sort();
+
+  const batchMap = new Map<number, { id: string; number: number; count: number }>();
+  for (const entry of allEntries) {
+    const num = entry.batch_number ?? 1;
+    const bId = entry.batch_id ?? `batch-${num}`;
+    const cur = batchMap.get(num) ?? { id: bId, number: num, count: 0 };
+    cur.count += 1;
+    batchMap.set(num, cur);
+  }
+  const batches = [...batchMap.values()].sort((a, b) => b.number - a.number);
 
   const filtered = allEntries.filter((entry) => {
     if (query && !searchableText(entry).includes(query)) return false;
@@ -68,6 +79,7 @@ export async function GET(req: Request, { params }: RouteCtx) {
     const evidence = evidenceCoverage(entry);
     if (coverage === 'complete' && (evidence.unsupported > 0 || evidence.supported === 0)) return false;
     if (coverage === 'incomplete' && evidence.unsupported === 0 && evidence.supported > 0) return false;
+    if (batch !== 'all' && (entry.batch_id !== batch && String(entry.batch_number) !== batch)) return false;
     return true;
   });
 
@@ -88,7 +100,7 @@ export async function GET(req: Request, { params }: RouteCtx) {
     items: filtered.slice(start, start + pageSize),
     pagination: { page: safePage, page_size: pageSize, total, page_count: pageCount },
     summary: summarizeResearch(allEntries),
-    facets: { locations, targets },
+    facets: { locations, targets, batches },
   });
 }
 
@@ -176,6 +188,9 @@ export async function POST(req: Request, { params }: RouteCtx) {
           onProgress,
         });
         onProgress({ stage: 'saving', message: 'Saving to project' });
+        const batchInfo = getNextBatchInfo(projectId);
+        entry.batch_id = batchInfo.batch_id;
+        entry.batch_number = batchInfo.batch_number;
         saveResearch(projectId, entry);
         upsertProspectMemory(entry);
         onProgress({ stage: 'complete', message: 'Research complete' });
@@ -219,6 +234,49 @@ export async function DELETE(req: Request, { params }: RouteCtx) {
   const { id: projectId } = await params;
   const url = new URL(req.url);
   const recordId = url.searchParams.get('recordId');
+  const batchId = url.searchParams.get('batchId') || url.searchParams.get('batch');
+  const all = url.searchParams.get('all') === 'true';
+
+  if (all) {
+    deleteProjectResearch(projectId);
+    return NextResponse.json({ success: true, message: 'All research deleted' });
+  }
+
+  if (batchId) {
+    const ok = deleteBatchResearch(projectId, batchId);
+    return ok 
+      ? NextResponse.json({ success: true, message: `Batch ${batchId} deleted` })
+      : NextResponse.json({ error: `Batch ${batchId} not found` }, { status: 404 });
+  }
+
+  let bodyRecordIds: string[] | null = null;
+  try {
+    const body = await req.json();
+    if (Array.isArray(body?.recordIds)) {
+      bodyRecordIds = body.recordIds;
+    }
+  } catch {
+    // Body is optional
+  }
+
+  if (bodyRecordIds && bodyRecordIds.length > 0) {
+    const ok = deleteMultipleResearch(projectId, bodyRecordIds);
+    return ok 
+      ? NextResponse.json({ success: true, count: bodyRecordIds.length })
+      : NextResponse.json({ error: 'No matching records found' }, { status: 404 });
+  }
+
+  if (!recordId) return NextResponse.json({ error: 'recordId, batchId, recordIds, or all=true is required' }, { status: 400 });
+  
+  const ok = deleteResearch(projectId, recordId);
+  return ok ? NextResponse.json({ success: true }) : NextResponse.json({ error: 'Record not found' }, { status: 404 });
+}
+
+/* end of route handlers */
+/*
+  const { id: projectId } = await params;
+  const url = new URL(req.url);
+  const recordId = url.searchParams.get('recordId');
   const all = url.searchParams.get('all') === 'true';
 
   if (all) {
@@ -230,5 +288,5 @@ export async function DELETE(req: Request, { params }: RouteCtx) {
   
   const ok = deleteResearch(projectId, recordId);
   return ok ? NextResponse.json({ success: true }) : NextResponse.json({ error: 'Record not found' }, { status: 404 });
-}
+}*/
 
