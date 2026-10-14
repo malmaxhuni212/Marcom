@@ -1,11 +1,17 @@
 import { NextResponse } from 'next/server';
+import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
-import { JsonFileMemoryStore } from '@/marcom/memory/store';
-import { listResearch } from '@/marcom/memory/research-store';
+import { listResearch } from '@/db/repositories/research-repository';
 import { StructuredBriefSchema } from '@/marcom/schemas/structured-brief';
 import { validateResearchReadyConfiguration } from '@/marcom/validation/campaign-configuration';
-import { updateProject } from '@/marcom/memory/project-store';
 import { summarizeResearch } from '@/marcom/research/review';
+import { resolveLocalPilotActor } from '@/db/local-actor';
+import {
+  CampaignNotFoundError,
+  CampaignVersionConflictError,
+  getCampaign,
+  updateCampaignConfiguration,
+} from '@/db/repositories/campaign-repository';
 
 const UpdateConfigurationSchema = z.strictObject({
   structured_brief: StructuredBriefSchema,
@@ -15,11 +21,12 @@ const UpdateConfigurationSchema = z.strictObject({
 /** Project detail: project memory (incl. structured brief) + saved research entries. */
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const project = new JsonFileMemoryStore().projects().find((p) => p.project_id === id);
+  const actor = await resolveLocalPilotActor();
+  const project = await getCampaign(actor, id);
   if (!project) {
     return NextResponse.json({ error: 'Project not found' }, { status: 404 });
   }
-  const research = listResearch(id);
+  const research = await listResearch(actor, id);
   return NextResponse.json({
     project,
     research,
@@ -46,39 +53,22 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     );
   }
 
-  let revisionConflict = false;
-  const updated = updateProject(id, (project) => {
-    const currentRevision = project.configuration_revision ?? 1;
-    if (currentRevision !== parsed.data.expected_revision) {
-      revisionConflict = true;
-      return project;
+  try {
+    const actor = await resolveLocalPilotActor();
+    const updated = await updateCampaignConfiguration(actor, id, {
+      structuredBrief: parsed.data.structured_brief,
+      expectedRevision: parsed.data.expected_revision,
+      requestId: req.headers.get('x-request-id') ?? randomUUID(),
+    });
+    return NextResponse.json({ success: true, project: updated });
+  } catch (error) {
+    if (error instanceof CampaignNotFoundError) {
+      return NextResponse.json({ error: error.message }, { status: 404 });
     }
-    const brief = parsed.data.structured_brief;
-    return {
-      ...project,
-      name: brief.project.name!,
-      summary: brief.project.description,
-      structured_brief: brief,
-      target_definitions: brief.targets.map((target) => ({
-        target_type: target.target_type,
-        definition: target.description,
-        aliases: [],
-      })),
-      status: 'READY_FOR_RESEARCH',
-      configuration_revision: currentRevision + 1,
-      configuration_updated_at: new Date().toISOString(),
-    };
-  });
-
-  if (!updated) {
-    return NextResponse.json({ error: 'Project not found' }, { status: 404 });
+    if (error instanceof CampaignVersionConflictError) {
+      return NextResponse.json({ error: error.message }, { status: 409 });
+    }
+    console.error('Error updating campaign configuration:', error);
+    return NextResponse.json({ error: 'The campaign configuration could not be saved.' }, { status: 500 });
   }
-  if (revisionConflict) {
-    return NextResponse.json(
-      { error: 'This campaign was changed in another window. Refresh and review the latest version before saving.' },
-      { status: 409 },
-    );
-  }
-
-  return NextResponse.json({ success: true, project: updated });
 }

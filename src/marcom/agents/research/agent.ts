@@ -221,6 +221,7 @@ export async function runResearchAgent(input: RunResearchInput): Promise<Researc
     qa,
     relationship_status: relationship?.status ?? null,
     model: llmProvider.model ?? llmProvider.name,
+    ai_provider: llmProvider.name,
     searches: [search.query],
     search_provider: search.providerKey,
     search_request_ids: search.providerRequestId ? [search.providerRequestId] : [],

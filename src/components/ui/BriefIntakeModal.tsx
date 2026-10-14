@@ -126,7 +126,10 @@ export default function BriefIntakeModal({ isOpen, onClose, onSuccess }: BriefIn
 
       const res = await fetch('/api/projects/create', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Idempotency-Key': crypto.randomUUID(),
+        },
         body: JSON.stringify({
           structured_brief: finalBrief,
           original_brief: extractedText,

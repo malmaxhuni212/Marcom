@@ -3,13 +3,16 @@ import { runResearchAgent } from '@/marcom/agents/research/agent';
 import { discoverProspectSeeds } from '@/marcom/agents/research/discovery';
 import { GroqProvider } from '@/marcom/llm/groq-provider';
 import {
+  cancelResearchRun,
+  completeResearchRun,
   findDuplicate,
+  getNextBatchInfo,
   listResearch,
   saveResearch,
-  getNextBatchInfo,
-  upsertProspectMemory,
-} from '@/marcom/memory/research-store';
-import { JsonFileMemoryStore } from '@/marcom/memory/store';
+  startResearchRun,
+} from '@/db/repositories/research-repository';
+import { resolveLocalPilotActor } from '@/db/local-actor';
+import { createServerMemoryStore } from '@/marcom/memory/server-store';
 import type { SearchProvider } from '@/marcom/search/provider';
 import { readSearchConfiguration, resolveSearchProvider } from '@/marcom/search/registry';
 
@@ -26,6 +29,7 @@ type BackgroundTask = {
   status: TaskStatus;
   message: string;
   searchProvider: string;
+  researchRunId?: string;
 };
 
 const backgroundTasks = new Map<string, BackgroundTask>();
@@ -38,7 +42,8 @@ async function processBatch(
   searchProvider: SearchProvider,
   llmProvider: GroqProvider,
 ) {
-  const store = new JsonFileMemoryStore();
+  const store = await createServerMemoryStore();
+  const actor = await resolveLocalPilotActor();
   const project = store.projects().find((candidate) => candidate.project_id === projectId);
   const task = backgroundTasks.get(taskId);
 
@@ -57,13 +62,15 @@ async function processBatch(
     return;
   }
 
-  const batchInfo = getNextBatchInfo(projectId);
+  const batchInfo = await getNextBatchInfo(actor, projectId);
+  const researchRunId = await startResearchRun(actor, projectId, batchInfo, count, targetId);
+  task.researchRunId = researchRunId;
   let consecutiveEmptyDiscoveries = 0;
 
   while (task.status === 'running' && task.completed < task.total) {
     const remainingToFind = task.total - task.completed;
     task.message = `Searching for ${remainingToFind} more prospect candidates...`;
-    const existing = listResearch(projectId);
+    const existing = await listResearch(actor, projectId);
     
     let discovery;
     try {
@@ -79,6 +86,7 @@ async function processBatch(
     } catch (e) {
       task.status = 'error';
       task.message = `Discovery failed: ${(e as Error).message}`;
+      await completeResearchRun(actor, researchRunId, task.failed + 1);
       return;
     }
 
@@ -87,6 +95,7 @@ async function processBatch(
       if (consecutiveEmptyDiscoveries >= 2) {
         task.status = task.failed ? 'completed_with_errors' : 'completed';
         task.message = `Search exhausted. Saved ${task.completed} of ${task.total} prospects.`;
+        await completeResearchRun(actor, researchRunId, task.failed);
         return;
       }
       continue;
@@ -100,7 +109,7 @@ async function processBatch(
       if ((task.status as TaskStatus) === 'cancelled') break;
       if (task.completed >= task.total) break;
 
-      if (findDuplicate(listResearch(projectId), seed)) {
+      if (findDuplicate(await listResearch(actor, projectId), seed)) {
         task.duplicatesSkipped += 1;
         continue;
       }
@@ -118,8 +127,7 @@ async function processBatch(
         });
         entry.batch_id = batchInfo.batch_id;
         entry.batch_number = batchInfo.batch_number;
-        saveResearch(projectId, entry);
-        upsertProspectMemory(entry);
+        await saveResearch(actor, projectId, researchRunId, entry);
         task.completed += 1;
       } catch (error) {
         console.error('Batch research candidate failed:', error);
@@ -132,6 +140,7 @@ async function processBatch(
     task.status = task.failed ? 'completed_with_errors' : 'completed';
     task.message = `Saved ${task.completed} of ${task.total} requested prospects.`;
   }
+  await completeResearchRun(actor, researchRunId, task.failed);
 }
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -214,6 +223,10 @@ export async function DELETE(req: Request) {
 
   task.status = 'cancelled';
   task.message = 'Cancellation requested.';
+  if (task.researchRunId) {
+    const actor = await resolveLocalPilotActor();
+    await cancelResearchRun(actor, task.researchRunId);
+  }
   return NextResponse.json({ success: true });
 }
 

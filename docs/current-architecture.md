@@ -10,9 +10,9 @@ MARCOM (Multi-Agent Researcher Communicator) is currently a modern, component-dr
 - **Language**: TypeScript (v5)
 - **Routing**: Next.js App Router (currently only utilizing the root `/` route for the Home Dashboard)
 - **State Management**: React local state (no global state manager like Redux or Zustand is currently present)
-- **Data Fetching/API**: Currently mocked out entirely. No active `fetch` or backend API architecture exists.
+- **Data Fetching/API**: Next.js route handlers under `src/app/api` validate requests and call server-side persistence and research services.
 - **Authentication**: None implemented.
-- **Database/Storage**: None implemented (using in-memory mock data).
+- **Database/Storage**: PostgreSQL is authoritative for campaigns, configuration, research, prospects, evidence, review state, provider operations, idempotency and audit records. Drizzle owns the schema and migrations. Personalisation data remains in transitional JSON storage.
 - **Integrations**: Mock representation of Notion integration. No real integration code.
 
 ## Key Directories
@@ -44,7 +44,7 @@ The visual identity is defined primarily in `src/app/globals.css` using Tailwind
 Currently, presentation, data, and "logic" (mocked) are tightly coupled in the frontend. 
 As we extend this into a real AI platform, we will follow these boundaries:
 - **Presentation Layer**: The existing Next.js React components (extend, do not rewrite).
-- **Data Access Layer**: To be built. Should abstract away backend/database calls so UI components don't fetch directly.
+- **Data Access Layer**: Implemented for campaigns and research under `src/db`. Route handlers use repositories and server-side stores rather than querying PostgreSQL from UI components.
 - **Agent Logic Layer**: To be built (e.g. backend Python/Node workers or Next.js server actions). Must be strictly decoupled from UI.
 - **Configuration & Context**: To be built. Project instructions, Lunim context, and agent prompts must be loaded dynamically, not hardcoded into the UI.
 

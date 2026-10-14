@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
-import { readProjects } from '@/marcom/memory/project-store';
-import { listResearch } from '@/marcom/memory/research-store';
+import { listResearch } from '@/db/repositories/research-repository';
 import { listPersonalizations } from '@/marcom/memory/personalization-store';
+import { resolveLocalPilotActor } from '@/db/local-actor';
+import { listCampaigns } from '@/db/repositories/campaign-repository';
 
 function formatTimestamp(isoString?: string | number | null): { formatted: string; sortTime: number } {
   const d = isoString ? new Date(isoString) : new Date();
@@ -17,9 +18,20 @@ function formatTimestamp(isoString?: string | number | null): { formatted: strin
   };
 }
 
+interface ActivityItem {
+  id: string;
+  agentName: string;
+  agentColor: 'blue' | 'pink' | 'purple' | 'cyan';
+  action: string;
+  target: string;
+  timestamp: string;
+  sortTime: number;
+}
+
 export async function GET() {
-  const projects = readProjects();
-  const activities: any[] = [];
+  const actor = await resolveLocalPilotActor();
+  const projects = await listCampaigns(actor);
+  const activities: ActivityItem[] = [];
   
   for (const p of projects) {
     // 1. Project Configuration Event
@@ -36,7 +48,7 @@ export async function GET() {
       });
     }
 
-    const research = listResearch(p.project_id);
+    const research = await listResearch(actor, p.project_id);
 
     // 2. Batch Summary Events
     const batchMap = new Map<number, { count: number; lastTime: number; latestProspect: string }>();

@@ -23,7 +23,7 @@ Copy the environment template:
 Copy-Item -LiteralPath '.env.example' -Destination '.env.local'
 ```
 
-Add the existing Groq key and an Exa key to `.env.local`:
+Add the existing Groq key, an Exa key, and the read-write Netlify Database connection string to `.env.local`:
 
 ```text
 GROQ_API_KEY=your_groq_key
@@ -31,9 +31,34 @@ SEARCH_PROVIDER=exa
 EXA_API_KEY=your_exa_key
 SEARCH_MAX_RESULTS=25
 SEARCH_TIMEOUT_MS=15000
+NETLIFY_DB_URL=your_netlify_postgres_connection_string
+CONTACT_HASH_PEPPER=generate_a_long_random_local_secret
 ```
 
 Do not commit `.env.local`.
+
+Prepare the database on first setup and whenever new migrations are pulled:
+
+```powershell
+npm run db:migrate
+npm run db:seed
+npm run db:check
+```
+
+The seed is idempotent. Running it again does not create another local workspace or actor. Normal application startup only requires `npm run dev` after the database has been prepared.
+
+For an existing checkout that still has campaigns in `memory/projects.json`, run this once after migration and seeding:
+
+```powershell
+npm run db:import-json
+npm run db:import-json-research
+```
+
+The first importer creates PostgreSQL campaign records and copies matching runtime files to the new campaign IDs. The second importer moves research runs, prospects, evidence, review state and provider provenance into PostgreSQL. Neither importer deletes the original JSON files. Re-running either unchanged import is safe.
+
+`CONTACT_HASH_PEPPER` protects deterministic contact-point lookup hashes. Use the same secret for every instance connected to the same database, keep it out of Git, and change it only through a planned data migration.
+
+The database structure and change rules are documented in [`docs/database-schema.md`](docs/database-schema.md). Coding agents and developers should read that guide, the Drizzle schema files, and the existing SQL migrations before changing persistence code.
 
 Run a small Exa search before starting the interface:
 
@@ -49,7 +74,7 @@ Start the application:
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open [http://127.0.0.1:3000](http://127.0.0.1:3000).
 
 ## Switching search providers
 
@@ -67,7 +92,7 @@ The application routes and research agent depend on the shared `SearchProvider` 
 
 ```powershell
 npm test
-npx tsc --noEmit
+npm run typecheck
 npm run build
 ```
 

@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { JsonFileMemoryStore } from '@/marcom/memory/store';
+import { createServerMemoryStore, readCampaignMemory } from '@/marcom/memory/server-store';
 import { GroqProvider } from '@/marcom/llm/groq-provider';
 import { pickTarget, runResearchAgent, type ResearchProgress } from '@/marcom/agents/research/agent';
 import { discoverProspectSeeds } from '@/marcom/agents/research/discovery';
 import { resolveSearchProvider } from '@/marcom/search/registry';
 import type { SearchProvider } from '@/marcom/search/provider';
-import { deleteResearch, deleteMultipleResearch, deleteBatchResearch, deleteProjectResearch, findDuplicate, getNextBatchInfo, listResearch, saveResearch, updateResearchReview, upsertProspectMemory } from '@/marcom/memory/research-store';
+import { resolveLocalPilotActor } from '@/db/local-actor';
+import { completeResearchRun, deleteResearch, deleteMultipleResearch, deleteBatchResearch, deleteProjectResearch, findDuplicate, getNextBatchInfo, listResearch, saveResearch, startResearchRun, updateResearchReview } from '@/db/repositories/research-repository';
 import { ReviewStatusSchema, type ProspectSeed, type ResearchEntry } from '@/marcom/schemas/research-record';
 import { evidenceCoverage, reviewStatus, summarizeResearch } from '@/marcom/research/review';
 
@@ -39,8 +40,9 @@ function searchableText(entry: ResearchEntry): string {
 /** Paginated prospect review results for one campaign. */
 export async function GET(req: Request, { params }: RouteCtx) {
   const { id: projectId } = await params;
-  const project = new JsonFileMemoryStore().projects().find((candidate) => candidate.project_id === projectId);
+  const project = await readCampaignMemory(projectId);
   if (!project) return NextResponse.json({ error: 'Project not found' }, { status: 404 });
+  const actor = await resolveLocalPilotActor();
 
   const search = new URL(req.url).searchParams;
   const query = search.get('q')?.trim().toLowerCase() ?? '';
@@ -55,7 +57,7 @@ export async function GET(req: Request, { params }: RouteCtx) {
   const page = Math.max(1, Number.parseInt(search.get('page') ?? '1', 10) || 1);
   const pageSize = Math.min(50, Math.max(5, Number.parseInt(search.get('pageSize') ?? '20', 10) || 20));
 
-  const allEntries = listResearch(projectId);
+  const allEntries = await listResearch(actor, projectId);
   const locations = [...new Set(allEntries.flatMap((entry) => [entry.record.location, entry.record.country]).filter((value): value is string => Boolean(value)))].sort();
   const targets = [...new Set(allEntries.map((entry) => entry.record.target_type).filter(Boolean))].sort();
 
@@ -125,14 +127,15 @@ export async function POST(req: Request, { params }: RouteCtx) {
     notes: clean(body.notes, 500),
   };
 
-  const store = new JsonFileMemoryStore();
+  const store = await createServerMemoryStore();
+  const actor = await resolveLocalPilotActor();
   const project = store.projects().find((p) => p.project_id === projectId);
   if (!project?.structured_brief) {
     return NextResponse.json({ error: 'Project or structured brief not found' }, { status: 404 });
   }
 
   if (seed.name) {
-    const duplicate = findDuplicate(listResearch(projectId), seed);
+    const duplicate = findDuplicate(await listResearch(actor, projectId), seed);
     if (duplicate && !body.force) {
       return NextResponse.json(
         { error: `"${duplicate.record.identity.name ?? duplicate.seed.name}" has already been researched in this project.`, code: 'duplicate', record_id: duplicate.record.record_id },
@@ -155,12 +158,13 @@ export async function POST(req: Request, { params }: RouteCtx) {
     async start(controller) {
       const send = (obj: unknown) => controller.enqueue(encoder.encode(JSON.stringify(obj) + '\n'));
       const onProgress = (p: ResearchProgress) => send({ type: 'progress', ...p });
+      let researchRunId: string | null = null;
       try {
         let actualSeed = seed;
 
         if (!actualSeed.name) {
           onProgress({ stage: 'resolving', message: 'Searching for a supported prospect candidate...' });
-          const existing = listResearch(projectId);
+          const existing = await listResearch(actor, projectId);
           const target = pickTarget(project.structured_brief!, actualSeed, clean(body.target_id, 100));
           const discovery = await discoverProspectSeeds({
             brief: project.structured_brief!,
@@ -177,6 +181,8 @@ export async function POST(req: Request, { params }: RouteCtx) {
           onProgress({ stage: 'resolving', message: `Discovered: ${actualSeed.name}` });
         }
 
+        const batchInfo = await getNextBatchInfo(actor, projectId);
+        researchRunId = await startResearchRun(actor, projectId, batchInfo, 1, clean(body.target_id, 100) ?? 'default');
         const entry = await runResearchAgent({
           projectId,
           brief: project.structured_brief!,
@@ -188,14 +194,18 @@ export async function POST(req: Request, { params }: RouteCtx) {
           onProgress,
         });
         onProgress({ stage: 'saving', message: 'Saving to project' });
-        const batchInfo = getNextBatchInfo(projectId);
         entry.batch_id = batchInfo.batch_id;
         entry.batch_number = batchInfo.batch_number;
-        saveResearch(projectId, entry);
-        upsertProspectMemory(entry);
+        await saveResearch(actor, projectId, researchRunId, entry);
+        await completeResearchRun(actor, researchRunId, 0);
         onProgress({ stage: 'complete', message: 'Research complete' });
         send({ type: 'result', entry });
       } catch (e) {
+        if (researchRunId) {
+          await completeResearchRun(actor, researchRunId, 1).catch((completionError) => {
+            console.error('Research failure state could not be persisted:', completionError);
+          });
+        }
         console.error('Research agent failed:', e);
         send({ type: 'error', error: (e as Error).message });
       } finally {
@@ -209,7 +219,7 @@ export async function POST(req: Request, { params }: RouteCtx) {
   });
 }
 
-/** Persist one human G3-style review decision in the local JSON pilot store. */
+/** Persist one human G3-style review decision in PostgreSQL. */
 export async function PATCH(req: Request, { params }: RouteCtx) {
   const { id: projectId } = await params;
   const parsed = ReviewDecisionSchema.safeParse(await req.json());
@@ -219,7 +229,9 @@ export async function PATCH(req: Request, { params }: RouteCtx) {
   if (parsed.data.status === 'rejected' && !parsed.data.note?.trim()) {
     return NextResponse.json({ error: 'Add a reason before rejecting this prospect.' }, { status: 422 });
   }
-  const updated = updateResearchReview(
+  const actor = await resolveLocalPilotActor();
+  const updated = await updateResearchReview(
+    actor,
     projectId,
     parsed.data.record_id,
     parsed.data.status,
@@ -232,18 +244,19 @@ export async function PATCH(req: Request, { params }: RouteCtx) {
 
 export async function DELETE(req: Request, { params }: RouteCtx) {
   const { id: projectId } = await params;
+  const actor = await resolveLocalPilotActor();
   const url = new URL(req.url);
   const recordId = url.searchParams.get('recordId');
   const batchId = url.searchParams.get('batchId') || url.searchParams.get('batch');
   const all = url.searchParams.get('all') === 'true';
 
   if (all) {
-    deleteProjectResearch(projectId);
+    await deleteProjectResearch(actor, projectId);
     return NextResponse.json({ success: true, message: 'All research deleted' });
   }
 
   if (batchId) {
-    const ok = deleteBatchResearch(projectId, batchId);
+    const ok = await deleteBatchResearch(actor, projectId, batchId);
     return ok 
       ? NextResponse.json({ success: true, message: `Batch ${batchId} deleted` })
       : NextResponse.json({ error: `Batch ${batchId} not found` }, { status: 404 });
@@ -260,7 +273,7 @@ export async function DELETE(req: Request, { params }: RouteCtx) {
   }
 
   if (bodyRecordIds && bodyRecordIds.length > 0) {
-    const ok = deleteMultipleResearch(projectId, bodyRecordIds);
+    const ok = await deleteMultipleResearch(actor, projectId, bodyRecordIds);
     return ok 
       ? NextResponse.json({ success: true, count: bodyRecordIds.length })
       : NextResponse.json({ error: 'No matching records found' }, { status: 404 });
@@ -268,7 +281,7 @@ export async function DELETE(req: Request, { params }: RouteCtx) {
 
   if (!recordId) return NextResponse.json({ error: 'recordId, batchId, recordIds, or all=true is required' }, { status: 400 });
   
-  const ok = deleteResearch(projectId, recordId);
+  const ok = await deleteResearch(actor, projectId, recordId);
   return ok ? NextResponse.json({ success: true }) : NextResponse.json({ error: 'Record not found' }, { status: 404 });
 }
 

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
-import { JsonFileMemoryStore } from '@/marcom/memory/store';
-import { listResearch, updateResearchReview } from '@/marcom/memory/research-store';
+import { createServerMemoryStore } from '@/marcom/memory/server-store';
+import { listResearch, updateResearchReview } from '@/db/repositories/research-repository';
+import { resolveLocalPilotActor } from '@/db/local-actor';
 import {
   deletePersonalization,
   getPersonalization,
@@ -23,7 +24,8 @@ type RouteCtx = { params: Promise<{ id: string }> };
 
 export async function GET(req: Request, { params }: RouteCtx) {
   const { id: projectId } = await params;
-  const store = new JsonFileMemoryStore();
+  const store = await createServerMemoryStore();
+  const actor = await resolveLocalPilotActor();
   const project = store.projects().find((p) => p.project_id === projectId);
   if (!project) return NextResponse.json({ error: 'Project not found' }, { status: 404 });
 
@@ -34,7 +36,7 @@ export async function GET(req: Request, { params }: RouteCtx) {
 
   const settings = getPersonalizationSettings(projectId);
   const allEntries = listPersonalizations(projectId);
-  const allResearch = listResearch(projectId);
+  const allResearch = await listResearch(actor, projectId);
   const researchMap = new Map(allResearch.map((r) => [r.record.record_id, r.record]));
 
   const enrichEntry = (e: PersonalizationEntry): PersonalizationEntry => {
@@ -178,7 +180,8 @@ export async function GET(req: Request, { params }: RouteCtx) {
 
 export async function POST(req: Request, { params }: RouteCtx) {
   const { id: projectId } = await params;
-  const store = new JsonFileMemoryStore();
+  const store = await createServerMemoryStore();
+  const actor = await resolveLocalPilotActor();
   const project = store.projects().find((p) => p.project_id === projectId);
   if (!project?.structured_brief) {
     return NextResponse.json({ error: 'Project or structured brief not found' }, { status: 404 });
@@ -188,7 +191,7 @@ export async function POST(req: Request, { params }: RouteCtx) {
   const { recordId, batchId, mode = 'single' } = body;
   const forceRegenerate = Boolean(body.forceRegenerate || body.force);
 
-  const allResearch = listResearch(projectId);
+  const allResearch = await listResearch(actor, projectId);
   const settings = getPersonalizationSettings(projectId);
 
   // Targets to personalize
@@ -236,7 +239,7 @@ export async function POST(req: Request, { params }: RouteCtx) {
       });
 
       savePersonalization(projectId, generated);
-      updateResearchReview(projectId, researchEntry.record.record_id, 'shortlisted', 'Personalized by Agent 3');
+      await updateResearchReview(actor, projectId, researchEntry.record.record_id, 'shortlisted', 'Personalized by Agent 3');
       results.push(generated);
     } catch (err) {
       console.error(`Error personalizing record ${researchEntry.record.record_id}:`, err);

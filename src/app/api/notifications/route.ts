@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
-import { readProjects } from '@/marcom/memory/project-store';
-import { listResearch } from '@/marcom/memory/research-store';
+import { listResearch } from '@/db/repositories/research-repository';
 import { listPersonalizations } from '@/marcom/memory/personalization-store';
+import { resolveLocalPilotActor } from '@/db/local-actor';
+import { listCampaigns } from '@/db/repositories/campaign-repository';
 
 export interface NotificationItem {
   id: string;
@@ -33,12 +34,13 @@ function formatRelativeTime(timestampMs: number): string {
 }
 
 export async function GET() {
-  const projects = readProjects();
+  const actor = await resolveLocalPilotActor();
+  const projects = await listCampaigns(actor);
   const notifications: NotificationItem[] = [];
   let totalPersonalizationsCount = 0;
 
   for (const p of projects) {
-    const research = listResearch(p.project_id);
+    const research = await listResearch(actor, p.project_id);
 
     // 1. Batches Completed
     const batchMap = new Map<number, { count: number; lastTime: number; batchId: string }>();

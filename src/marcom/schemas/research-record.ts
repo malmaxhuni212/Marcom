@@ -155,6 +155,7 @@ export interface ResearchEntry {
   qa: ResearchQA;
   relationship_status: string | null;
   model: string;
+  ai_provider?: string;
   searches: string[];
   search_provider: string;
   search_request_ids: string[];
