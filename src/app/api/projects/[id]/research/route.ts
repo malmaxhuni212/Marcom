@@ -11,6 +11,9 @@ import { completeResearchRun, deleteResearch, deleteMultipleResearch, deleteBatc
 import { ReviewStatusSchema, type ProspectSeed, type ResearchEntry } from '@/marcom/schemas/research-record';
 import { evidenceCoverage, reviewStatus, summarizeResearch } from '@/marcom/research/review';
 
+import { isDatabaseConfigured } from '@/db/env';
+import { listResearch as listFileResearch, updateResearchReview as updateFileReview, deleteResearch as deleteFileResearch, deleteMultipleResearch as deleteFileMultiple, deleteBatchResearch as deleteFileBatch, deleteProjectResearch as deleteFileProject, getNextBatchInfo as getFileNextBatch, saveResearch as saveFileResearch, findDuplicate as findFileDuplicate } from '@/marcom/memory/research-store';
+
 export const runtime = 'nodejs';
 export const maxDuration = 300;
 
@@ -42,7 +45,19 @@ export async function GET(req: Request, { params }: RouteCtx) {
   const { id: projectId } = await params;
   const project = await readCampaignMemory(projectId);
   if (!project) return NextResponse.json({ error: 'Project not found' }, { status: 404 });
-  const actor = await resolveLocalPilotActor();
+
+  let allEntries: ResearchEntry[] = [];
+  if (isDatabaseConfigured()) {
+    try {
+      const actor = await resolveLocalPilotActor();
+      allEntries = await listResearch(actor, projectId);
+    } catch (e) {
+      console.warn('Database error in research GET, falling back to file memory:', e);
+      allEntries = listFileResearch(projectId);
+    }
+  } else {
+    allEntries = listFileResearch(projectId);
+  }
 
   const search = new URL(req.url).searchParams;
   const query = search.get('q')?.trim().toLowerCase() ?? '';
@@ -57,7 +72,6 @@ export async function GET(req: Request, { params }: RouteCtx) {
   const page = Math.max(1, Number.parseInt(search.get('page') ?? '1', 10) || 1);
   const pageSize = Math.min(50, Math.max(5, Number.parseInt(search.get('pageSize') ?? '20', 10) || 20));
 
-  const allEntries = await listResearch(actor, projectId);
   const locations = [...new Set(allEntries.flatMap((entry) => [entry.record.location, entry.record.country]).filter((value): value is string => Boolean(value)))].sort();
   const targets = [...new Set(allEntries.map((entry) => entry.record.target_type).filter(Boolean))].sort();
 
@@ -128,20 +142,19 @@ export async function POST(req: Request, { params }: RouteCtx) {
   };
 
   const store = await createServerMemoryStore();
-  const actor = await resolveLocalPilotActor();
+  const isDb = isDatabaseConfigured();
+  let actor: any = null;
+  if (isDb) {
+    try {
+      actor = await resolveLocalPilotActor();
+    } catch {
+      actor = null;
+    }
+  }
+
   const project = store.projects().find((p) => p.project_id === projectId);
   if (!project?.structured_brief) {
     return NextResponse.json({ error: 'Project or structured brief not found' }, { status: 404 });
-  }
-
-  if (seed.name) {
-    const duplicate = findDuplicate(await listResearch(actor, projectId), seed);
-    if (duplicate && !body.force) {
-      return NextResponse.json(
-        { error: `"${duplicate.record.identity.name ?? duplicate.seed.name}" has already been researched in this project.`, code: 'duplicate', record_id: duplicate.record.record_id },
-        { status: 409 },
-      );
-    }
   }
 
   let llmProvider: GroqProvider;
@@ -151,6 +164,17 @@ export async function POST(req: Request, { params }: RouteCtx) {
     searchProvider = resolveSearchProvider(undefined, llmProvider);
   } catch (error) {
     return NextResponse.json({ error: (error as Error).message }, { status: 500 });
+  }
+
+  if (seed.name) {
+    const existing = actor ? await listResearch(actor, projectId) : listFileResearch(projectId);
+    const duplicate = findDuplicate(existing, seed);
+    if (duplicate && !body.force) {
+      return NextResponse.json(
+        { error: `"${duplicate.record.identity.name ?? duplicate.seed.name}" has already been researched in this project.`, code: 'duplicate', record_id: duplicate.record.record_id },
+        { status: 409 },
+      );
+    }
   }
 
   const encoder = new TextEncoder();
@@ -164,7 +188,7 @@ export async function POST(req: Request, { params }: RouteCtx) {
 
         if (!actualSeed.name) {
           onProgress({ stage: 'resolving', message: 'Searching for a supported prospect candidate...' });
-          const existing = await listResearch(actor, projectId);
+          const existing = actor ? await listResearch(actor, projectId) : listFileResearch(projectId);
           const target = pickTarget(project.structured_brief!, actualSeed, clean(body.target_id, 100));
           const discovery = await discoverProspectSeeds({
             brief: project.structured_brief!,
@@ -181,8 +205,10 @@ export async function POST(req: Request, { params }: RouteCtx) {
           onProgress({ stage: 'resolving', message: `Discovered: ${actualSeed.name}` });
         }
 
-        const batchInfo = await getNextBatchInfo(actor, projectId);
-        researchRunId = await startResearchRun(actor, projectId, batchInfo, 1, clean(body.target_id, 100) ?? 'default');
+        const batchInfo = actor ? await getNextBatchInfo(actor, projectId) : getFileNextBatch(projectId);
+        if (actor) {
+          researchRunId = await startResearchRun(actor, projectId, batchInfo, 1, clean(body.target_id, 100) ?? 'default');
+        }
         const entry = await runResearchAgent({
           projectId,
           brief: project.structured_brief!,
@@ -196,12 +222,18 @@ export async function POST(req: Request, { params }: RouteCtx) {
         onProgress({ stage: 'saving', message: 'Saving to project' });
         entry.batch_id = batchInfo.batch_id;
         entry.batch_number = batchInfo.batch_number;
-        await saveResearch(actor, projectId, researchRunId, entry);
-        await completeResearchRun(actor, researchRunId, 0);
+
+        if (actor && researchRunId) {
+          await saveResearch(actor, projectId, researchRunId, entry);
+          await completeResearchRun(actor, researchRunId, 0);
+        } else {
+          saveFileResearch(projectId, entry);
+        }
+
         onProgress({ stage: 'complete', message: 'Research complete' });
         send({ type: 'result', entry });
       } catch (e) {
-        if (researchRunId) {
+        if (actor && researchRunId) {
           await completeResearchRun(actor, researchRunId, 1).catch((completionError) => {
             console.error('Research failure state could not be persisted:', completionError);
           });
@@ -219,7 +251,7 @@ export async function POST(req: Request, { params }: RouteCtx) {
   });
 }
 
-/** Persist one human G3-style review decision in PostgreSQL. */
+/** Persist one human G3-style review decision. */
 export async function PATCH(req: Request, { params }: RouteCtx) {
   const { id: projectId } = await params;
   const parsed = ReviewDecisionSchema.safeParse(await req.json());
@@ -229,14 +261,26 @@ export async function PATCH(req: Request, { params }: RouteCtx) {
   if (parsed.data.status === 'rejected' && !parsed.data.note?.trim()) {
     return NextResponse.json({ error: 'Add a reason before rejecting this prospect.' }, { status: 422 });
   }
-  const actor = await resolveLocalPilotActor();
-  const updated = await updateResearchReview(
-    actor,
-    projectId,
-    parsed.data.record_id,
-    parsed.data.status,
-    parsed.data.note ?? null,
-  );
+
+  let updated = null;
+  if (isDatabaseConfigured()) {
+    try {
+      const actor = await resolveLocalPilotActor();
+      updated = await updateResearchReview(
+        actor,
+        projectId,
+        parsed.data.record_id,
+        parsed.data.status,
+        parsed.data.note ?? null,
+      );
+    } catch (e) {
+      console.warn('Database error in research PATCH, falling back to file memory:', e);
+      updated = updateFileReview(projectId, parsed.data.record_id, parsed.data.status, parsed.data.note ?? null);
+    }
+  } else {
+    updated = updateFileReview(projectId, parsed.data.record_id, parsed.data.status, parsed.data.note ?? null);
+  }
+
   return updated
     ? NextResponse.json({ success: true, entry: updated })
     : NextResponse.json({ error: 'Research record not found' }, { status: 404 });
@@ -244,23 +288,10 @@ export async function PATCH(req: Request, { params }: RouteCtx) {
 
 export async function DELETE(req: Request, { params }: RouteCtx) {
   const { id: projectId } = await params;
-  const actor = await resolveLocalPilotActor();
   const url = new URL(req.url);
   const recordId = url.searchParams.get('recordId');
   const batchId = url.searchParams.get('batchId') || url.searchParams.get('batch');
   const all = url.searchParams.get('all') === 'true';
-
-  if (all) {
-    await deleteProjectResearch(actor, projectId);
-    return NextResponse.json({ success: true, message: 'All research deleted' });
-  }
-
-  if (batchId) {
-    const ok = await deleteBatchResearch(actor, projectId, batchId);
-    return ok 
-      ? NextResponse.json({ success: true, message: `Batch ${batchId} deleted` })
-      : NextResponse.json({ error: `Batch ${batchId} not found` }, { status: 404 });
-  }
 
   let bodyRecordIds: string[] | null = null;
   try {
@@ -272,16 +303,52 @@ export async function DELETE(req: Request, { params }: RouteCtx) {
     // Body is optional
   }
 
+  if (isDatabaseConfigured()) {
+    try {
+      const actor = await resolveLocalPilotActor();
+      if (all) {
+        await deleteProjectResearch(actor, projectId);
+        return NextResponse.json({ success: true, message: 'All research deleted' });
+      }
+      if (batchId) {
+        const ok = await deleteBatchResearch(actor, projectId, batchId);
+        return ok 
+          ? NextResponse.json({ success: true, message: `Batch ${batchId} deleted` })
+          : NextResponse.json({ error: `Batch ${batchId} not found` }, { status: 404 });
+      }
+      if (bodyRecordIds && bodyRecordIds.length > 0) {
+        const ok = await deleteMultipleResearch(actor, projectId, bodyRecordIds);
+        return ok 
+          ? NextResponse.json({ success: true, count: bodyRecordIds.length })
+          : NextResponse.json({ error: 'No matching records found' }, { status: 404 });
+      }
+      if (!recordId) return NextResponse.json({ error: 'recordId, batchId, recordIds, or all=true is required' }, { status: 400 });
+      const ok = await deleteResearch(actor, projectId, recordId);
+      return ok ? NextResponse.json({ success: true }) : NextResponse.json({ error: 'Record not found' }, { status: 404 });
+    } catch (e) {
+      console.warn('Database error in research DELETE, falling back to file memory:', e);
+    }
+  }
+
+  // File fallback
+  if (all) {
+    deleteFileProject(projectId);
+    return NextResponse.json({ success: true, message: 'All research deleted' });
+  }
+  if (batchId) {
+    const ok = deleteFileBatch(projectId, batchId);
+    return ok 
+      ? NextResponse.json({ success: true, message: `Batch ${batchId} deleted` })
+      : NextResponse.json({ error: `Batch ${batchId} not found` }, { status: 404 });
+  }
   if (bodyRecordIds && bodyRecordIds.length > 0) {
-    const ok = await deleteMultipleResearch(actor, projectId, bodyRecordIds);
+    const ok = deleteFileMultiple(projectId, bodyRecordIds);
     return ok 
       ? NextResponse.json({ success: true, count: bodyRecordIds.length })
       : NextResponse.json({ error: 'No matching records found' }, { status: 404 });
   }
-
   if (!recordId) return NextResponse.json({ error: 'recordId, batchId, recordIds, or all=true is required' }, { status: 400 });
-  
-  const ok = await deleteResearch(actor, projectId, recordId);
+  const ok = deleteFileResearch(projectId, recordId);
   return ok ? NextResponse.json({ success: true }) : NextResponse.json({ error: 'Record not found' }, { status: 404 });
 }
 

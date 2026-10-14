@@ -24,7 +24,19 @@ function read(rel: string): string {
 }
 
 export function loadAgentPrompt(agent: AgentName): { system: string; schema: unknown } {
-  const systemPrompt = read(`${agent}/system-prompt.md`);
+  const parts: string[] = [];
+  try {
+    parts.push(read('shared/global-rules.md'));
+  } catch {
+    // optional
+  }
+  try {
+    parts.push(read(`${agent}/rules.md`));
+  } catch {
+    // optional
+  }
+  parts.push(read(`${agent}/system-prompt.md`));
+  const systemPrompt = parts.join('\n\n---\n\n');
   const schema = JSON.parse(read(`${agent}/schema.json`));
   return { system: systemPrompt, schema };
 }

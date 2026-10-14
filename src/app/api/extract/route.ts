@@ -1,122 +1,162 @@
 import { NextResponse } from 'next/server';
 import mammoth from 'mammoth';
+import { extractPdfText, IngestionError, MAX_PDF_BYTES } from '@/marcom/ingestion/pdf';
+import { assessTextQuality, normaliseBriefText } from '@/marcom/ingestion/normalize';
+import { saveSourceFile } from '@/marcom/ingestion/source-store';
 
-// Polyfill for pdf-parse canvas dependency in Node
-if (typeof global !== 'undefined') {
-  if (!global.DOMMatrix) (global as any).DOMMatrix = class DOMMatrix {};
-  if (!global.Path2D) (global as any).Path2D = class Path2D {};
-  if (!global.ImageData) (global as any).ImageData = class ImageData {};
+// pdf.js and mammoth need the Node.js runtime (Buffer, fs).
+export const runtime = 'nodejs';
+
+const MAX_DOCX_BYTES = 15 * 1024 * 1024;
+const MAX_TEXT_BYTES = 2 * 1024 * 1024;
+
+type FileKind = 'pdf' | 'docx' | 'txt' | 'md';
+
+function detectKind(file: File): FileKind | null {
+  const name = file.name.toLowerCase();
+  if (name.endsWith('.pdf') || file.type === 'application/pdf') return 'pdf';
+  if (name.endsWith('.docx') || file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') return 'docx';
+  if (name.endsWith('.md') || name.endsWith('.markdown') || file.type === 'text/markdown') return 'md';
+  if (name.endsWith('.txt') || file.type === 'text/plain') return 'txt';
+  return null;
+}
+
+function errorResponse(error: IngestionError) {
+  return NextResponse.json({ error: error.message, code: error.code }, { status: error.status });
+}
+
+/** Turns any public Google Docs URL into its plain-text export URL. Only docs.google.com is allowed (prevents SSRF). */
+function googleDocExportUrl(raw: string): string | null {
+  let url: URL;
+  try {
+    url = new URL(raw.trim());
+  } catch {
+    return null;
+  }
+  if (url.protocol !== 'https:' || url.hostname !== 'docs.google.com') return null;
+  const match = url.pathname.match(/\/document\/(?:u\/\d+\/)?d\/([\w-]{20,})/);
+  return match ? `https://docs.google.com/document/d/${match[1]}/export?format=txt` : null;
+}
+
+function finalise(rawText: string, base: Record<string, unknown>, extraWarnings: string[] = []) {
+  const normalised = normaliseBriefText(rawText);
+  const quality = assessTextQuality(normalised.text);
+  if (!quality.ok) {
+    throw quality.reason === 'corrupted'
+      ? new IngestionError('TEXT_CORRUPTED', 'The extracted text is unreadable or corrupted. Try re-exporting the document or paste the text directly.')
+      : new IngestionError('TEXT_TOO_SHORT', "We couldn't find enough usable text in this document to analyse it as a brief.");
+  }
+  return {
+    success: true as const,
+    ...base,
+    extracted_text: normalised.text,
+    char_count: normalised.text.length,
+    original_char_count: normalised.original_length,
+    truncated: normalised.truncated,
+    warnings: [...extraWarnings, ...normalised.warnings],
+  };
 }
 
 export async function POST(req: Request) {
   try {
     const formData = await req.formData();
-    
-    // Check if it's a Google Doc URL or raw text submission instead of a file
-    const url = formData.get('url') as string;
-    const textContent = formData.get('text') as string;
+    const url = formData.get('url');
+    const textContent = formData.get('text');
 
-    if (textContent) {
-      return NextResponse.json({
-        success: true,
-        source_type: 'text',
-        source_name: 'Manual Input',
-        extracted_text: textContent
-      });
+    if (typeof textContent === 'string' && textContent.trim()) {
+      return NextResponse.json(finalise(textContent, { source_type: 'text', source_name: 'Manual Input' }));
     }
 
-    if (url) {
-      // Basic Google Doc text extraction (we will try fetching if it's public)
-      // Note: A robust Google Doc integration requires OAuth.
-      // For this implementation, we will attempt to fetch and parse HTML,
-      // or instruct the user if it fails (access denied).
-      try {
-        const response = await fetch(url);
-        if (!response.ok) throw new Error('Cannot access document');
-        const html = await response.text();
-        
-        // Very rudimentary text extraction from public Google doc HTML
-        // In reality, this needs the Google Drive API.
-        const textMatch = html.match(/<script nonce=".*?">DOCS_modelChunk = \[\{"s":"(.*?)"\}\];/);
-        let extractedText = '';
-        if (textMatch && textMatch[1]) {
-          // Google Docs often stores text chunks encoded in JS
-          extractedText = textMatch[1].replace(/\\n/g, '\n').replace(/\\u([0-9a-fA-F]{4})/g, (m, c) => String.fromCharCode(parseInt(c, 16)));
-        } else {
-          // Fallback: strip html tags
-          extractedText = html.replace(/<[^>]*>?/gm, ' ').replace(/\s+/g, ' ').trim();
-        }
-
-        if (!extractedText || extractedText.length < 50) {
-           return NextResponse.json({ 
-             error: "MARCOM couldn't access this document. Connect Google Drive or make the document accessible."
-           }, { status: 400 });
-        }
-
-        return NextResponse.json({
-          success: true,
-          source_type: 'google_doc',
-          source_name: 'Google Document',
-          source_url: url,
-          extracted_text: extractedText
-        });
-      } catch (err) {
-        return NextResponse.json({ 
-          error: "MARCOM couldn't access this document. Connect Google Drive or make the document accessible." 
-        }, { status: 400 });
+    if (typeof url === 'string' && url.trim()) {
+      const exportUrl = googleDocExportUrl(url);
+      if (!exportUrl) {
+        return NextResponse.json(
+          { error: 'Enter a Google Docs link (https://docs.google.com/document/d/...).', code: 'UNSUPPORTED_TYPE' },
+          { status: 400 },
+        );
       }
+      let text = '';
+      try {
+        const response = await fetch(exportUrl, { redirect: 'follow', signal: AbortSignal.timeout(15_000) });
+        const contentType = response.headers.get('content-type') ?? '';
+        // Private docs redirect to an HTML sign-in page instead of returning text/plain.
+        if (response.ok && contentType.includes('text/plain')) text = await response.text();
+      } catch {
+        /* handled below */
+      }
+      if (!text.trim()) {
+        return NextResponse.json(
+          { error: "MARCOM couldn't access this document. Set sharing to \"Anyone with the link can view\" or paste the text directly.", code: 'EXTRACTION_FAILED' },
+          { status: 400 },
+        );
+      }
+      return NextResponse.json(finalise(text, { source_type: 'google_doc', source_name: 'Google Document', source_url: url.trim() }));
     }
 
-    const file = formData.get('file') as File;
-    if (!file) {
-      return NextResponse.json({ error: 'No file or text provided' }, { status: 400 });
+    const file = formData.get('file');
+    if (!(file instanceof File)) {
+      return NextResponse.json({ error: 'No file or text provided.', code: 'EMPTY_FILE' }, { status: 400 });
+    }
+
+    const kind = detectKind(file);
+    if (!kind) {
+      return NextResponse.json(
+        { error: 'Unsupported file type. MARCOM supports PDF, Word (.docx), TXT and Markdown.', code: 'UNSUPPORTED_TYPE' },
+        { status: 415 },
+      );
+    }
+    if (file.size === 0) throw new IngestionError('EMPTY_FILE', 'This file is empty (0 bytes).', 400);
+    const limit = kind === 'pdf' ? MAX_PDF_BYTES : kind === 'docx' ? MAX_DOCX_BYTES : MAX_TEXT_BYTES;
+    if (file.size > limit) {
+      throw new IngestionError(
+        'FILE_TOO_LARGE',
+        `This file is ${(file.size / 1024 / 1024).toFixed(1)} MB. The maximum for ${kind.toUpperCase()} briefs is ${limit / 1024 / 1024} MB.`,
+        413,
+      );
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    let extractedText = '';
+    let rawText = '';
+    let pageCount: number | undefined;
+    const warnings: string[] = [];
 
-    if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const pdfParse = require('pdf-parse');
-        const data = await pdfParse(buffer);
-        extractedText = data.text;
-      } catch (e) {
-        console.error('PDF Parse Error:', e);
-        return NextResponse.json({ error: "We couldn't extract usable text from this document." }, { status: 400 });
+    if (kind === 'pdf') {
+      const pdf = await extractPdfText(buffer);
+      rawText = pdf.text;
+      pageCount = pdf.page_count;
+      warnings.push(...pdf.warnings);
+    } else if (kind === 'docx') {
+      if (buffer.subarray(0, 2).toString('latin1') !== 'PK') {
+        throw new IngestionError('EXTRACTION_FAILED', "This file isn't a valid Word (.docx) document. Older .doc files must be saved as .docx first.");
       }
-    } else if (
-      file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || 
-      file.name.endsWith('.docx')
-    ) {
       try {
         const result = await mammoth.extractRawText({ buffer });
-        extractedText = result.value;
-      } catch (e) {
-        return NextResponse.json({ error: "We couldn't extract usable text from this DOCX." }, { status: 400 });
+        rawText = result.value;
+      } catch {
+        throw new IngestionError('EXTRACTION_FAILED', "We couldn't extract usable text from this Word document. It may be corrupted or password-protected.");
       }
-    } else if (file.type === 'text/plain' || file.type === 'text/markdown' || file.name.endsWith('.txt') || file.name.endsWith('.md')) {
-      extractedText = buffer.toString('utf8');
     } else {
-      return NextResponse.json({ error: "MARCOM currently supports PDF, DOCX, TXT and Markdown." }, { status: 400 });
+      if (buffer.includes(0)) {
+        throw new IngestionError('TEXT_CORRUPTED', "This file doesn't look like plain text. Upload a .txt or .md file, or paste the text directly.");
+      }
+      rawText = buffer.toString('utf8');
     }
 
-    const cleanedText = extractedText.trim();
-    if (!cleanedText) {
-      return NextResponse.json({ error: "We couldn't find usable text in this file." }, { status: 400 });
-    }
-
-    return NextResponse.json({
-      success: true,
-      source_type: file.name.split('.').pop()?.toLowerCase() || 'file',
-      source_name: file.name,
-      file_size: file.size,
-      mime_type: file.type,
-      extracted_text: cleanedText
-    });
-
+    // Only keep the original once extraction has succeeded; failures are not persisted.
+    const mimeType = file.type || (kind === 'pdf' ? 'application/pdf' : 'application/octet-stream');
+    const body = finalise(
+      rawText,
+      { source_type: kind, source_name: file.name, file_size: file.size, mime_type: mimeType, page_count: pageCount },
+      warnings,
+    );
+    const stored = await saveSourceFile(buffer, file.name, mimeType, { page_count: pageCount });
+    return NextResponse.json({ ...body, source_file_id: stored.id });
   } catch (err) {
+    if (err instanceof IngestionError) return errorResponse(err);
     console.error('Extraction error:', err);
-    return NextResponse.json({ error: "We couldn't extract the brief. You can paste the text manually." }, { status: 500 });
+    return NextResponse.json(
+      { error: "We couldn't extract the brief. You can paste the text manually.", code: 'EXTRACTION_FAILED' },
+      { status: 500 },
+    );
   }
 }

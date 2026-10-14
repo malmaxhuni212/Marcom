@@ -52,6 +52,52 @@ export function validateStructuredBrief(raw: unknown, sourceBrief: string): Brie
     if (!Array.isArray(obj.approximations)) obj.approximations = [];
     if (!Array.isArray(obj.unknowns_requiring_confirmation)) obj.unknowns_requiring_confirmation = [];
 
+    // Outreach sanitization
+    if (!obj.outreach || typeof obj.outreach !== 'object') {
+      obj.outreach = {
+        objectives: ['Initial campaign outreach'],
+        channels: ['Email'],
+        tone: ['Professional'],
+        approval_required: true,
+      };
+    } else {
+      obj.outreach.approval_required = true;
+      if (!Array.isArray(obj.outreach.tone) || obj.outreach.tone.length === 0) {
+        obj.outreach.tone = typeof obj.outreach.tone === 'string' && obj.outreach.tone.trim()
+          ? [obj.outreach.tone.trim()]
+          : ['Professional'];
+      }
+      if (!Array.isArray(obj.outreach.channels) || obj.outreach.channels.length === 0) {
+        obj.outreach.channels = typeof obj.outreach.channels === 'string' && obj.outreach.channels.trim()
+          ? [obj.outreach.channels.trim()]
+          : ['Email'];
+      }
+      if (!Array.isArray(obj.outreach.objectives) || obj.outreach.objectives.length === 0) {
+        obj.outreach.objectives = typeof obj.outreach.objectives === 'string' && obj.outreach.objectives.trim()
+          ? [obj.outreach.objectives.trim()]
+          : ['Conduct tailored outreach'];
+      }
+    }
+
+    // Auto-flag vague criteria needing operational definition
+    if (Array.isArray(obj.targets)) {
+      for (const t of obj.targets) {
+        if (t && typeof t === 'object') {
+          for (const list of [t.qualification_criteria, t.exclusion_criteria]) {
+            if (Array.isArray(list)) {
+              for (const c of list) {
+                if (c && typeof c === 'object' && typeof c.text === 'string') {
+                  const vague = findVagueTerms(c.text);
+                  if (vague.length > 0) {
+                    c.needs_operational_definition = true;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
     // Filter incomplete database fields
     if (obj.database && Array.isArray(obj.database.fields)) {
       obj.database.fields = obj.database.fields.filter(

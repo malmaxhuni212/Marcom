@@ -26,3 +26,11 @@ export function getDatabaseUrl(
 
   return url.toString();
 }
+
+export function isDatabaseConfigured(
+  environment: Record<string, string | undefined> = process.env,
+): boolean {
+  const parsed = DatabaseEnvironmentSchema.safeParse(environment);
+  if (!parsed.success) return false;
+  return Boolean(parsed.data.DATABASE_URL || parsed.data.NETLIFY_DB_URL);
+}

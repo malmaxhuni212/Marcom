@@ -18,13 +18,17 @@ export default function AgentActivitySection() {
 
   useEffect(() => {
     fetch('/api/activity')
-      .then(res => res.json())
-      .then(data => {
-        setActivities(data);
+      .then(async (res) => {
+        if (!res.ok) return [];
+        return res.json();
+      })
+      .then((data) => {
+        setActivities(Array.isArray(data) ? data : []);
         setLoading(false);
       })
-      .catch(err => {
+      .catch((err) => {
         console.error('Failed to load activity', err);
+        setActivities([]);
         setLoading(false);
       });
 

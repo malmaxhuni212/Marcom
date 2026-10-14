@@ -27,9 +27,15 @@ export default function BriefIntakeModal({ isOpen, onClose, onSuccess }: BriefIn
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Processing state
+  // Processing & metadata state
   const [extractedText, setExtractedText] = useState('');
   const [structuredBrief, setStructuredBrief] = useState<StructuredBrief | null>(null);
+  const [sourceFileId, setSourceFileId] = useState<string | null>(null);
+  const [sourceFileName, setSourceFileName] = useState<string | null>(null);
+  const [extractionWarnings, setExtractionWarnings] = useState<string[]>([]);
+  const [pageCount, setPageCount] = useState<number | null>(null);
+  const [fileSize, setFileSize] = useState<number | null>(null);
+  const [processingStage, setProcessingStage] = useState<'EXTRACTING' | 'ANALYZING'>('EXTRACTING');
   
   // Create Project state
   const [isCreating, setIsCreating] = useState(false);
@@ -44,6 +50,11 @@ export default function BriefIntakeModal({ isOpen, onClose, onSuccess }: BriefIn
     setUrl('');
     setError(null);
     setStructuredBrief(null);
+    setSourceFileId(null);
+    setSourceFileName(null);
+    setExtractionWarnings([]);
+    setPageCount(null);
+    setFileSize(null);
   };
 
   const extractAndAnalyze = async () => {
@@ -63,11 +74,15 @@ export default function BriefIntakeModal({ isOpen, onClose, onSuccess }: BriefIn
       }
 
       setStep('PROCESSING');
+      setProcessingStage('EXTRACTING');
 
       let textToAnalyze = '';
 
       if (inputMode === 'PASTE') {
         textToAnalyze = briefText;
+        setSourceFileId(null);
+        setSourceFileName(null);
+        setExtractionWarnings([]);
       } else {
         const extractRes = await fetch('/api/extract', {
           method: 'POST',
@@ -83,9 +98,15 @@ export default function BriefIntakeModal({ isOpen, onClose, onSuccess }: BriefIn
 
         if (!extractRes.ok) throw new Error(extractData.error || 'Failed to extract brief.');
         textToAnalyze = extractData.extracted_text;
+        setSourceFileId(extractData.source_file_id || null);
+        setSourceFileName(extractData.source_name || file?.name || null);
+        setExtractionWarnings(extractData.warnings || []);
+        setPageCount(extractData.page_count ?? null);
+        setFileSize(extractData.file_size ?? null);
       }
       
       setExtractedText(textToAnalyze);
+      setProcessingStage('ANALYZING');
 
       // 2. Analyze
       const analyzeRes = await fetch('/api/analyze', {
@@ -134,7 +155,8 @@ export default function BriefIntakeModal({ isOpen, onClose, onSuccess }: BriefIn
           structured_brief: finalBrief,
           original_brief: extractedText,
           source_type: inputMode,
-          source_name: file?.name || 'Manual Input',
+          source_name: sourceFileName || file?.name || 'Manual Input',
+          source_file_id: sourceFileId || undefined,
         }),
       });
       
@@ -233,14 +255,15 @@ export default function BriefIntakeModal({ isOpen, onClose, onSuccess }: BriefIn
                       </svg>
                     </div>
                     {file ? (
-                      <div className="text-center">
+                      <div className="text-center px-4">
                         <p className="text-sm font-medium text-white/90">{file.name}</p>
                         <p className="text-xs text-white/40 mt-1">{(file.size / 1024 / 1024).toFixed(2)} MB • Ready to analyze</p>
                       </div>
                     ) : (
-                      <div className="text-center">
-                        <p className="text-sm font-medium text-white/90">Drop your brief here</p>
-                        <p className="text-xs text-white/40 mt-1">PDF, Word, TXT or Markdown</p>
+                      <div className="text-center px-6">
+                        <p className="text-sm font-medium text-white/90">Drop your brief here, or click to browse</p>
+                        <p className="text-xs text-white/40 mt-1">PDF, Word (.docx), TXT or Markdown (up to 15 MB)</p>
+                        <p className="text-[11px] text-white/30 mt-1.5">Note: PDFs must contain selectable text (scanned / image-only documents require OCR)</p>
                       </div>
                     )}
                   </div>
@@ -265,19 +288,38 @@ export default function BriefIntakeModal({ isOpen, onClose, onSuccess }: BriefIn
 
           {step === 'PROCESSING' && (
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#0d0d12]">
-              <div className="w-16 h-16 rounded-2xl bg-accent-blue/10 border border-accent-blue/20 flex items-center justify-center mb-6">
-                <div className="w-6 h-6 border-2 border-accent-blue border-t-transparent rounded-full animate-spin" />
+              <div className="w-16 h-16 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center mb-6">
+                <div className="w-6 h-6 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
               </div>
-              <h3 className="text-lg font-medium text-white/90 mb-8">Analyzing your brief...</h3>
-              <div className="flex flex-col gap-4 text-sm text-white/60 min-w-[240px]">
+              <h3 className="text-lg font-medium text-white/90 mb-6">
+                {processingStage === 'EXTRACTING'
+                  ? (inputMode === 'UPLOAD' ? `Extracting text from ${file?.name ?? 'document'}...` : inputMode === 'URL' ? 'Fetching Google Doc content...' : 'Normalising brief text...')
+                  : 'Analysing brief & structuring campaign requirements...'}
+              </h3>
+              <div className="flex flex-col gap-3 text-sm text-white/60 min-w-[300px]">
                 <div className="flex items-center gap-3">
-                  <span className="text-green-400">✓</span> Reading project context
+                  {processingStage === 'ANALYZING' ? (
+                    <span className="text-green-400 font-bold">✓</span>
+                  ) : (
+                    <span className="w-3 h-3 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin ml-0.5" />
+                  )}
+                  <span className={processingStage === 'ANALYZING' ? 'text-white/80' : 'text-white/90 font-medium'}>
+                    Document extraction & normalisation
+                  </span>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-green-400">✓</span> Extracting target types
+                  {processingStage === 'ANALYZING' ? (
+                    <span className="w-3 h-3 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin ml-0.5" />
+                  ) : (
+                    <span className="text-white/20 ml-0.5">○</span>
+                  )}
+                  <span className={processingStage === 'ANALYZING' ? 'text-white/90 font-medium' : 'text-white/40'}>
+                    Identifying targets, qualifications & constraints
+                  </span>
                 </div>
-                <div className="flex items-center gap-3 animate-pulse text-white/80">
-                  <span className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin ml-0.5" /> Building structured brief
+                <div className="flex items-center gap-3 text-white/30">
+                  <span className="ml-0.5">○</span>
+                  <span>Synthesising research & outreach rules</span>
                 </div>
               </div>
             </div>
@@ -287,6 +329,9 @@ export default function BriefIntakeModal({ isOpen, onClose, onSuccess }: BriefIn
             <CampaignConfigurationForm
               initialBrief={structuredBrief}
               originalBrief={extractedText}
+              sourceFileId={sourceFileId}
+              sourceFileName={sourceFileName}
+              extractionWarnings={extractionWarnings}
               submitLabel="Save campaign"
               submitting={isCreating}
               serverError={error}

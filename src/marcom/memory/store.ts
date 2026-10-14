@@ -48,7 +48,7 @@ const LUNIM_SECTION_TASKS: { match: RegExp; used_for: TaskKind[] }[] = [
   { match: /positioning|differentiator/i, used_for: ['brief_analysis', 'personalization'] },
   { match: /values/i, used_for: ['research', 'personalization'] },
   { match: /communication|voice|messaging/i, used_for: ['brief_analysis', 'personalization'] },
-  { match: /audience/i, used_for: ['brief_analysis'] },
+  { match: /audience/i, used_for: [] }, // Client briefs define their own target audiences
   { match: /history/i, used_for: ['personalization'] },
   { match: /visual|governance/i, used_for: [] },
 ];

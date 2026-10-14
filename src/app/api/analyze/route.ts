@@ -32,7 +32,7 @@ export async function POST(req: Request) {
     console.log('Analyzing brief...');
     const result = await analyzeBrief(briefText, provider, {
       memory: memoryContext,
-      maxRepairs: 0
+      maxRepairs: 1,
     });
 
     if (!result.ok) {

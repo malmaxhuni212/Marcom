@@ -9,6 +9,9 @@ import { validateResearchReadyConfiguration } from '@/marcom/validation/campaign
 interface CampaignConfigurationFormProps {
   initialBrief: StructuredBrief;
   originalBrief?: string;
+  sourceFileId?: string | null;
+  sourceFileName?: string | null;
+  extractionWarnings?: string[];
   submitLabel: string;
   submitting?: boolean;
   serverError?: string | null;
@@ -234,6 +237,9 @@ function Section({ number, title, description, children }: { number: string; tit
 export default function CampaignConfigurationForm({
   initialBrief,
   originalBrief,
+  sourceFileId,
+  sourceFileName,
+  extractionWarnings,
   submitLabel,
   submitting = false,
   serverError,
@@ -289,12 +295,35 @@ export default function CampaignConfigurationForm({
                   MARCOM extracted these details from the brief. Correct anything that is wrong and complete the required fields before saving. No prospect search starts from this screen.
                 </p>
               </div>
-              {originalBrief && (
-                <button type="button" className="text-xs font-medium text-white/55 hover:text-white" onClick={() => setShowOriginal((value) => !value)}>
-                  {showOriginal ? 'Hide original brief' : 'View original brief'}
-                </button>
-              )}
+              <div className="flex items-center gap-3">
+                {sourceFileId && (
+                  <a
+                    href={`/api/source-files/${sourceFileId}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-xs font-medium text-cyan-300 hover:text-cyan-200 underline underline-offset-4"
+                  >
+                    <span>📄 View original file</span>
+                    {sourceFileName && <span className="text-white/40">({sourceFileName})</span>}
+                  </a>
+                )}
+                {originalBrief && (
+                  <button type="button" className="text-xs font-medium text-white/55 hover:text-white" onClick={() => setShowOriginal((value) => !value)}>
+                    {showOriginal ? 'Hide extracted brief' : 'View extracted brief'}
+                  </button>
+                )}
+              </div>
             </div>
+            {extractionWarnings && extractionWarnings.length > 0 && (
+              <div className="mt-4 rounded-xl border border-amber-400/20 bg-amber-400/[0.06] p-3 text-xs text-amber-200">
+                <p className="font-semibold text-amber-300 mb-1">Extraction Notices:</p>
+                <ul className="list-disc pl-4 space-y-0.5 text-amber-200/90">
+                  {extractionWarnings.map((w, idx) => (
+                    <li key={idx}>{w}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
             {showOriginal && originalBrief && (
               <pre className="mt-4 max-h-64 overflow-auto whitespace-pre-wrap rounded-xl border border-white/[0.06] bg-black/20 p-4 font-sans text-xs leading-5 text-white/50">{originalBrief}</pre>
             )}
