@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server';
 import { listResearch } from '@/db/repositories/research-repository';
-import { resolveLocalPilotActor } from '@/db/local-actor';
+import { authorizeApiRequest } from '@/auth/access';
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string, recordId: string }> }) {
+  const access = await authorizeApiRequest(req);
+  if (!access.ok) return access.response;
   const { id, recordId } = await params;
   
-  const actor = await resolveLocalPilotActor();
-  const allResearch = await listResearch(actor, id);
+  const allResearch = await listResearch(access.actor, id);
   const entry = allResearch.find(r => r.record.record_id === recordId);
   
   if (!entry) {

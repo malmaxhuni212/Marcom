@@ -2,13 +2,21 @@
   "name": "marcom-app",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=22.12.0"
+  },
   "scripts": {
     "dev": "next dev --webpack --hostname 127.0.0.1",
     "build": "next build --webpack",
     "start": "next start --hostname 127.0.0.1",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test src/db/env.test.ts src/db/idempotency.test.ts src/db/research-repository.test.ts src/marcom/agents/research/discovery.test.ts src/marcom/search/provider.test.ts src/marcom/validation/campaign-configuration.test.ts src/marcom/research/review.test.ts",
+    "test": "tsx --test src/auth/access-config.test.ts src/auth/authenticate.test.ts src/auth/config.test.ts src/auth/http.test.ts src/auth/password.test.ts src/auth/product-route-access.test.ts src/auth/proxy.test.ts src/auth/session.test.ts src/db/env.test.ts src/db/idempotency.test.ts src/db/research-repository.test.ts src/marcom/agents/research/discovery.test.ts src/marcom/ingestion/source-storage.test.ts src/marcom/search/provider.test.ts src/marcom/validation/campaign-configuration.test.ts src/marcom/research/review.test.ts",
+    "test:integration": "tsx --test src/auth/credentials.integration.test.ts",
+    "auth:bootstrap": "tsx src/auth/scripts/bootstrap.ts",
+    "auth:rotate-password": "tsx src/auth/scripts/rotate-password.ts",
+    "auth:status": "tsx src/auth/scripts/status.ts",
+    "auth:revoke-sessions": "tsx src/auth/scripts/revoke-sessions.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/db/migrate.ts",
     "db:seed": "tsx src/db/seed.ts",
@@ -18,6 +26,7 @@
     "search:smoke": "node --env-file=.env.local --import tsx src/scripts/search-smoke.ts"
   },
   "dependencies": {
+    "@netlify/blobs": "^11.1.4",
     "@next/env": "^16.3.8",
     "drizzle-orm": "^0.45.4",
     "mammoth": "^1.13.0",

@@ -52,3 +52,6 @@ share-config-details.txt
 /memory/personalization/*.json
 /memory/*-original.json
 /storage/
+
+#person docs
+docs/shared-pilot-authentication-plan.md

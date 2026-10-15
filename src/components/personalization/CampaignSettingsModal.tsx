@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import type { PersonalizationSettings } from '@/marcom/schemas/personalization';
+import { authenticatedFetch } from '@/auth/client';
 
 interface CampaignSettingsModalProps {
   projectId: string;
@@ -55,7 +56,7 @@ export default function CampaignSettingsModal({
         extra_guidance: extraGuidance.trim(),
       };
 
-      const res = await fetch(`/api/projects/${projectId}/personalization`, {
+      const res = await authenticatedFetch(`/api/projects/${projectId}/personalization`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),

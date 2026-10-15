@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import type { ResearchEntry } from '@/marcom/schemas/research-record';
 import { evidenceCoverage, reviewStatus, type ResearchReviewSummary } from '@/marcom/research/review';
+import { authenticatedFetch } from '@/auth/client';
 
 const statusLabels = {
   needs_review: 'Needs review',
@@ -31,7 +32,7 @@ export default function ResearchResultsPreview({
 
     setDeletingBatch(batchId);
     try {
-      const res = await fetch(`/api/projects/${projectId}/research?batchId=${encodeURIComponent(batchId)}`, {
+      const res = await authenticatedFetch(`/api/projects/${projectId}/research?batchId=${encodeURIComponent(batchId)}`, {
         method: 'DELETE',
       });
       if (!res.ok) {

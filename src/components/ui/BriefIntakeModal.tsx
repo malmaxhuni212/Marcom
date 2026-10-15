@@ -5,6 +5,7 @@ import PrimaryButton from './PrimaryButton';
 import SecondaryButton from './SecondaryButton';
 import type { StructuredBrief } from '@/marcom/schemas/structured-brief';
 import CampaignConfigurationForm from '@/components/campaign/CampaignConfigurationForm';
+import { authenticatedFetch } from '@/auth/client';
 
 interface BriefIntakeModalProps {
   isOpen: boolean;
@@ -84,7 +85,7 @@ export default function BriefIntakeModal({ isOpen, onClose, onSuccess }: BriefIn
         setSourceFileName(null);
         setExtractionWarnings([]);
       } else {
-        const extractRes = await fetch('/api/extract', {
+        const extractRes = await authenticatedFetch('/api/extract', {
           method: 'POST',
           body: formData,
         });
@@ -109,7 +110,7 @@ export default function BriefIntakeModal({ isOpen, onClose, onSuccess }: BriefIn
       setProcessingStage('ANALYZING');
 
       // 2. Analyze
-      const analyzeRes = await fetch('/api/analyze', {
+      const analyzeRes = await authenticatedFetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ briefText: textToAnalyze }),
@@ -145,7 +146,7 @@ export default function BriefIntakeModal({ isOpen, onClose, onSuccess }: BriefIn
       setError(null);
       setIsCreating(true);
 
-      const res = await fetch('/api/projects/create', {
+      const res = await authenticatedFetch('/api/projects/create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

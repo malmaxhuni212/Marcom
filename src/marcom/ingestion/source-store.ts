@@ -1,18 +1,16 @@
-/**
- * Local store for original uploaded brief files, so a human can always review the source document
- * next to the structured brief.
- *
- * Files are kept server-side under `storage/brief-sources/` (git-ignored) and are only addressable
- * by a random UUID — never by user-supplied names — which prevents path traversal.
- * In hosted deployments this is the seam to swap for object storage (the `stored_files` table's
- * `storage_key` column already models this).
- */
 import { createHash, randomUUID } from 'node:crypto';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import path from 'node:path';
-
-const STORE_DIR = path.join(process.cwd(), 'storage', 'brief-sources');
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+import type { MarcomDatabase } from '@/db/client';
+import type { ActorContext } from '@/db/local-actor';
+import {
+  createStoredFile,
+  getStoredFile,
+  type StoredFileRow,
+} from '@/db/repositories/stored-file-repository';
+import {
+  createBriefSourceStorage,
+  resolveBriefSourceStorage,
+  type BriefSourceObjectStorage,
+} from './source-storage';
 
 export interface StoredSourceMeta {
   id: string;
@@ -21,52 +19,95 @@ export interface StoredSourceMeta {
   size_bytes: number;
   sha256: string;
   storage_key: string;
-  page_count?: number;
   created_at: string;
+}
+
+export interface SaveSourceFileOptions {
+  actor: ActorContext;
+  declaredMimeType?: string;
+  detectedMimeType: string;
+  storage?: BriefSourceObjectStorage;
+  database?: MarcomDatabase;
 }
 
 function safeFilename(name: string): string {
   return name.replace(/[^\w.\- ()]/g, '_').slice(0, 200) || 'brief';
 }
 
+function toMeta(row: StoredFileRow): StoredSourceMeta {
+  return {
+    id: row.id,
+    original_filename: row.originalFilename,
+    mime_type: row.detectedMimeType,
+    size_bytes: row.sizeBytes,
+    sha256: row.sha256,
+    storage_key: row.storageKey,
+    created_at: row.createdAt.toISOString(),
+  };
+}
+
 export async function saveSourceFile(
   buffer: Buffer,
   originalFilename: string,
-  mimeType: string,
-  extra: { page_count?: number } = {},
+  options: SaveSourceFileOptions,
 ): Promise<StoredSourceMeta> {
-  await mkdir(STORE_DIR, { recursive: true });
   const id = randomUUID();
-  const meta: StoredSourceMeta = {
-    id,
-    original_filename: safeFilename(originalFilename),
-    mime_type: mimeType,
-    size_bytes: buffer.length,
-    sha256: createHash('sha256').update(buffer).digest('hex'),
-    storage_key: `local:brief-sources/${id}`,
-    created_at: new Date().toISOString(),
-    ...extra,
-  };
-  await writeFile(path.join(STORE_DIR, `${id}.bin`), buffer);
-  await writeFile(path.join(STORE_DIR, `${id}.json`), JSON.stringify(meta, null, 2));
-  return meta;
-}
+  const storage = options.storage ?? createBriefSourceStorage();
+  const objectKey = `v1/${options.actor.workspaceId}/${id}`;
+  const storageKey = storage.toStorageKey(objectKey);
+  const filename = safeFilename(originalFilename);
+  const sha256 = createHash('sha256').update(buffer).digest('hex');
 
-export async function readSourceMeta(id: string): Promise<StoredSourceMeta | null> {
-  if (!UUID_RE.test(id)) return null;
+  await storage.put(objectKey, buffer);
+
   try {
-    return JSON.parse(await readFile(path.join(STORE_DIR, `${id}.json`), 'utf8')) as StoredSourceMeta;
-  } catch {
-    return null;
+    const row = await createStoredFile(
+      options.actor,
+      {
+        id,
+        storageKey,
+        originalFilename: filename,
+        declaredMimeType: options.declaredMimeType,
+        detectedMimeType: options.detectedMimeType,
+        sizeBytes: buffer.length,
+        sha256,
+      },
+      options.database,
+    );
+    return toMeta(row);
+  } catch (error) {
+    try {
+      await storage.delete(objectKey);
+    } catch {
+      console.error(JSON.stringify({
+        event: 'brief_source.rollback_delete_failed',
+        storedFileId: id,
+        storageProvider: storage.provider,
+      }));
+    }
+    throw error;
   }
 }
 
-export async function readSourceFile(id: string): Promise<{ meta: StoredSourceMeta; data: Buffer } | null> {
-  const meta = await readSourceMeta(id);
-  if (!meta) return null;
-  try {
-    return { meta, data: await readFile(path.join(STORE_DIR, `${id}.bin`)) };
-  } catch {
-    return null;
-  }
+export async function readSourceMeta(
+  actor: ActorContext,
+  id: string,
+  database?: MarcomDatabase,
+): Promise<StoredSourceMeta | null> {
+  const row = await getStoredFile(actor, id, database);
+  return row ? toMeta(row) : null;
+}
+
+export async function readSourceFile(
+  actor: ActorContext,
+  id: string,
+  database?: MarcomDatabase,
+): Promise<{ meta: StoredSourceMeta; data: Buffer } | null> {
+  const row = await getStoredFile(actor, id, database);
+  if (!row) return null;
+
+  const { storage, objectKey } = resolveBriefSourceStorage(row.storageKey);
+  const data = await storage.get(objectKey);
+  if (!data) return null;
+  return { meta: toMeta(row), data };
 }

@@ -3,8 +3,11 @@ import { JsonFileMemoryStore } from '@/marcom/memory/store';
 import { analyzeBrief } from '@/marcom/agents/brief-analyzer/analyzer';
 import { GroqProvider } from '@/marcom/llm/groq-provider';
 import { retrieveMemoryContext } from '@/marcom/memory/retrieval';
+import { authorizeApiRequest } from '@/auth/access';
 
 export async function POST(req: Request) {
+  const access = await authorizeApiRequest(req);
+  if (!access.ok) return access.response;
   try {
     const body = await req.json();
     const { briefText } = body;

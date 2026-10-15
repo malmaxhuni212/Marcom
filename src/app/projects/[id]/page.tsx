@@ -11,6 +11,7 @@ import type { StructuredBrief } from '@/marcom/schemas/structured-brief';
 import type { ProjectMemory } from '@/marcom/memory/types';
 import type { ResearchEntry } from '@/marcom/schemas/research-record';
 import type { ResearchReviewSummary } from '@/marcom/research/review';
+import { authenticatedFetch } from '@/auth/client';
 
 const emptyResearchSummary: ResearchReviewSummary = {
   total: 0,
@@ -34,7 +35,7 @@ export default function ProjectDetailClient({ params }: { params: Promise<{ id: 
 
   const loadData = async () => {
     try {
-      const res = await fetch(`/api/projects/${id}`);
+      const res = await authenticatedFetch(`/api/projects/${id}`);
       if (res.ok) {
         const data = await res.json();
         setProject(data.project);
@@ -50,7 +51,7 @@ export default function ProjectDetailClient({ params }: { params: Promise<{ id: 
 
   useEffect(() => {
     let cancelled = false;
-    fetch(`/api/projects/${id}`)
+    authenticatedFetch(`/api/projects/${id}`)
       .then((response) => response.ok ? response.json() : Promise.reject(new Error('Project could not be loaded.')))
       .then((data: { project: ProjectMemory; research?: ResearchEntry[]; research_summary?: ResearchReviewSummary }) => {
         if (cancelled) return;
@@ -80,7 +81,7 @@ export default function ProjectDetailClient({ params }: { params: Promise<{ id: 
     setSavingConfiguration(true);
     setConfigurationError(null);
     try {
-      const response = await fetch(`/api/projects/${id}`, {
+      const response = await authenticatedFetch(`/api/projects/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

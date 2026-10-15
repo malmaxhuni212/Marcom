@@ -4,23 +4,25 @@ import { listResearch as listDbResearch } from '@/db/repositories/research-repos
 import { listResearch as listFileResearch } from '@/marcom/memory/research-store';
 import { listPersonalizations } from '@/marcom/memory/personalization-store';
 import { Project } from '@/types';
-import { resolveLocalPilotActor } from '@/db/local-actor';
 import { archiveCampaign, listCampaigns } from '@/db/repositories/campaign-repository';
 import { JsonFileMemoryStore } from '@/marcom/memory/store';
+import { authorizeApiRequest } from '@/auth/access';
 
-export async function GET() {
+export async function GET(req: Request) {
+  const access = await authorizeApiRequest(req);
+  if (!access.ok) return access.response;
   try {
     let projectMemories;
     let isDb = false;
-    let actor: any = null;
+    const actor = access.actor;
 
     if (isDatabaseConfigured()) {
       try {
-        actor = await resolveLocalPilotActor();
         projectMemories = await listCampaigns(actor);
         isDb = true;
       } catch (e) {
-        console.warn('Database error in GET /api/projects, falling back to JSON memory:', e);
+        if (!access.allowFileFallback) throw e;
+        console.warn('Database error in GET /api/projects, falling back to JSON memory.');
       }
     }
 
@@ -80,6 +82,8 @@ export async function GET() {
 }
 
 export async function DELETE(req: Request) {
+  const access = await authorizeApiRequest(req);
+  if (!access.ok) return access.response;
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
@@ -90,15 +94,16 @@ export async function DELETE(req: Request) {
 
     if (isDatabaseConfigured()) {
       try {
-        const actor = await resolveLocalPilotActor();
-        const archived = await archiveCampaign(actor, id);
+        const archived = await archiveCampaign(access.actor, id);
         if (!archived) return NextResponse.json({ error: 'Project not found' }, { status: 404 });
         return NextResponse.json({ success: true, message: 'Project archived successfully' });
       } catch (e) {
-        console.warn('Database error in DELETE /api/projects, attempting JSON memory delete:', e);
+        if (!access.allowFileFallback) throw e;
+        console.warn('Database error in DELETE /api/projects, attempting JSON memory delete.');
       }
     }
 
+    if (!access.allowFileFallback) throw new Error('The authoritative database is unavailable.');
     const fs = await import('node:fs');
     const path = await import('node:path');
 
@@ -109,8 +114,8 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ error: 'No projects found' }, { status: 404 });
     }
 
-    const projects = JSON.parse(fs.readFileSync(projectsFile, 'utf8'));
-    const filtered = projects.filter((p: any) => p.project_id !== id);
+    const projects = JSON.parse(fs.readFileSync(projectsFile, 'utf8')) as Array<{ project_id?: string }>;
+    const filtered = projects.filter((project) => project.project_id !== id);
 
     fs.writeFileSync(projectsFile, JSON.stringify(filtered, null, 2), 'utf8');
 

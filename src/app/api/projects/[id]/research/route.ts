@@ -6,13 +6,13 @@ import { pickTarget, runResearchAgent, type ResearchProgress } from '@/marcom/ag
 import { discoverProspectSeeds } from '@/marcom/agents/research/discovery';
 import { resolveSearchProvider } from '@/marcom/search/registry';
 import type { SearchProvider } from '@/marcom/search/provider';
-import { resolveLocalPilotActor } from '@/db/local-actor';
+import { authorizeApiRequest } from '@/auth/access';
 import { completeResearchRun, deleteResearch, deleteMultipleResearch, deleteBatchResearch, deleteProjectResearch, findDuplicate, getNextBatchInfo, listResearch, saveResearch, startResearchRun, updateResearchReview } from '@/db/repositories/research-repository';
 import { ReviewStatusSchema, type ProspectSeed, type ResearchEntry } from '@/marcom/schemas/research-record';
 import { evidenceCoverage, reviewStatus, summarizeResearch } from '@/marcom/research/review';
 
 import { isDatabaseConfigured } from '@/db/env';
-import { listResearch as listFileResearch, updateResearchReview as updateFileReview, deleteResearch as deleteFileResearch, deleteMultipleResearch as deleteFileMultiple, deleteBatchResearch as deleteFileBatch, deleteProjectResearch as deleteFileProject, getNextBatchInfo as getFileNextBatch, saveResearch as saveFileResearch, findDuplicate as findFileDuplicate } from '@/marcom/memory/research-store';
+import { listResearch as listFileResearch, updateResearchReview as updateFileReview, deleteResearch as deleteFileResearch, deleteMultipleResearch as deleteFileMultiple, deleteBatchResearch as deleteFileBatch, deleteProjectResearch as deleteFileProject, getNextBatchInfo as getFileNextBatch, saveResearch as saveFileResearch } from '@/marcom/memory/research-store';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
@@ -42,21 +42,25 @@ function searchableText(entry: ResearchEntry): string {
 
 /** Paginated prospect review results for one campaign. */
 export async function GET(req: Request, { params }: RouteCtx) {
+  const access = await authorizeApiRequest(req);
+  if (!access.ok) return access.response;
   const { id: projectId } = await params;
-  const project = await readCampaignMemory(projectId);
+  const project = await readCampaignMemory(access.actor, projectId, access.allowFileFallback);
   if (!project) return NextResponse.json({ error: 'Project not found' }, { status: 404 });
 
   let allEntries: ResearchEntry[] = [];
   if (isDatabaseConfigured()) {
     try {
-      const actor = await resolveLocalPilotActor();
-      allEntries = await listResearch(actor, projectId);
+      allEntries = await listResearch(access.actor, projectId);
     } catch (e) {
-      console.warn('Database error in research GET, falling back to file memory:', e);
+      if (!access.allowFileFallback) throw e;
+      console.warn('Database error in research GET, falling back to file memory.');
       allEntries = listFileResearch(projectId);
     }
-  } else {
+  } else if (access.allowFileFallback) {
     allEntries = listFileResearch(projectId);
+  } else {
+    throw new Error('The authoritative database is unavailable.');
   }
 
   const search = new URL(req.url).searchParams;
@@ -127,6 +131,8 @@ export async function GET(req: Request, { params }: RouteCtx) {
  *   {"type":"error","error":"...","code":"duplicate|..."}
  */
 export async function POST(req: Request, { params }: RouteCtx) {
+  const access = await authorizeApiRequest(req);
+  if (!access.ok) return access.response;
   const { id: projectId } = await params;
   const body = await req.json().catch(() => ({}));
 
@@ -141,16 +147,10 @@ export async function POST(req: Request, { params }: RouteCtx) {
     notes: clean(body.notes, 500),
   };
 
-  const store = await createServerMemoryStore();
+  const store = await createServerMemoryStore(access.actor, access.allowFileFallback);
   const isDb = isDatabaseConfigured();
-  let actor: any = null;
-  if (isDb) {
-    try {
-      actor = await resolveLocalPilotActor();
-    } catch {
-      actor = null;
-    }
-  }
+  const actor = isDb ? access.actor : null;
+  if (!isDb && !access.allowFileFallback) throw new Error('The authoritative database is unavailable.');
 
   const project = store.projects().find((p) => p.project_id === projectId);
   if (!project?.structured_brief) {
@@ -253,6 +253,8 @@ export async function POST(req: Request, { params }: RouteCtx) {
 
 /** Persist one human G3-style review decision. */
 export async function PATCH(req: Request, { params }: RouteCtx) {
+  const access = await authorizeApiRequest(req);
+  if (!access.ok) return access.response;
   const { id: projectId } = await params;
   const parsed = ReviewDecisionSchema.safeParse(await req.json());
   if (!parsed.success) {
@@ -265,20 +267,22 @@ export async function PATCH(req: Request, { params }: RouteCtx) {
   let updated = null;
   if (isDatabaseConfigured()) {
     try {
-      const actor = await resolveLocalPilotActor();
       updated = await updateResearchReview(
-        actor,
+        access.actor,
         projectId,
         parsed.data.record_id,
         parsed.data.status,
         parsed.data.note ?? null,
       );
     } catch (e) {
-      console.warn('Database error in research PATCH, falling back to file memory:', e);
+      if (!access.allowFileFallback) throw e;
+      console.warn('Database error in research PATCH, falling back to file memory.');
       updated = updateFileReview(projectId, parsed.data.record_id, parsed.data.status, parsed.data.note ?? null);
     }
-  } else {
+  } else if (access.allowFileFallback) {
     updated = updateFileReview(projectId, parsed.data.record_id, parsed.data.status, parsed.data.note ?? null);
+  } else {
+    throw new Error('The authoritative database is unavailable.');
   }
 
   return updated
@@ -287,6 +291,8 @@ export async function PATCH(req: Request, { params }: RouteCtx) {
 }
 
 export async function DELETE(req: Request, { params }: RouteCtx) {
+  const access = await authorizeApiRequest(req);
+  if (!access.ok) return access.response;
   const { id: projectId } = await params;
   const url = new URL(req.url);
   const recordId = url.searchParams.get('recordId');
@@ -305,7 +311,7 @@ export async function DELETE(req: Request, { params }: RouteCtx) {
 
   if (isDatabaseConfigured()) {
     try {
-      const actor = await resolveLocalPilotActor();
+      const actor = access.actor;
       if (all) {
         await deleteProjectResearch(actor, projectId);
         return NextResponse.json({ success: true, message: 'All research deleted' });
@@ -326,11 +332,13 @@ export async function DELETE(req: Request, { params }: RouteCtx) {
       const ok = await deleteResearch(actor, projectId, recordId);
       return ok ? NextResponse.json({ success: true }) : NextResponse.json({ error: 'Record not found' }, { status: 404 });
     } catch (e) {
-      console.warn('Database error in research DELETE, falling back to file memory:', e);
+      if (!access.allowFileFallback) throw e;
+      console.warn('Database error in research DELETE, falling back to file memory.');
     }
   }
 
   // File fallback
+  if (!access.allowFileFallback) throw new Error('The authoritative database is unavailable.');
   if (all) {
     deleteFileProject(projectId);
     return NextResponse.json({ success: true, message: 'All research deleted' });

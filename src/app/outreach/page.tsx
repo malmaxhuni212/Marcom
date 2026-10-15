@@ -7,6 +7,7 @@ import PersonalizationPanel from '@/components/personalization/PersonalizationPa
 import CampaignSettingsModal from '@/components/personalization/CampaignSettingsModal';
 import type { PersonalizationEntry, PersonalizationSettings } from '@/marcom/schemas/personalization';
 import type { Project } from '@/types';
+import { authenticatedFetch } from '@/auth/client';
 
 export default function OutreachPage() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -40,7 +41,7 @@ export default function OutreachPage() {
 
   // 1. Fetch available projects
   useEffect(() => {
-    fetch('/api/projects')
+    authenticatedFetch('/api/projects')
       .then((res) => res.json())
       .then((data: Project[]) => {
         setProjects(data);
@@ -63,7 +64,7 @@ export default function OutreachPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/projects/${selectedProjectId}/personalization`);
+      const res = await authenticatedFetch(`/api/projects/${selectedProjectId}/personalization`);
       if (!res.ok) throw new Error('Failed to load personalization data');
       const data = await res.json();
       setEntries(data.items || []);
@@ -86,7 +87,7 @@ export default function OutreachPage() {
     setBatchRunning(true);
     setBatchNotice('Strategist & Copywriter processing all shortlisted prospects...');
     try {
-      const res = await fetch(`/api/projects/${selectedProjectId}/personalization`, {
+      const res = await authenticatedFetch(`/api/projects/${selectedProjectId}/personalization`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ allShortlisted: true }),

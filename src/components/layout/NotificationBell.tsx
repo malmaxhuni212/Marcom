@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { authenticatedFetch } from '@/auth/client';
 
 interface NotificationItem {
   id: string;
@@ -37,7 +38,7 @@ export default function NotificationBell() {
   // Fetch live notifications from backend
   const fetchNotifications = async () => {
     try {
-      const res = await fetch('/api/notifications');
+      const res = await authenticatedFetch('/api/notifications');
       if (res.ok) {
         const data = await res.json();
         setNotifications(data);

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import BriefIntakeModal from '@/components/ui/BriefIntakeModal';
 import type { Project } from '@/types';
+import { authenticatedFetch } from '@/auth/client';
 
 
 interface ProjectCardProps {
@@ -139,7 +140,7 @@ export default function ProjectsSection() {
 
   const loadProjects = async () => {
     try {
-      const res = await fetch('/api/projects');
+      const res = await authenticatedFetch('/api/projects');
       if (res.ok) {
         const data = await res.json();
         setProjects(data);
@@ -162,7 +163,7 @@ export default function ProjectsSection() {
       // Optimistic update
       setProjects((prev) => prev.filter((p) => p.id !== id));
 
-      const res = await fetch(`/api/projects?id=${id}`, {
+      const res = await authenticatedFetch(`/api/projects?id=${id}`, {
         method: 'DELETE',
       });
 

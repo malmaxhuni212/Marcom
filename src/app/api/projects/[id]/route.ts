@@ -7,7 +7,7 @@ import { listResearch as listFileResearch } from '@/marcom/memory/research-store
 import { StructuredBriefSchema } from '@/marcom/schemas/structured-brief';
 import { validateResearchReadyConfiguration } from '@/marcom/validation/campaign-configuration';
 import { summarizeResearch } from '@/marcom/research/review';
-import { resolveLocalPilotActor } from '@/db/local-actor';
+import { authorizeApiRequest } from '@/auth/access';
 import {
   CampaignNotFoundError,
   CampaignVersionConflictError,
@@ -15,6 +15,7 @@ import {
   updateCampaignConfiguration,
 } from '@/db/repositories/campaign-repository';
 import { JsonFileMemoryStore } from '@/marcom/memory/store';
+import type { ResearchEntry } from '@/marcom/schemas/research-record';
 
 const UpdateConfigurationSchema = z.strictObject({
   structured_brief: StructuredBriefSchema,
@@ -22,24 +23,29 @@ const UpdateConfigurationSchema = z.strictObject({
 });
 
 /** Project detail: project memory (incl. structured brief) + saved research entries. */
-export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const access = await authorizeApiRequest(req);
+  if (!access.ok) return access.response;
   const { id } = await params;
   let project = null;
-  let research: any[] = [];
+  let research: ResearchEntry[] = [];
 
   if (isDatabaseConfigured()) {
     try {
-      const actor = await resolveLocalPilotActor();
-      project = await getCampaign(actor, id);
+      project = await getCampaign(access.actor, id);
       if (project) {
-        research = await listDbResearch(actor, id);
+        research = await listDbResearch(access.actor, id);
       }
     } catch (e) {
-      console.warn(`Database error in GET /api/projects/${id}, falling back to JSON memory:`, e);
+      if (!access.allowFileFallback) throw e;
+      console.warn(`Database error in GET /api/projects/${id}, falling back to JSON memory.`);
     }
   }
 
   if (!project) {
+    if (!access.allowFileFallback) {
+      return NextResponse.json({ error: 'Project not found' }, { status: 404 });
+    }
     const store = new JsonFileMemoryStore();
     project = store.projects().find((p) => p.project_id === id) ?? null;
     if (project) {
@@ -60,6 +66,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 
 /** Replace the human-reviewed campaign configuration using optimistic concurrency. */
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const access = await authorizeApiRequest(req);
+  if (!access.ok) return access.response;
   const { id } = await params;
   const parsed = UpdateConfigurationSchema.safeParse(await req.json());
   if (!parsed.success) {
@@ -79,8 +87,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
   if (isDatabaseConfigured()) {
     try {
-      const actor = await resolveLocalPilotActor();
-      const updated = await updateCampaignConfiguration(actor, id, {
+      const updated = await updateCampaignConfiguration(access.actor, id, {
         structuredBrief: parsed.data.structured_brief,
         expectedRevision: parsed.data.expected_revision,
         requestId: req.headers.get('x-request-id') ?? randomUUID(),
@@ -93,10 +100,12 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       if (error instanceof CampaignVersionConflictError) {
         return NextResponse.json({ error: error.message }, { status: 409 });
       }
-      console.warn('Database error in PATCH /api/projects/[id], falling back to JSON memory:', error);
+      if (!access.allowFileFallback) throw error;
+      console.warn('Database error in PATCH /api/projects/[id], falling back to JSON memory.');
     }
   }
 
+  if (!access.allowFileFallback) throw new Error('The authoritative database is unavailable.');
   const { updateProject } = await import('@/marcom/memory/project-store');
   const updated = updateProject(id, (current) => {
     if (current.configuration_revision !== parsed.data.expected_revision) {
