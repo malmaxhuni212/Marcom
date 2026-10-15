@@ -47,7 +47,7 @@ npm run db:check
 
 The seed is idempotent. Running it again does not create another local workspace or actor. Normal application startup only requires `npm run dev` after the database has been prepared.
 
-For Netlify Database, set `NETLIFY_DB_URL` in the Netlify environment and do not run `npm run db:migrate` against it. Netlify applies committed files from `netlify/database/migrations/` during deploy. Use a deploy preview to test pending migrations before publishing production.
+For Netlify Database, do not copy a read-only production URL into the site's `NETLIFY_DB_URL` setting. The native database integration supplies a branch-aware runtime value automatically, and the application resolves it through `@netlify/database`. Netlify applies committed files from `netlify/database/migrations/` during deploy. Use a deploy preview to test pending migrations before publishing production, and do not run `npm run db:migrate` against Netlify Database.
 
 For an existing checkout that still has campaigns in `memory/projects.json`, run this once after migration and seeding:
 
@@ -77,6 +77,19 @@ npm run dev
 ```
 
 Open [http://127.0.0.1:3000](http://127.0.0.1:3000).
+
+## First shared credential on Netlify
+
+The deployed application has a one-time setup page because Developer accounts receive only a read-only production database connection. Do not place a password or password hash in a migration.
+
+1. Add a temporary `AUTH_BOOTSTRAP_SECRET` to the Netlify Production context with Runtime scope. Use at least 32 random characters.
+2. Deploy the commit containing the pilot-foundation migration and bootstrap route.
+3. Open `https://YOUR-SITE.netlify.app/bootstrap`.
+4. Enter the temporary setup token, the shared username and a new password between 16 and 128 characters.
+5. After setup succeeds, remove `AUTH_BOOTSTRAP_SECRET` from Netlify and redeploy.
+6. Open `/login` and verify the new credential.
+
+The server stores only an adaptive password hash. The bootstrap operation is serialised against the pilot workspace and refuses to create another password identity after the first one. Detailed deployment and recovery steps are in [`docs/authentication-bootstrap.md`](docs/authentication-bootstrap.md).
 
 ## Switching search providers
 

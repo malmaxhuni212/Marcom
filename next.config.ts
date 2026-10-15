@@ -2,6 +2,10 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ['pdf-parse', 'mammoth'],
+  experimental: {
+    // Keep builds within the memory available to local and Netlify pilot environments.
+    cpus: 2,
+  },
   allowedDevOrigins: [
     'localhost',
     'localhost:3000',

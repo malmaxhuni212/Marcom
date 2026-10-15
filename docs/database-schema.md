@@ -95,7 +95,9 @@ npm run auth:status
 
 `npm run db:migrate` is only for a local or self-hosted PostgreSQL instance selected through `DATABASE_URL`. It deliberately refuses a `NETLIFY_DB_URL`. Netlify discovers committed SQL files in `netlify/database/migrations/` and applies pending migrations during deploy. Drizzle metadata remains in the `meta/` subdirectory so `npm run db:generate` can create the next reviewed migration.
 
-The authentication commands require an explicit database connection. `auth:bootstrap` is a one-time shared-pilot identity operation. Later password changes must use `auth:rotate-password` so the credential version and audit event remain consistent.
+The authentication CLI commands require an explicit writable database connection and are intended for local or self-hosted PostgreSQL. `auth:bootstrap` is a one-time shared-pilot identity operation. Later password changes must use `auth:rotate-password` so the credential version and audit event remain consistent.
+
+Netlify Developer accounts receive a read-only production connection, so they must not run the CLI bootstrap against production. The native Netlify runtime obtains the branch-aware application connection through `@netlify/database`. Production creates its first shared credential through the temporary `/bootstrap` flow documented in [`authentication-bootstrap.md`](authentication-bootstrap.md). The deployment migration creates only the non-secret pilot workspace and historical local actor. It never contains a password or password hash.
 
 Run `npm run test:integration` only with `AUTH_INTEGRATION_DATABASE_URL` pointing to a disposable PostgreSQL database. The authentication integration test applies committed migrations and creates temporary identity records. It must never target the personal or company production database.
 

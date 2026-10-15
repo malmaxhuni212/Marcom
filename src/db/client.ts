@@ -1,6 +1,6 @@
 import { drizzle, type NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
-import { getDatabaseUrl } from './env';
+import { getApplicationDatabaseUrl } from './env';
 import * as schema from './schema';
 
 export type MarcomDatabase = NodePgDatabase<typeof schema>;
@@ -15,7 +15,7 @@ const databaseGlobal = globalThis as DatabaseGlobal;
 export function getDatabasePool(): Pool {
   if (!databaseGlobal.__marcomPool) {
     databaseGlobal.__marcomPool = new Pool({
-      connectionString: getDatabaseUrl(),
+      connectionString: getApplicationDatabaseUrl(),
       max: process.env.NODE_ENV === 'production' ? 10 : 4,
       idleTimeoutMillis: 30_000,
       connectionTimeoutMillis: 10_000,

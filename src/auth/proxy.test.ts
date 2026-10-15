@@ -61,7 +61,7 @@ test('AUTH-003 proxy rejects an unauthenticated product API without redirecting'
   );
 });
 
-test('AUTH-003 proxy keeps the login and authentication endpoint public', async () => {
+test('AUTH-003 proxy keeps only the login and bootstrap entry points public', async () => {
   await withEnvironment(
     {
       APP_ACCESS_MODE: 'shared',
@@ -72,8 +72,15 @@ test('AUTH-003 proxy keeps the login and authentication endpoint public', async 
     },
     () => {
       assert.equal(proxy(new NextRequest('https://pilot.example.test/login')).status, 200);
+      assert.equal(proxy(new NextRequest('https://pilot.example.test/bootstrap')).status, 200);
       assert.equal(
         proxy(new NextRequest('https://pilot.example.test/api/v1/auth/session')).status,
+        200,
+      );
+      assert.equal(
+        proxy(
+          new NextRequest('https://pilot.example.test/api/internal/v1/auth/bootstrap'),
+        ).status,
         200,
       );
     },
