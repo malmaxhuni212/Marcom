@@ -1,11 +1,18 @@
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { closeDatabasePool, getDatabase } from './client';
+import { usesNetlifyManagedMigrations } from './env';
 import { loadDatabaseEnvironment } from './load-environment';
 
 loadDatabaseEnvironment();
 
 async function main(): Promise<void> {
-  await migrate(getDatabase(), { migrationsFolder: 'drizzle' });
+  if (usesNetlifyManagedMigrations()) {
+    throw new Error(
+      'Netlify applies migrations during deploy from netlify/database/migrations. Use db:migrate only with DATABASE_URL for local or self-hosted PostgreSQL.',
+    );
+  }
+
+  await migrate(getDatabase(), { migrationsFolder: 'netlify/database/migrations' });
   console.log(JSON.stringify({ event: 'database_migration_complete' }));
 }
 

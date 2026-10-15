@@ -12,7 +12,10 @@ if (!connectionString) {
 export default defineConfig({
   dialect: 'postgresql',
   schema: './src/db/schema/index.ts',
-  out: './drizzle',
+  out: './netlify/database/migrations',
+  migrations: {
+    prefix: 'timestamp',
+  },
   dbCredentials: {
     url: connectionString,
   },

@@ -34,3 +34,9 @@ export function isDatabaseConfigured(
   if (!parsed.success) return false;
   return Boolean(parsed.data.DATABASE_URL || parsed.data.NETLIFY_DB_URL);
 }
+
+export function usesNetlifyManagedMigrations(
+  environment: Record<string, string | undefined> = process.env,
+): boolean {
+  return !environment.DATABASE_URL && Boolean(environment.NETLIFY_DB_URL);
+}

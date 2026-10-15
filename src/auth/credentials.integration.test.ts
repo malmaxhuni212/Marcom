@@ -50,7 +50,7 @@ test(
     let migrationReady = false;
 
     try {
-      await migrate(database, { migrationsFolder: 'drizzle' });
+      await migrate(database, { migrationsFolder: 'netlify/database/migrations' });
       migrationReady = true;
       await database
         .insert(workspaces)
