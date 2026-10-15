@@ -112,7 +112,6 @@ export async function discoverProspectSeeds(input: {
   const seenUrls = new Set<string>();
   const seeds: ProspectSeed[] = [];
   let rejectedCount = 0;
-  require('fs').writeFileSync('C:/Users/v_199/.gemini/antigravity/scratch/discovery-debug.log', JSON.stringify({ sourcePayload, raw, parsed, allowedUrls: Array.from(allowedUrls), existingNames: Array.from(existingNames) }, null, 2));
   for (const candidate of parsed.candidates) {
     const sourceUrl = canonicalUrl(candidate.source_url);
     const website = candidate.website ? canonicalUrl(candidate.website) : '';
