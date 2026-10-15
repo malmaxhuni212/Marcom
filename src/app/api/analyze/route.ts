@@ -39,13 +39,17 @@ export async function POST(req: Request) {
     });
 
     if (!result.ok) {
-      console.error('Validation failed:', result.errors);
-      return NextResponse.json({ 
-        error: 'Failed to generate a valid structured brief', 
-        details: result.errors,
-        warnings: result.warnings,
-        raw: result.raw
-      }, { status: 400 });
+      console.error(JSON.stringify({
+        event: 'brief.parse.invalid_output',
+        provider: result.provider,
+        attempts: result.attempts,
+        issueCodes: result.errors.map((issue) => issue.code),
+      }));
+      return NextResponse.json({
+        error: 'The brief analyser returned an unusable response. Please try again.',
+        code: 'AI_PROVIDER_INVALID_RESPONSE',
+        retryable: true,
+      }, { status: 502 });
     }
 
     return NextResponse.json({ 

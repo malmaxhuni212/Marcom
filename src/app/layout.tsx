@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
 import { Inter, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import { requirePageAccess } from "@/auth/page-access";
@@ -22,7 +23,7 @@ export const metadata: Metadata = {
     "From research to real connections. MARCOM uses specialized AI agents to research, personalize, and help you reach the right people.",
 };
 
-export default async function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   await requirePageAccess();
   return (
     <html

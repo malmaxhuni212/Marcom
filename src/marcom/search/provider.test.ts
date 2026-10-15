@@ -116,3 +116,37 @@ test('Exa adapter rejects unsafe URLs returned by the provider', async () => {
   assert.equal(response.candidates.length, 0);
   assert.equal(response.warnings.length, 1);
 });
+
+test('Exa adapter retries one malformed successful response without exposing its body', async () => {
+  let calls = 0;
+  const provider = new ExaSearchProvider({
+    apiKeys: ['test-key'],
+    maximumResults: 25,
+    timeoutMs: 5_000,
+    fetchImplementation: (async () => {
+      calls += 1;
+      if (calls === 1) {
+        return new Response('<html>temporary proxy response</html>', {
+          status: 200,
+          headers: { 'content-type': 'text/html', 'x-request-id': 'request-malformed' },
+        });
+      }
+      return new Response(JSON.stringify({ results: [] }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    }) as typeof fetch,
+  });
+
+  const response = await provider.search({
+    query: 'poetry organisations UK',
+    resultLimit: 5,
+    includeDomains: [],
+    excludeDomains: [],
+  });
+
+  assert.equal(calls, 2);
+  assert.equal(response.candidates.length, 0);
+  assert.equal(response.usage.requests, 2);
+  assert.equal(response.warnings.length, 1);
+});

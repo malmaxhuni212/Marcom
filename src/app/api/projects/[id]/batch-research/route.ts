@@ -16,6 +16,7 @@ import { authorizeApiRequest } from '@/auth/access';
 import { createServerMemoryStore } from '@/marcom/memory/server-store';
 import type { SearchProvider } from '@/marcom/search/provider';
 import { readSearchConfiguration, resolveSearchProvider } from '@/marcom/search/registry';
+import { safeResearchLog, toSafeResearchFailure } from '@/marcom/research/safe-error';
 
 export const runtime = 'nodejs';
 
@@ -32,6 +33,8 @@ type BackgroundTask = {
   searchProvider: string;
   workspaceId: string;
   researchRunId?: string;
+  errorCode?: string;
+  retryable?: boolean;
 };
 
 const backgroundTasks = new Map<string, BackgroundTask>();
@@ -87,8 +90,12 @@ async function processBatch(
         existingUrls: existing.flatMap((entry) => [entry.seed.website ?? '', entry.record.websites?.[0]?.url ?? '']),
       });
     } catch (e) {
+      const failure = toSafeResearchFailure(e);
+      safeResearchLog('research.discovery.failed', e);
       task.status = 'error';
-      task.message = `Discovery failed: ${(e as Error).message}`;
+      task.message = failure.message;
+      task.errorCode = failure.code;
+      task.retryable = failure.retryable;
       await completeResearchRun(actor, researchRunId, task.failed + 1);
       return;
     }
@@ -133,7 +140,7 @@ async function processBatch(
         await saveResearch(actor, projectId, researchRunId, entry);
         task.completed += 1;
       } catch (error) {
-        console.error('Batch research candidate failed:', error);
+        safeResearchLog('research.candidate.failed', error);
         task.failed += 1;
       }
     }
@@ -198,11 +205,14 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     access.actor,
     access.allowFileFallback,
   ).catch((error) => {
-    console.error('Batch process crashed:', error);
+    const failure = toSafeResearchFailure(error);
+    safeResearchLog('research.batch.crashed', error);
     const task = backgroundTasks.get(taskId);
     if (task) {
       task.status = 'error';
-      task.message = (error as Error).message;
+      task.message = failure.message;
+      task.errorCode = failure.code;
+      task.retryable = failure.retryable;
     }
   });
 

@@ -40,7 +40,51 @@ export interface GroqProviderOptions {
   pool?: KeyPoolName;
 }
 
+interface GroqExecutedTool {
+  name?: unknown;
+  type?: unknown;
+  arguments?: unknown;
+  output?: unknown;
+  search_results?: {
+    results?: Array<{ url?: unknown; title?: unknown; content?: unknown }>;
+  };
+}
+
+interface GroqResponse {
+  choices?: Array<{
+    message?: {
+      content?: unknown;
+      executed_tools?: GroqExecutedTool[];
+    };
+  }>;
+  usage?: BrowserSearchResult['usage'];
+}
+
 const isReasoningModel = (model: string) => model.startsWith('openai/gpt-oss');
+
+export function buildGroqCompletionPayload(
+  model: string,
+  request: LLMRequest,
+  attempt: number,
+  opts?: GroqCallOptions,
+): Record<string, unknown> {
+  const payload: Record<string, unknown> = {
+    model,
+    messages: [
+      { role: 'system', content: request.system },
+      { role: 'user', content: request.user },
+    ],
+    temperature: opts?.temperature ?? 0.1 + (attempt * 0.1),
+    max_tokens: request.maxTokens ?? 5200,
+  };
+  if (opts?.jsonMode || request.responseSchema !== undefined) {
+    payload.response_format = { type: 'json_object' };
+  }
+  if (opts?.reasoningEffort && isReasoningModel(model)) {
+    payload.reasoning_effort = opts.reasoningEffort;
+  }
+  return payload;
+}
 
 function parseRetrySeconds(res: Response, body: string): number {
   const header = res.headers.get('retry-after');
@@ -49,8 +93,6 @@ function parseRetrySeconds(res: Response, body: string): number {
   if (m) return Math.ceil((m[1] ? Number(m[1]) * 60 : 0) + Number(m[2]));
   return 20;
 }
-
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export class GroqProvider implements LLMProvider {
   readonly name = 'groq';
@@ -63,7 +105,7 @@ export class GroqProvider implements LLMProvider {
   }
 
   /** POST with automatic wait-and-retry on 429 using the configured key pool. */
-  private async post(payload: Record<string, unknown>, opts: GroqCallOptions = {}): Promise<any> {
+  private async post(payload: Record<string, unknown>, opts: GroqCallOptions = {}): Promise<GroqResponse> {
     const maxRetries = opts.maxRetries ?? 15;
     const keyPool = getKeyPool(this.pool);
     for (let attempt = 0; attempt < maxRetries; attempt++) {
@@ -77,7 +119,7 @@ export class GroqProvider implements LLMProvider {
         },
         body: JSON.stringify(body),
       });
-      if (response.ok) return response.json();
+      if (response.ok) return response.json() as Promise<GroqResponse>;
       const errorText = await response.text();
       if (response.status === 429 || response.status === 413) {
         const wait = response.status === 413 ? 60 : Math.min(parseRetrySeconds(response, errorText), 65);
@@ -91,24 +133,19 @@ export class GroqProvider implements LLMProvider {
 
   async complete(request: LLMRequest, opts?: GroqCallOptions): Promise<string> {
     for (let attempt = 1; attempt <= 3; attempt++) {
-      const payload: Record<string, unknown> = {
-        model: this.model,
-        messages: [
-          { role: 'system', content: request.system },
-          { role: 'user', content: request.user }
-        ],
-        temperature: opts?.temperature ?? 0.1 + (attempt * 0.1), // slightly higher temp on retry
-        max_tokens: request.maxTokens ?? 5200
-      };
-      if (opts?.jsonMode) payload.response_format = { type: 'json_object' };
-      if (opts?.reasoningEffort && isReasoningModel(this.model)) payload.reasoning_effort = opts.reasoningEffort;
+      const payload = buildGroqCompletionPayload(this.model, request, attempt, opts);
 
       const data = await this.post(payload, opts);
 
       const text = data.choices?.[0]?.message?.content;
-      if (text) return text;
-      
-      console.warn(`Groq returned empty text on attempt ${attempt}. Full response:`, JSON.stringify(data));
+      if (typeof text === 'string' && text.length > 0) return text;
+
+      console.warn(JSON.stringify({
+        event: 'ai.provider.empty_completion',
+        provider: this.name,
+        model: this.model,
+        attempt,
+      }));
       if (attempt === 3) {
         throw new Error('No text returned from Groq after 3 attempts');
       }
@@ -136,7 +173,7 @@ export class GroqProvider implements LLMProvider {
     }, opts);
 
     const message = data.choices?.[0]?.message ?? {};
-    const executed: any[] = message.executed_tools ?? [];
+    const executed = message.executed_tools ?? [];
     const seen: SeenSource[] = [];
     const pages: { url: string; text: string }[] = [];
     const queries: string[] = [];
@@ -146,7 +183,7 @@ export class GroqProvider implements LLMProvider {
       const isSearch = String(tool.name ?? tool.type ?? '').includes('search');
       if (isSearch) {
         try {
-          const q = JSON.parse(tool.arguments ?? '{}').query;
+          const q = JSON.parse(typeof tool.arguments === 'string' ? tool.arguments : '{}').query;
           if (q) queries.push(String(q));
         } catch { /* arguments not JSON — ignore */ }
       }

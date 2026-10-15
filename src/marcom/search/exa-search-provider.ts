@@ -11,6 +11,7 @@ import {
 } from './provider';
 
 const EXA_SEARCH_URL = 'https://api.exa.ai/search';
+const MAX_INVALID_RESPONSE_ATTEMPTS = 2;
 
 const ExaResponseSchema = z.object({
   results: z.array(
@@ -84,32 +85,55 @@ export class ExaSearchProvider implements SearchProvider {
     if (request.excludeDomains.length) body.excludeDomains = request.excludeDomains;
     if (request.category) body.category = request.category;
 
-    const timeoutSignal = AbortSignal.timeout(this.#timeoutMs);
-    const signal = context.signal ? AbortSignal.any([context.signal, timeoutSignal]) : timeoutSignal;
     const startedAt = Date.now();
-    let response: Response;
-
-    try {
-      response = await this.#fetch(EXA_SEARCH_URL, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', 'x-api-key': this.#apiKeys[0] },
-        body: JSON.stringify(body),
-        signal,
-      });
-    } catch (error) {
-      if (signal.aborted) {
-        throw new SearchProviderError('timeout', 'Exa search exceeded its deadline.', true, { cause: error });
-      }
-      throw new SearchProviderError('unavailable', 'Exa search could not be reached.', true, { cause: error });
-    }
-
-    if (!response.ok) throw mapExaHttpError(response.status);
-
     let raw: unknown;
-    try {
-      raw = await response.json();
-    } catch (error) {
-      throw new SearchProviderError('invalid_response', 'Exa returned invalid JSON.', false, { cause: error });
+    let requestCount = 0;
+    for (let attempt = 1; attempt <= MAX_INVALID_RESPONSE_ATTEMPTS; attempt++) {
+      const timeoutSignal = AbortSignal.timeout(this.#timeoutMs);
+      const signal = context.signal ? AbortSignal.any([context.signal, timeoutSignal]) : timeoutSignal;
+      let response: Response;
+
+      try {
+        requestCount += 1;
+        response = await this.#fetch(EXA_SEARCH_URL, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', 'x-api-key': this.#apiKeys[0] },
+          body: JSON.stringify(body),
+          signal,
+        });
+      } catch (error) {
+        if (signal.aborted) {
+          throw new SearchProviderError('timeout', 'Exa search exceeded its deadline.', true, { cause: error });
+        }
+        throw new SearchProviderError('unavailable', 'Exa search could not be reached.', true, { cause: error });
+      }
+
+      if (!response.ok) throw mapExaHttpError(response.status);
+
+      const responseText = await response.text();
+      try {
+        raw = JSON.parse(responseText);
+        break;
+      } catch (error) {
+        console.warn(JSON.stringify({
+          event: 'search.provider.invalid_json',
+          provider: this.key,
+          attempt,
+          status: response.status,
+          contentType: response.headers.get('content-type'),
+          contentLength: Buffer.byteLength(responseText, 'utf8'),
+          providerRequestId: response.headers.get('x-request-id'),
+        }));
+        if (attempt === MAX_INVALID_RESPONSE_ATTEMPTS) {
+          throw new SearchProviderError(
+            'invalid_response',
+            'Exa returned an unusable response.',
+            true,
+            { cause: error },
+          );
+        }
+        warnings.push('Exa returned a malformed response, so the request was retried once.');
+      }
     }
 
     const parsed = ExaResponseSchema.safeParse(raw);
@@ -142,7 +166,7 @@ export class ExaSearchProvider implements SearchProvider {
       query: request.query,
       candidates,
       latencyMs: Date.now() - startedAt,
-      usage: { requests: 1, estimatedCostUsd: parsed.data.costDollars?.total ?? null },
+      usage: { requests: requestCount, estimatedCostUsd: parsed.data.costDollars?.total ?? null },
       warnings,
     });
   }
