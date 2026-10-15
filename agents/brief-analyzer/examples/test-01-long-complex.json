@@ -1,0 +1,23 @@
+{
+  "id": "test-01-long-complex",
+  "category": "long_complex",
+  "title": "SME manufacturing leaders for a regional innovation sprint programme",
+  "edge_case": false,
+  "brief": "Project: Midlands Make Sprint\n\nWe are launching a series of two-day innovation sprints for small and medium-sized manufacturers in the Midlands. The goal is to fill the first three cohorts with operations directors and managing directors who are actively exploring how to modernise their production processes. We also want to build a longer-term relationship with regional trade bodies who could co-promote future cohorts.\n\nWho we want: operations directors and managing directors at manufacturing companies with roughly 20 to 250 employees, based in the East or West Midlands. They should have publicly discussed digitisation, automation, lean, or process improvement in the past two years (talks, interviews, posts or company news). Secondary target: regional trade bodies and manufacturing networks in the Midlands.\n\nExclude companies that are subsidiaries of multinational groups, and do not contact anyone at our existing clients (list to be supplied). Exclude consultancies and software vendors.\n\nFor each person capture: name, role, company, company size, location, evidence of interest in modernisation, and public business contact route. Use company websites, Companies House, regional business press and trade association member directories.\n\nOutreach will be by email and LinkedIn. Tone should be warm, practical and jargon-free. Reference the specific modernisation activity they have talked about, but avoid mentioning company financials or staff changes. Success means at least 36 qualified leads and 12 sprint sign-ups. Budget is limited, so no paid data tools. Every message must be approved by Hannah before sending.",
+  "expected": {
+    "intent_keywords": ["sprint", "manufactur", "Midlands"],
+    "targets": [
+      { "any_of": ["operations director", "managing director"], "geography": ["Midlands"] },
+      { "any_of": ["trade bod", "manufacturing network"], "geography": ["Midlands"] }
+    ],
+    "max_targets": 3,
+    "criteria_keywords": ["employees", "digitisation", "two years"],
+    "exclusion_keywords": ["subsidiar", "existing clients", "consultanc"],
+    "research_keywords": ["company size", "Companies House", "press"],
+    "personalization_keywords": ["warm", "modernisation", "financials", "email"],
+    "must_flag_unknowns": ["existing clients"],
+    "must_preserve_approximations": ["roughly 20"],
+    "database_fields": ["role", "company", "location"]
+  },
+  "notes": "Client exclusion list is referenced but not supplied — should be an unknown."
+}

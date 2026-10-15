@@ -1,0 +1,19 @@
+{
+  "id": "test-07-missing-information",
+  "category": "missing_information",
+  "title": "Almost no information",
+  "edge_case": true,
+  "brief": "Need some people for the thing next month. Get their details.",
+  "expected": {
+    "intent_keywords": [],
+    "targets": [{ "any_of": ["unknown", "people"] }],
+    "max_targets": 1,
+    "criteria_keywords": [],
+    "exclusion_keywords": [],
+    "research_keywords": [],
+    "personalization_keywords": [],
+    "must_flag_unknowns": ["target", "objective", "geography", "details", "project name"],
+    "database_fields": ["name"]
+  },
+  "notes": "Correct behaviour is mostly unknowns with blocking=true, not a fabricated project."
+}

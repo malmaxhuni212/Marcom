@@ -1,0 +1,23 @@
+{
+  "id": "test-10-maya-literary",
+  "category": "literary_project",
+  "title": "Maya Book Awards — debut authors and literary organisations",
+  "edge_case": false,
+  "brief": "Project: Maya Book Awards\n\nThe Maya Book Awards celebrate debut fiction. We want around 150 submissions for this year's award. Find authors of debut literary fiction published in the last two years by UK independent publishers. Also find literary organisations such as reading charities and writers' centres for partnerships to promote the award. Do not approach authors published by the big five publishing houses. Capture author name, debut title, publisher, publication date, and agent contact. Use publisher catalogues, literary magazines and prize longlists. Tone: warm and encouraging. Reference their debut by title, but avoid reviewing or critiquing the book.",
+  "expected": {
+    "intent_keywords": ["Maya Book Awards", "submissions"],
+    "targets": [
+      { "any_of": ["author"], "geography": ["UK"] },
+      { "any_of": ["literary organisation"] }
+    ],
+    "max_targets": 3,
+    "criteria_keywords": ["debut", "independent publisher", "two years"],
+    "exclusion_keywords": ["big five"],
+    "research_keywords": ["debut title", "publisher", "catalogue"],
+    "personalization_keywords": ["warm", "critiqu"],
+    "must_flag_unknowns": ["big five"],
+    "must_preserve_approximations": ["around 150"],
+    "database_fields": ["debut title", "publisher", "publication date"]
+  },
+  "notes": "'big five' is a recognised industry term but should be confirmed (which imprints count)."
+}

@@ -1,0 +1,149 @@
+[
+  {
+    "record": {
+      "research_record_version": "1.1",
+      "record_id": "r-brittney-darensbourg-muzj3vsd",
+      "project_id": "proj-1791362899812",
+      "brief_target_id": "target-1",
+      "identity": {
+        "name": "Brittney Darensbourg",
+        "entity_kind": "person",
+        "identity_verified": true
+      },
+      "target_type": "Authors",
+      "role": null,
+      "organisation": null,
+      "country": "United States",
+      "location": "New Orleans, Louisiana, United States",
+      "websites": [],
+      "social_profiles": [],
+      "public_contact": [],
+      "background": [],
+      "work_and_projects": [],
+      "achievements": [],
+      "industry_activity": [],
+      "qualification_assessment": [
+        {
+          "criterion": "public professional presence",
+          "status": "partially_met",
+          "note": "LinkedIn profile present",
+          "source_ids": [
+            "S2"
+          ]
+        }
+      ],
+      "reason_for_relevance": "No evidence-based rationale provided.",
+      "fit": {
+        "score": 0,
+        "band": "irrelevant",
+        "rationale": "No evidence-based rationale provided."
+      },
+      "summary": "",
+      "evidence": [
+        {
+          "claim": "LinkedIn profile present",
+          "field": "public presence",
+          "source_ids": [
+            "S2"
+          ],
+          "quote": "# Brittney Darensbourg",
+          "confidence": "verified"
+        }
+      ],
+      "sources": [
+        {
+          "id": "S2",
+          "url": "https://linkedin.com/in/brittney-darensbourg-a7ba8a103",
+          "title": "Brittney Darensbourg",
+          "source_type": "linkedin",
+          "retrieved_at": "2026-10-08T12:44:50.220Z"
+        }
+      ],
+      "unknowns": [
+        {
+          "field": "contact",
+          "reason": "No legitimate public contact route was verified."
+        },
+        {
+          "field": "website",
+          "reason": "No official website verified."
+        },
+        {
+          "field": "role",
+          "reason": "no evidence"
+        },
+        {
+          "field": "organisation",
+          "reason": "no evidence"
+        },
+        {
+          "field": "contacts",
+          "reason": "no evidence"
+        },
+        {
+          "field": "background",
+          "reason": "no evidence"
+        },
+        {
+          "field": "projects_or_work",
+          "reason": "no evidence"
+        },
+        {
+          "field": "achievements",
+          "reason": "no evidence"
+        },
+        {
+          "field": "industry_involvement",
+          "reason": "no evidence"
+        },
+        {
+          "field": "criteria (other than public presence)",
+          "reason": "no evidence"
+        }
+      ],
+      "contradictions": [],
+      "research_confidence": "low",
+      "matched_prospect_id": null,
+      "researched_at": "2026-10-08T12:44:50.220Z",
+      "research_agent_version": "research-agent/0.1.0"
+    },
+    "seed": {
+      "name": "Brittani Nechelle Darensbourg",
+      "website": "https://linkedin.com/in/brittani-nechelle-darensbourg-author-05193939b",
+      "entity_kind": "person"
+    },
+    "qa": {
+      "status": "needs_review",
+      "issues": [
+        {
+          "severity": "warning",
+          "code": "name_mismatch",
+          "message": "Research returned \"Brittney Darensbourg\" for seed \"Brittani Nechelle Darensbourg\" — confirm it is the same entity."
+        }
+      ]
+    },
+    "relationship_status": null,
+    "model": "openai/gpt-oss-20b",
+    "searches": [
+      "Brittani Nechelle Darensbourg https://linkedin.com/in/brittani-nechelle-darensbourg-author-05193939b Authors UK USA Maya Book Awards"
+    ],
+    "search_provider": "exa",
+    "search_request_ids": [
+      "afd5c307bc683b84ef3dbff946c8282b"
+    ],
+    "search_usage": {
+      "requests": 1,
+      "estimated_cost_usd": 0.007,
+      "latency_ms": 1394
+    },
+    "search_warnings": [],
+    "review": {
+      "project_id": "proj-1791362899812",
+      "record_id": "r-brittney-darensbourg-muzj3vsd",
+      "status": "needs_review",
+      "note": null,
+      "reviewed_at": "2026-10-08T12:44:50.225Z",
+      "reviewed_by": "system"
+    }
+  }
+]

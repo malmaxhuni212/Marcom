@@ -1,0 +1,45 @@
+{
+  "name": "marcom-app",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --webpack --hostname 127.0.0.1",
+    "build": "next build --webpack",
+    "start": "next start --hostname 127.0.0.1",
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test src/db/env.test.ts src/db/idempotency.test.ts src/db/research-repository.test.ts src/marcom/agents/research/discovery.test.ts src/marcom/search/provider.test.ts src/marcom/validation/campaign-configuration.test.ts src/marcom/research/review.test.ts",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx src/db/migrate.ts",
+    "db:seed": "tsx src/db/seed.ts",
+    "db:check": "tsx src/db/check.ts",
+    "db:import-json": "tsx src/db/import-json-campaigns.ts",
+    "db:import-json-research": "tsx src/db/import-json-research.ts",
+    "search:smoke": "node --env-file=.env.local --import tsx src/scripts/search-smoke.ts"
+  },
+  "dependencies": {
+    "@next/env": "^16.3.8",
+    "drizzle-orm": "^0.45.4",
+    "mammoth": "^1.13.0",
+    "next": "16.3.8",
+    "pdf-parse": "^2.4.5",
+    "pg": "^8.23.1",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "zod": "^4.6.5",
+    "zod-to-json-schema": "^3.25.2"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/pg": "^8.23.1",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "drizzle-kit": "^0.31.11",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.8",
+    "tailwindcss": "^4",
+    "tsx": "^4.23.15",
+    "typescript": "^5"
+  }
+}

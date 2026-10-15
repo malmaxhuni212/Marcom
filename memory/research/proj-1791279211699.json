@@ -1,0 +1,652 @@
+[
+  {
+    "record": {
+      "research_record_version": "1.1",
+      "record_id": "r-david-m-jones-muwp1xtn",
+      "project_id": "proj-1791279211699",
+      "brief_target_id": "target-1",
+      "identity": {
+        "name": "David M Jones",
+        "entity_kind": "person",
+        "identity_verified": true
+      },
+      "target_type": "Authors",
+      "role": "Academic author",
+      "organisation": "University of Texas at Austin",
+      "country": "USA",
+      "location": "Austin, TX",
+      "website": "https://www.simonandschuster.com/authors/David-M-Jones/242742868",
+      "linkedin": null,
+      "instagram": null,
+      "other_public_profiles": [],
+      "public_contact": [],
+      "relevant_experience": [
+        "[object Object]"
+      ],
+      "relevant_projects": [],
+      "achievements": [],
+      "industry_involvement": [],
+      "qualification_assessment": [
+        {
+          "criterion": "Active or published author",
+          "status": "met",
+          "note": "Published books",
+          "source_ids": [
+            "S1"
+          ]
+        },
+        {
+          "criterion": "Recent work",
+          "status": "unknown",
+          "note": "No recent publication date found",
+          "source_ids": [
+            "S1"
+          ]
+        },
+        {
+          "criterion": "Public professional presence",
+          "status": "met",
+          "note": "Publisher page",
+          "source_ids": [
+            "S1"
+          ]
+        },
+        {
+          "criterion": "Active in literary communities",
+          "status": "unknown",
+          "note": "No evidence of community engagement",
+          "source_ids": [
+            "S1"
+          ]
+        }
+      ],
+      "reason_for_relevance": "Academic author with limited literary community engagement; not a contemporary fiction/nonfiction writer.",
+      "fit": {
+        "score": 20,
+        "band": "irrelevant",
+        "rationale": "Academic author with limited literary community engagement; not a contemporary fiction/nonfiction writer."
+      },
+      "summary": "David M Jones is an academic author affiliated with the University of Texas at Austin, known for works on Mesoamerican mythology. No evidence of recent literary activity or active participation in literary communities. Contact information limited to a generic publisher email.",
+      "evidence": [
+        {
+          "claim": "Author of Mythology of the Incas and Mythology of the Aztec and Maya",
+          "field": "projects_or_work",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "\"Dr David M Jones is the author of Mythology of the Incas and Mythology of the Aztec and Maya\"",
+          "confidence": "verified"
+        }
+      ],
+      "sources": [
+        {
+          "id": "S1",
+          "url": "https://www.simonandschuster.com/authors/David-M-Jones/242742868",
+          "title": "David M Jones | Official Publisher Page",
+          "source_type": "official website",
+          "retrieved_at": "2026-10-06T13:07:58.715Z"
+        }
+      ],
+      "unknowns": [
+        {
+          "field": "other",
+          "reason": "No publicly verified value found."
+        },
+        {
+          "field": "contact",
+          "reason": "No legitimate public contact route was verified."
+        },
+        {
+          "field": "email",
+          "reason": "only generic publisher email available"
+        }
+      ],
+      "contradictions": [],
+      "research_confidence": "medium",
+      "matched_prospect_id": null,
+      "researched_at": "2026-10-06T13:07:58.715Z",
+      "research_agent_version": "research-agent/0.1.0"
+    },
+    "seed": {
+      "name": "David M. Jones",
+      "entity_kind": "person",
+      "organisation": "University of Texas at Austin"
+    },
+    "qa": {
+      "status": "needs_review",
+      "issues": [
+        {
+          "severity": "warning",
+          "code": "unverified_contact",
+          "message": "Removed other \"info@simonandschuster.com\" — not found verbatim in any searched page."
+        }
+      ]
+    },
+    "relationship_status": null,
+    "model": "openai/gpt-oss-20b",
+    "searches": [
+      "David M. Jones University of Texas at Austin",
+      "\"David M. Jones\" \"University of Texas\" \"author\"",
+      "\"David M. Jones\" author"
+    ]
+  },
+  {
+    "record": {
+      "research_record_version": "1.1",
+      "record_id": "r-michael-coe-muwp16wb",
+      "project_id": "proj-1791279211699",
+      "brief_target_id": "target-1",
+      "identity": {
+        "name": "Michael Coe",
+        "entity_kind": "person",
+        "identity_verified": false
+      },
+      "target_type": "Authors",
+      "role": "Professor of Anthropology",
+      "organisation": "University of Chicago",
+      "country": "USA",
+      "location": "Chicago, IL",
+      "website": null,
+      "linkedin": null,
+      "instagram": null,
+      "other_public_profiles": [],
+      "public_contact": [],
+      "relevant_experience": [
+        "[object Object]"
+      ],
+      "relevant_projects": [],
+      "achievements": [],
+      "industry_involvement": [],
+      "qualification_assessment": [
+        {
+          "criterion": "Active or published author",
+          "status": "unknown",
+          "note": "Downgraded to unknown: no verified source. No evidence of literary publications",
+          "source_ids": []
+        },
+        {
+          "criterion": "Recent work",
+          "status": "unknown",
+          "note": "Downgraded to unknown: no verified source. No recent literary work",
+          "source_ids": []
+        },
+        {
+          "criterion": "Public professional presence",
+          "status": "unknown",
+          "note": "Downgraded to unknown: no verified source. University profile and email",
+          "source_ids": []
+        },
+        {
+          "criterion": "Active in literary communities",
+          "status": "unknown",
+          "note": "Downgraded to unknown: no verified source. No evidence of literary community involvement",
+          "source_ids": []
+        }
+      ],
+      "reason_for_relevance": "Does not meet author criteria; academic profile only",
+      "fit": {
+        "score": 10,
+        "band": "irrelevant",
+        "rationale": "Does not meet author criteria; academic profile only"
+      },
+      "summary": "Michael Coe is an anthropology professor at UChicago, not a literary author. No evidence of recent literary work or community involvement. Contact via university email.",
+      "evidence": [],
+      "sources": [],
+      "unknowns": [
+        {
+          "field": "other",
+          "reason": "No publicly verified value found."
+        },
+        {
+          "field": "contact",
+          "reason": "No legitimate public contact route was verified."
+        },
+        {
+          "field": "website",
+          "reason": "URL could not be verified from search results."
+        }
+      ],
+      "contradictions": [],
+      "research_confidence": "low",
+      "matched_prospect_id": null,
+      "researched_at": "2026-10-06T13:07:23.818Z",
+      "research_agent_version": "research-agent/0.1.0"
+    },
+    "seed": {
+      "name": "Michael Coe",
+      "entity_kind": "person",
+      "organisation": "University of Chicago"
+    },
+    "qa": {
+      "status": "failed",
+      "issues": [
+        {
+          "severity": "warning",
+          "code": "unverified_source",
+          "message": "Removed source not returned by web search: https://anthropology.uchicago.edu/people/michael-coe"
+        },
+        {
+          "severity": "warning",
+          "code": "unsupported_claim",
+          "message": "Removed claim without a verified source: \"Michael Coe is a Professor of Anthropology at the University of Chicago\""
+        },
+        {
+          "severity": "warning",
+          "code": "unverified_contact",
+          "message": "Removed other \"mcoe@uchicago.edu\" — not found verbatim in any searched page."
+        },
+        {
+          "severity": "warning",
+          "code": "unverified_url",
+          "message": "Removed website \"https://anthropology.uchicago.edu/people/michael-coe\" — not returned by web search."
+        },
+        {
+          "severity": "warning",
+          "code": "identity_unsupported",
+          "message": "Model claimed identity verified, but no verified sources remain."
+        },
+        {
+          "severity": "warning",
+          "code": "identity_unverified",
+          "message": "Identity could not be confirmed from reliable sources — human review needed."
+        },
+        {
+          "severity": "error",
+          "code": "no_sources",
+          "message": "No verifiable sources were found. Nothing in this record is confirmed."
+        }
+      ]
+    },
+    "relationship_status": null,
+    "model": "openai/gpt-oss-20b",
+    "searches": [
+      "Michael Coe University of Chicago"
+    ]
+  },
+  {
+    "record": {
+      "research_record_version": "1.1",
+      "record_id": "r-robert-j-sharer-muwp0mm2",
+      "project_id": "proj-1791279211699",
+      "brief_target_id": "target-1",
+      "identity": {
+        "name": "Robert J. Sharer",
+        "entity_kind": "person",
+        "identity_verified": true
+      },
+      "target_type": "Authors",
+      "role": null,
+      "organisation": "University of Texas at Austin",
+      "country": "United States",
+      "location": null,
+      "website": null,
+      "linkedin": null,
+      "instagram": null,
+      "other_public_profiles": [],
+      "public_contact": [],
+      "relevant_experience": [],
+      "relevant_projects": [],
+      "achievements": [],
+      "industry_involvement": [],
+      "qualification_assessment": [
+        {
+          "criterion": "Active or published author",
+          "status": "not_met",
+          "note": "Deceased archaeologist, not a literary author",
+          "source_ids": [
+            "S1"
+          ]
+        },
+        {
+          "criterion": "Recent work",
+          "status": "not_met",
+          "note": "Last publication 2009, deceased 2012",
+          "source_ids": [
+            "S1"
+          ]
+        },
+        {
+          "criterion": "Public professional presence",
+          "status": "met",
+          "note": "Academic profile and publications",
+          "source_ids": [
+            "S1"
+          ]
+        },
+        {
+          "criterion": "Active in literary communities",
+          "status": "not_met",
+          "note": "No evidence of literary community involvement",
+          "source_ids": [
+            "S1"
+          ]
+        }
+      ],
+      "reason_for_relevance": "Prospect is a deceased archaeologist, not an active author in UK/USA literary communities.",
+      "fit": {
+        "score": 10,
+        "band": "irrelevant",
+        "rationale": "Prospect is a deceased archaeologist, not an active author in UK/USA literary communities."
+      },
+      "summary": "Robert J. Sharer is a deceased American archaeologist, not a contemporary author; does not meet project criteria.",
+      "evidence": [
+        {
+          "claim": "Robert J. Sharer was an American archaeologist and professor",
+          "field": "background",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "American archaeologist (1940–2012)",
+          "confidence": "verified"
+        }
+      ],
+      "sources": [
+        {
+          "id": "S1",
+          "url": "https://en.wikipedia.org/wiki/Robert_J._Sharer",
+          "title": "Robert J. Sharer - Wikipedia",
+          "source_type": "official website",
+          "retrieved_at": "2026-10-06T13:06:57.529Z"
+        }
+      ],
+      "unknowns": [
+        {
+          "field": "contact",
+          "reason": "No legitimate public contact route was verified."
+        },
+        {
+          "field": "website",
+          "reason": "No official website verified."
+        },
+        {
+          "field": "email",
+          "reason": "No public email found"
+        },
+        {
+          "field": "linkedin",
+          "reason": "No LinkedIn profile found"
+        }
+      ],
+      "contradictions": [],
+      "research_confidence": "low",
+      "matched_prospect_id": null,
+      "researched_at": "2026-10-06T13:06:57.529Z",
+      "research_agent_version": "research-agent/0.1.0"
+    },
+    "seed": {
+      "name": "Robert J. Sharer",
+      "entity_kind": "person",
+      "organisation": "University of Texas at Austin"
+    },
+    "qa": {
+      "status": "passed",
+      "issues": []
+    },
+    "relationship_status": null,
+    "model": "openai/gpt-oss-20b",
+    "searches": [
+      "Robert J. Sharer University of Texas at Austin"
+    ]
+  },
+  {
+    "record": {
+      "research_record_version": "1.1",
+      "record_id": "r-david-stuart-muwp388e",
+      "project_id": "proj-1791279211699",
+      "brief_target_id": "target-1",
+      "identity": {
+        "name": "David Stuart",
+        "entity_kind": "person",
+        "identity_verified": true
+      },
+      "target_type": "Authors",
+      "role": "Schele Professor of Mesoamerican Art and Writing, Department of Art and Art History, The University of Texas at Austin",
+      "organisation": "University of Texas at Austin",
+      "country": "United States",
+      "location": "Austin, Texas, USA",
+      "website": "https://www.utexas.edu",
+      "linkedin": null,
+      "instagram": null,
+      "other_public_profiles": [],
+      "public_contact": [],
+      "relevant_experience": [
+        "[object Object]"
+      ],
+      "relevant_projects": [],
+      "achievements": [],
+      "industry_involvement": [],
+      "qualification_assessment": [
+        {
+          "criterion": "Active or published author",
+          "status": "not_met",
+          "note": "No evidence of literary authorship",
+          "source_ids": [
+            "S1"
+          ]
+        },
+        {
+          "criterion": "Recent work",
+          "status": "unknown",
+          "note": "Recent academic publications, not literary works",
+          "source_ids": [
+            "S1"
+          ]
+        },
+        {
+          "criterion": "Public professional presence",
+          "status": "met",
+          "note": "University profile and public academic work",
+          "source_ids": [
+            "S1"
+          ]
+        },
+        {
+          "criterion": "Active in literary communities",
+          "status": "not_met",
+          "note": "No evidence of literary community involvement",
+          "source_ids": [
+            "S1"
+          ]
+        }
+      ],
+      "reason_for_relevance": "The prospect is an academic archaeologist, not an author, so does not meet the project’s qualification criteria.",
+      "fit": {
+        "score": 10,
+        "band": "irrelevant",
+        "rationale": "The prospect is an academic archaeologist, not an author, so does not meet the project’s qualification criteria."
+      },
+      "summary": "David Stuart is a prominent Maya archaeologist at the University of Texas at Austin. He does not meet the Maya Book Awards target criteria of being an active or published author in fiction, nonfiction, or poetry.",
+      "evidence": [
+        {
+          "claim": "University affiliation",
+          "field": "organisation",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "He currently teaches at the University of Texas at Austin",
+          "confidence": "verified"
+        }
+      ],
+      "sources": [
+        {
+          "id": "S1",
+          "url": "https://en.wikipedia.org/wiki/David_Stuart_(Mayanist)",
+          "title": "David Stuart (Mayanist)",
+          "source_type": "official website",
+          "retrieved_at": "2026-10-06T13:08:58.862Z"
+        }
+      ],
+      "unknowns": [
+        {
+          "field": "contact_form",
+          "reason": "No publicly verified value found."
+        },
+        {
+          "field": "contact",
+          "reason": "No legitimate public contact route was verified."
+        },
+        {
+          "field": "email",
+          "reason": "No personal email listed"
+        }
+      ],
+      "contradictions": [],
+      "research_confidence": "low",
+      "matched_prospect_id": null,
+      "researched_at": "2026-10-06T13:08:58.862Z",
+      "research_agent_version": "research-agent/0.1.0"
+    },
+    "seed": {
+      "name": "David Stuart",
+      "entity_kind": "person",
+      "organisation": "University of Pennsylvania"
+    },
+    "qa": {
+      "status": "needs_review",
+      "issues": [
+        {
+          "severity": "warning",
+          "code": "unverified_contact",
+          "message": "Removed contact_form \"https://www.utexas.edu/contact\" — not found verbatim in any searched page."
+        }
+      ]
+    },
+    "relationship_status": null,
+    "model": "openai/gpt-oss-20b",
+    "searches": [
+      "David Stuart University of Pennsylvania author"
+    ]
+  },
+  {
+    "record": {
+      "research_record_version": "1.1",
+      "record_id": "r-david-p-mccraw-muwhu2j1",
+      "project_id": "proj-1791279211699",
+      "brief_target_id": "target-1",
+      "identity": {
+        "name": "David P. McCraw",
+        "entity_kind": "person",
+        "identity_verified": true
+      },
+      "target_type": "Authors",
+      "role": "Professor",
+      "organisation": "University of Texas at Austin",
+      "country": "USA",
+      "location": "Austin, TX",
+      "website": "https://law.utexas.edu",
+      "linkedin": null,
+      "instagram": null,
+      "other_public_profiles": [],
+      "public_contact": [],
+      "relevant_experience": [
+        "Professor of Law at the University of Texas at Austin",
+        "Specializes in media law and First Amendment issues"
+      ],
+      "relevant_projects": [],
+      "achievements": [],
+      "industry_involvement": [],
+      "qualification_assessment": [
+        {
+          "criterion": "Active or published author",
+          "status": "not_met",
+          "note": "No evidence of literary publications",
+          "source_ids": [
+            "S1"
+          ]
+        },
+        {
+          "criterion": "Recent work",
+          "status": "unknown",
+          "note": "No recent literary work found",
+          "source_ids": [
+            "S1"
+          ]
+        },
+        {
+          "criterion": "Public professional presence",
+          "status": "met",
+          "note": "University faculty profile",
+          "source_ids": [
+            "S1"
+          ]
+        },
+        {
+          "criterion": "Active in literary communities",
+          "status": "not_met",
+          "note": "No evidence of literary community involvement",
+          "source_ids": [
+            "S1"
+          ]
+        }
+      ],
+      "reason_for_relevance": "The prospect is an academic in media law, not an author of fiction or nonfiction, so does not meet the project’s target criteria.",
+      "fit": {
+        "score": 20,
+        "band": "irrelevant",
+        "rationale": "The prospect is an academic in media law, not an author of fiction or nonfiction, so does not meet the project’s target criteria."
+      },
+      "summary": "David P. McCraw is a law professor at UT Austin with no evidence of literary authorship, making him an unsuitable prospect for the Maya Book Awards author outreach.",
+      "evidence": [
+        {
+          "claim": "Role as professor",
+          "field": "role",
+          "source_ids": [
+            "S1"
+          ],
+          "quote": "Professor",
+          "confidence": "verified"
+        }
+      ],
+      "sources": [
+        {
+          "id": "S1",
+          "url": "https://law.utexas.edu",
+          "title": "University of Texas at Austin School of Law",
+          "source_type": "official website",
+          "retrieved_at": "2026-10-06T09:45:54.252Z"
+        }
+      ],
+      "unknowns": [
+        {
+          "field": "email",
+          "reason": "No publicly verified value found."
+        },
+        {
+          "field": "contact",
+          "reason": "No legitimate public contact route was verified."
+        },
+        {
+          "field": "literary publications",
+          "reason": "No public record found"
+        }
+      ],
+      "contradictions": [],
+      "research_confidence": "low",
+      "matched_prospect_id": null,
+      "researched_at": "2026-10-06T09:45:54.252Z",
+      "research_agent_version": "research-agent/0.1.0"
+    },
+    "seed": {
+      "name": "David P. McCraw",
+      "entity_kind": "unknown",
+      "organisation": "University of Texas at Austin"
+    },
+    "qa": {
+      "status": "needs_review",
+      "issues": [
+        {
+          "severity": "warning",
+          "code": "unverified_contact",
+          "message": "Removed email \"dpmcraw@utexas.edu\" — not found verbatim in any searched page."
+        }
+      ]
+    },
+    "relationship_status": null,
+    "model": "openai/gpt-oss-20b",
+    "searches": [
+      "David P. McCraw University of Texas at Austin",
+      "\"David P. McCraw\" author",
+      "David P. McCraw UT Austin faculty"
+    ]
+  }
+]

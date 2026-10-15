@@ -1,0 +1,22 @@
+{
+  "id": "test-09-soulbound-film",
+  "category": "film_project",
+  "title": "Soulbound — independent feature film crew",
+  "edge_case": false,
+  "brief": "Project: Soulbound\n\nSoulbound is an independent feature film with a budget of approximately £1.2m, shooting in the North of England next year. We are looking to attach experienced crew. Find UK-based film producers with at least one released feature credit, and heads of department, specifically cinematographers and production designers. Exclude anyone whose credits are only commercials or music videos. Use IMDb, BFI listings and festival programmes. Capture name, role, notable credits, agent or representation contact, and location. Outreach should be by email via their agent where possible. Mention the specific film of theirs we admire, but never comment on box office performance.",
+  "expected": {
+    "intent_keywords": ["Soulbound", "feature film", "crew"],
+    "targets": [
+      { "any_of": ["producer"], "geography": ["UK"] },
+      { "any_of": ["cinematographer", "heads of department", "production designer"] }
+    ],
+    "max_targets": 4,
+    "criteria_keywords": ["feature credit"],
+    "exclusion_keywords": ["commercials", "music videos"],
+    "research_keywords": ["credits", "IMDb", "BFI", "festival"],
+    "personalization_keywords": ["box office", "email"],
+    "must_flag_unknowns": [],
+    "must_preserve_approximations": ["approximately £1.2m"],
+    "database_fields": ["role", "credits", "representation", "location"]
+  }
+}

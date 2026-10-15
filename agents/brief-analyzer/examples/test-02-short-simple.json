@@ -1,0 +1,19 @@
+{
+  "id": "test-02-short-simple",
+  "category": "short_simple",
+  "title": "Wholesale coffee roasters in Bristol",
+  "edge_case": false,
+  "brief": "Find independent coffee roasters in Bristol that sell wholesale to cafes.",
+  "expected": {
+    "intent_keywords": ["coffee roaster"],
+    "targets": [{ "any_of": ["coffee roaster"], "geography": ["Bristol"] }],
+    "max_targets": 1,
+    "criteria_keywords": ["independent", "wholesale"],
+    "exclusion_keywords": [],
+    "research_keywords": [],
+    "personalization_keywords": [],
+    "must_flag_unknowns": ["objective", "channel", "field"],
+    "database_fields": ["name"]
+  },
+  "notes": "Purpose, channel and fields are absent; analyzer must not invent them."
+}

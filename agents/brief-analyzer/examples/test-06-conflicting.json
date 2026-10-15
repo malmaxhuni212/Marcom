@@ -1,0 +1,20 @@
+{
+  "id": "test-06-conflicting",
+  "category": "conflicting_requirements",
+  "title": "Contradictory company size, tone and tooling",
+  "edge_case": true,
+  "brief": "Project: Ledgerlight Pilot\n\nFind finance directors at enterprise companies with more than 1,000 employees in the UK. We only want enterprise-scale organisations. However, the pilot is really designed for very early-stage companies with fewer than 10 staff, so prioritise those. Keep the outreach formal. Make the emails casual and playful. We have no budget for paid tools, but the data must come from Crunchbase Pro.",
+  "expected": {
+    "intent_keywords": ["finance director", "pilot"],
+    "targets": [{ "any_of": ["finance director"], "geography": ["UK"] }],
+    "max_targets": 2,
+    "criteria_keywords": ["1,000", "enterprise"],
+    "exclusion_keywords": [],
+    "research_keywords": ["Crunchbase"],
+    "personalization_keywords": ["formal", "casual"],
+    "must_flag_unknowns": [],
+    "must_detect_conflict": true,
+    "database_fields": ["name"]
+  },
+  "notes": "Three conflicts: company size, tone, paid tooling. Analyzer must surface them, not resolve them silently."
+}

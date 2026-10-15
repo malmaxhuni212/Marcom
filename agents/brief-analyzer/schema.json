@@ -1,0 +1,184 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "StructuredBrief",
+  "type": "object",
+  "required": [
+    "structured_brief_version",
+    "project",
+    "targets",
+    "research",
+    "personalization",
+    "outreach",
+    "database",
+    "human_review",
+    "constraints",
+    "conflicts",
+    "approximations",
+    "unknowns_requiring_confirmation"
+  ],
+  "properties": {
+    "structured_brief_version": {
+      "type": "string",
+      "enum": ["1.0"]
+    },
+    "project": {
+      "type": "object",
+      "required": ["name", "description", "primary_objective", "secondary_objectives", "success_metrics"],
+      "properties": {
+        "name": { "type": ["string", "null"] },
+        "description": { "type": "string" },
+        "primary_objective": { "type": "string" },
+        "secondary_objectives": { "type": "array", "items": { "type": "string" } },
+        "success_metrics": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "targets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "target_type", "entity_kind", "description", "geography", "qualification_criteria", "exclusion_criteria", "priority"],
+        "properties": {
+          "id": { "type": "string" },
+          "target_type": { "type": "string" },
+          "entity_kind": { "type": "string", "enum": ["person", "organisation", "either", "unknown"] },
+          "description": { "type": "string" },
+          "geography_mode": {
+            "type": "string",
+            "enum": ["specified", "unrestricted", "unspecified"]
+          },
+          "geography": { "type": "array", "items": { "type": "string" } },
+          "qualification_criteria": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["text", "origin", "needs_operational_definition"],
+              "properties": {
+                "text": { "type": "string" },
+                "origin": { "type": "string", "enum": ["explicit", "inferred"] },
+                "needs_operational_definition": { "type": "boolean" }
+              }
+            }
+          },
+          "exclusion_criteria": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["text", "origin", "needs_operational_definition"],
+              "properties": {
+                "text": { "type": "string" },
+                "origin": { "type": "string", "enum": ["explicit", "inferred"] },
+                "needs_operational_definition": { "type": "boolean" }
+              }
+            }
+          },
+          "priority": { "type": "string", "enum": ["primary", "secondary", "tertiary", "unspecified"] }
+        }
+      }
+    },
+    "research": {
+      "type": "object",
+      "required": ["required_fields", "preferred_source_types", "evidence_requirements", "verification_requirements", "unknown_handling"],
+      "properties": {
+        "required_fields": { "type": "array", "items": { "type": "string" } },
+        "preferred_source_types": { "type": "array", "items": { "type": "string" } },
+        "evidence_requirements": { "type": "array", "items": { "type": "string" } },
+        "verification_requirements": { "type": "array", "items": { "type": "string" } },
+        "unknown_handling": { "type": "string" },
+        "search_settings": {
+          "type": "object",
+          "required": ["keywords", "excluded_keywords", "preferred_domains", "excluded_domains", "default_result_limit"],
+          "properties": {
+            "keywords": { "type": "array", "items": { "type": "string" } },
+            "excluded_keywords": { "type": "array", "items": { "type": "string" } },
+            "preferred_domains": { "type": "array", "items": { "type": "string" } },
+            "excluded_domains": { "type": "array", "items": { "type": "string" } },
+            "default_result_limit": { "type": "integer", "minimum": 1, "maximum": 25 }
+          }
+        }
+      }
+    },
+    "personalization": {
+      "type": "object",
+      "required": ["allowed", "preferred_details", "tone", "avoid"],
+      "properties": {
+        "allowed": { "type": "array", "items": { "type": "string" } },
+        "preferred_details": { "type": "array", "items": { "type": "string" } },
+        "tone": { "type": "array", "items": { "type": "string" } },
+        "avoid": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "outreach": {
+      "type": "object",
+      "required": ["objectives", "channels", "tone", "approval_required"],
+      "properties": {
+        "objectives": { "type": "array", "items": { "type": "string" } },
+        "channels": { "type": "array", "items": { "type": "string" } },
+        "tone": { "type": "array", "items": { "type": "string" } },
+        "approval_required": { "type": "boolean", "enum": [true] }
+      }
+    },
+    "database": {
+      "type": "object",
+      "required": ["fields"],
+      "properties": {
+        "fields": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "required", "purpose", "expected_source"],
+            "properties": {
+              "name": { "type": "string" },
+              "required": { "type": "boolean" },
+              "purpose": { "type": "string" },
+              "expected_source": { "type": "string", "enum": ["brief", "research", "personalization", "human", "system"] }
+            }
+          }
+        }
+      }
+    },
+    "human_review": {
+      "type": "object",
+      "required": ["requirements", "approval_points"],
+      "properties": {
+        "requirements": { "type": "array", "items": { "type": "string" } },
+        "approval_points": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "constraints": { "type": "array", "items": { "type": "string" } },
+    "conflicts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["description", "quotes"],
+        "properties": {
+          "description": { "type": "string" },
+          "quotes": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "approximations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["quote", "interpretation"],
+        "properties": {
+          "quote": { "type": "string" },
+          "interpretation": { "type": "string" }
+        }
+      }
+    },
+    "unknowns_requiring_confirmation": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["topic", "reason", "quote", "blocking"],
+        "properties": {
+          "topic": { "type": "string" },
+          "reason": { "type": "string" },
+          "quote": { "type": ["string", "null"] },
+          "blocking": { "type": "boolean" }
+        }
+      }
+    }
+  }
+}

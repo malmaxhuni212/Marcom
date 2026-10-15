@@ -1,0 +1,413 @@
+[
+  {
+    "project_id": "proj-1791464115518",
+    "name": "Maya",
+    "aliases": [],
+    "summary": "A multi-channel marketing and communications strategy to generate 2,000+ quality book submissions and build a sustainable author community.",
+    "status": "READY_FOR_RESEARCH",
+    "structured_brief": {
+      "structured_brief_version": "1.0",
+      "project": {
+        "name": "Maya",
+        "description": "A multi-channel marketing and communications strategy to generate 2,000+ quality book submissions and build a sustainable author community.",
+        "primary_objective": "Generate 2,000+ quality book submissions from relevant authors.",
+        "secondary_objectives": [
+          "Increase international awareness of Maya Book Awards.",
+          "Build a reusable database of authors, writers, publishers, organisations and communities.",
+          "Develop recurring partnership and sponsorship opportunities.",
+          "Re‑engage previous entrants and existing contacts.",
+          "Strengthen social and content presence around authors and books.",
+          "Create a long‑term author community and referral network.",
+          "Identify potential investors, sponsors and strategic supporters."
+        ],
+        "success_metrics": [
+          "Number of quality submissions (target 2,000+).",
+          "Growth in database size and contact quality.",
+          "Increase in social engagement metrics.",
+          "Number of partnership agreements signed.",
+          "Re‑engagement rate of previous entrants."
+        ]
+      },
+      "targets": [
+        {
+          "id": "target-1",
+          "target_type": "Authors & Writers",
+          "entity_kind": "person",
+          "description": "Independent, emerging, published authors and writers active in online writing communities.",
+          "geography_mode": "specified",
+          "geography": [
+            "United States",
+            "United Kingdom"
+          ],
+          "qualification_criteria": [
+            {
+              "text": "Author has published a book or multiple works.",
+              "origin": "explicit",
+              "needs_operational_definition": false
+            },
+            {
+              "text": "Active in English‑language writing communities or platforms.",
+              "origin": "explicit",
+              "needs_operational_definition": false
+            }
+          ],
+          "exclusion_criteria": [],
+          "priority": "primary"
+        },
+        {
+          "id": "target-2",
+          "target_type": "Writing & Literary Communities",
+          "entity_kind": "organisation",
+          "description": "Writing groups, creative‑writing programmes, workshops, retreats, literary societies and author communities.",
+          "geography_mode": "specified",
+          "geography": [
+            "United States",
+            "United Kingdom"
+          ],
+          "qualification_criteria": [
+            {
+              "text": "Community has an active membership of authors or writers.",
+              "origin": "explicit",
+              "needs_operational_definition": false
+            }
+          ],
+          "exclusion_criteria": [],
+          "priority": "secondary"
+        },
+        {
+          "id": "target-3",
+          "target_type": "Publishers & Book‑Industry Organisations",
+          "entity_kind": "organisation",
+          "description": "Publishers, booksellers, book platforms, literary organisations, magazines and relevant media outlets.",
+          "geography_mode": "specified",
+          "geography": [
+            "United States",
+            "United Kingdom"
+          ],
+          "qualification_criteria": [
+            {
+              "text": "Organisation distributes or promotes books to authors.",
+              "origin": "explicit",
+              "needs_operational_definition": false
+            }
+          ],
+          "exclusion_criteria": [],
+          "priority": "secondary"
+        },
+        {
+          "id": "target-4",
+          "target_type": "Universities & Education",
+          "entity_kind": "organisation",
+          "description": "Creative‑writing departments, student writing communities and university networks.",
+          "geography_mode": "specified",
+          "geography": [
+            "United States",
+            "United Kingdom"
+          ],
+          "qualification_criteria": [
+            {
+              "text": "Institution offers creative‑writing programmes or student writing societies.",
+              "origin": "explicit",
+              "needs_operational_definition": false
+            }
+          ],
+          "exclusion_criteria": [],
+          "priority": "secondary"
+        },
+        {
+          "id": "target-5",
+          "target_type": "Creators & Influencers / Investors & Sponsors",
+          "entity_kind": "either",
+          "description": "BookTok, Bookstagram, literary creators, and individuals or organisations capable of funding or sponsoring the awards.",
+          "geography_mode": "specified",
+          "geography": [
+            "United States",
+            "United Kingdom"
+          ],
+          "qualification_criteria": [
+            {
+              "text": "Creator has a following that includes authors or aspiring writers.",
+              "origin": "explicit",
+              "needs_operational_definition": false
+            },
+            {
+              "text": "Investor or sponsor has a history of supporting literary initiatives.",
+              "origin": "explicit",
+              "needs_operational_definition": false
+            }
+          ],
+          "exclusion_criteria": [],
+          "priority": "secondary"
+        }
+      ],
+      "research": {
+        "required_fields": [
+          "Name",
+          "Role",
+          "Organisation",
+          "Location",
+          "Website",
+          "LinkedIn",
+          "Email",
+          "Phone",
+          "Best contact method",
+          "Relevant experience",
+          "Projects/Books",
+          "Achievements",
+          "Industry involvement",
+          "Potential fit",
+          "Useful evidence",
+          "Personalisation opportunities",
+          "Source links"
+        ],
+        "preferred_source_types": [
+          "LinkedIn",
+          "Websites",
+          "Social media",
+          "Email directories"
+        ],
+        "evidence_requirements": [
+          "Proof of authorship or community membership.",
+          "Evidence of role within target organisation.",
+          "Publicly available contact details."
+        ],
+        "verification_requirements": [
+          "Confirm name, role, organisation and location from at least two independent sources.",
+          "Validate email and phone via official website or verified directory."
+        ],
+        "unknown_handling": "Mark as unknown, flag for confirmation, and do not use until verified.",
+        "search_settings": {
+          "keywords": [
+            "Authors & Writers",
+            "Writing & Literary Communities",
+            "Publishers & Book‑Industry Organisations",
+            "Universities & Education",
+            "Creators & Influencers / Investors & Sponsors",
+            "Author has published a book or multiple works.",
+            "Active in English‑language writing communities or platforms.",
+            "Community has an active membership of authors or writers.",
+            "Organisation distributes or promotes books to authors.",
+            "Institution offers creative‑writing programmes or student writing societies.",
+            "Creator has a following that includes authors or aspiring writers.",
+            "Investor or sponsor has a history of supporting literary initiatives."
+          ],
+          "excluded_keywords": [],
+          "preferred_domains": [],
+          "excluded_domains": [],
+          "default_result_limit": 10
+        }
+      },
+      "personalization": {
+        "allowed": [
+          "Relevant books or writing projects",
+          "Role in literary ecosystem",
+          "Community involvement",
+          "Achievements",
+          "Personal connection to Maya"
+        ],
+        "preferred_details": [
+          "Specific project or book title",
+          "Recent award or recognition",
+          "Community or partnership history"
+        ],
+        "tone": [
+          "Professional",
+          "Human"
+        ],
+        "avoid": [
+          "Invasive or overly familiar language",
+          "Fabricated or unverified details",
+          "Technical jargon unless necessary"
+        ]
+      },
+      "outreach": {
+        "objectives": [
+          "Generate 2,000+ quality submissions",
+          "Increase international awareness",
+          "Build and enrich database",
+          "Secure partnerships and sponsorships",
+          "Re‑engage previous entrants"
+        ],
+        "channels": [
+          "Email",
+          "LinkedIn",
+          "Paid digital (Meta, etc.)",
+          "Social media",
+          "University outreach",
+          "Literary partnerships",
+          "Direct personal outreach"
+        ],
+        "tone": [
+          "Professional"
+        ],
+        "approval_required": true
+      },
+      "database": {
+        "fields": [
+          {
+            "name": "Name",
+            "required": true,
+            "purpose": "Identify the prospect",
+            "expected_source": "research"
+          },
+          {
+            "name": "Role",
+            "required": true,
+            "purpose": "Determine decision‑making authority",
+            "expected_source": "research"
+          },
+          {
+            "name": "Organisation",
+            "required": true,
+            "purpose": "Contextualise prospect within industry",
+            "expected_source": "research"
+          },
+          {
+            "name": "Email",
+            "required": true,
+            "purpose": "Primary contact method",
+            "expected_source": "research"
+          },
+          {
+            "name": "Country",
+            "required": true,
+            "purpose": "Geographic relevance",
+            "expected_source": "research"
+          },
+          {
+            "name": "Contact Method",
+            "required": true,
+            "purpose": "Best outreach channel",
+            "expected_source": "research"
+          },
+          {
+            "name": "Qualification Status",
+            "required": true,
+            "purpose": "Indicates if prospect meets qualification criteria",
+            "expected_source": "research"
+          }
+        ]
+      },
+      "human_review": {
+        "requirements": [
+          "Verify prospect identity and relevance",
+          "Confirm evidence supporting relevance",
+          "Assess personalization angle",
+          "Select appropriate outreach channel",
+          "Approve draft message",
+          "Check compliance with privacy and research rules"
+        ],
+        "approval_points": [
+          "Research accuracy",
+          "Personalization relevance",
+          "Channel suitability",
+          "Message draft quality",
+          "Compliance with rules"
+        ]
+      },
+      "constraints": [
+        "No fabricated names, roles, emails or facts.",
+        "Avoid private or sensitive personal information.",
+        "Do not contact during research stage.",
+        "Use only publicly available and legitimate professional information.",
+        "Record evidence and sources for all claims."
+      ],
+      "conflicts": [],
+      "approximations": [],
+      "unknowns_requiring_confirmation": [
+        {
+          "topic": "Prize structure and amounts",
+          "reason": "Not specified in brief; needed for accurate messaging.",
+          "quote": "\"Exact prize structure and amounts.\"",
+          "blocking": true
+        },
+        {
+          "topic": "Final submission deadline",
+          "reason": "Required to time outreach and content.",
+          "quote": "\"Final submission deadline.\"",
+          "blocking": true
+        },
+        {
+          "topic": "Entry pricing and eligibility rules",
+          "reason": "Needed to inform authors about costs and eligibility.",
+          "quote": "\"Entry pricing and eligibility rules.\"",
+          "blocking": true
+        },
+        {
+          "topic": "Geographic/language eligibility",
+          "reason": "Determines target audience scope.",
+          "quote": "\"Geographic/language eligibility.\"",
+          "blocking": true
+        },
+        {
+          "topic": "Final judging process and criteria",
+          "reason": "Important for transparency and trust.",
+          "quote": "\"Final judging process and criteria.\"",
+          "blocking": true
+        },
+        {
+          "topic": "Existing Maya audience/database size",
+          "reason": "Needed to gauge outreach scale.",
+          "quote": "\"Existing Maya audience/database size.\"",
+          "blocking": true
+        },
+        {
+          "topic": "Previous entrant performance",
+          "reason": "To tailor re‑engagement strategies.",
+          "quote": "\"Previous entrant performance.\"",
+          "blocking": true
+        },
+        {
+          "topic": "Available paid‑media budget",
+          "reason": "To plan paid campaigns.",
+          "quote": "\"Available paid‑media budget.\"",
+          "blocking": true
+        },
+        {
+          "topic": "Tracking and analytics setup",
+          "reason": "Required for measuring success.",
+          "quote": "\"Tracking and analytics setup.\"",
+          "blocking": true
+        },
+        {
+          "topic": "Final partnership/sponsorship proposition",
+          "reason": "Needed to craft partnership outreach.",
+          "quote": "\"Final partnership/sponsorship proposition.\"",
+          "blocking": true
+        }
+      ]
+    },
+    "target_definitions": [
+      {
+        "target_type": "Authors & Writers",
+        "definition": "Independent, emerging, published authors and writers active in online writing communities.",
+        "aliases": []
+      },
+      {
+        "target_type": "Writing & Literary Communities",
+        "definition": "Writing groups, creative‑writing programmes, workshops, retreats, literary societies and author communities.",
+        "aliases": []
+      },
+      {
+        "target_type": "Publishers & Book‑Industry Organisations",
+        "definition": "Publishers, booksellers, book platforms, literary organisations, magazines and relevant media outlets.",
+        "aliases": []
+      },
+      {
+        "target_type": "Universities & Education",
+        "definition": "Creative‑writing departments, student writing communities and university networks.",
+        "aliases": []
+      },
+      {
+        "target_type": "Creators & Influencers / Investors & Sponsors",
+        "definition": "BookTok, Bookstagram, literary creators, and individuals or organisations capable of funding or sponsoring the awards.",
+        "aliases": []
+      }
+    ],
+    "notes": [
+      "Original Brief Source: MAYA BOOK AWARDS — MASTER PROJECT BRIEF FOR MARCOM (6).docx"
+    ],
+    "configuration_revision": 1,
+    "configuration_updated_at": "2026-10-08T12:55:15.518Z"
+  }
+]
