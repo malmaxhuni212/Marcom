@@ -24,6 +24,17 @@ test('Netlify deployments automatically select Netlify Blobs', () => {
   });
 });
 
+test('Netlify Functions select Blobs from their injected runtime context', () => {
+  assert.deepEqual(
+    getBriefSourceStorageConfiguration({ NETLIFY_BLOBS_CONTEXT: 'encoded-runtime-context' }),
+    { provider: 'netlify-blobs', region: 'us-east-2' },
+  );
+  assert.deepEqual(
+    getBriefSourceStorageConfiguration({}, 'encoded-global-runtime-context'),
+    { provider: 'netlify-blobs', region: 'us-east-2' },
+  );
+});
+
 test('storage provider and supported region can be selected explicitly', () => {
   assert.deepEqual(
     getBriefSourceStorageConfiguration({

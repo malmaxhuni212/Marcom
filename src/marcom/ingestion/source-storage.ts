@@ -38,9 +38,15 @@ function isNetlifyBlobsRegion(value: string): value is NetlifyBlobsRegion {
 
 export function getBriefSourceStorageConfiguration(
   environment: Record<string, string | undefined> = process.env,
+  netlifyBlobsContext: unknown = globalThis.netlifyBlobsContext,
 ): BriefSourceStorageConfiguration {
   const configuredProvider = environment.BRIEF_FILE_STORAGE?.trim();
-  const provider = configuredProvider || (environment.NETLIFY === 'true' ? 'netlify-blobs' : 'local');
+  const hasNetlifyBlobsContext =
+    (typeof environment.NETLIFY_BLOBS_CONTEXT === 'string' &&
+      environment.NETLIFY_BLOBS_CONTEXT.trim().length > 0) ||
+    (typeof netlifyBlobsContext === 'string' && netlifyBlobsContext.length > 0);
+  const isNetlifyRuntime = environment.NETLIFY === 'true' || hasNetlifyBlobsContext;
+  const provider = configuredProvider || (isNetlifyRuntime ? 'netlify-blobs' : 'local');
   if (provider !== 'local' && provider !== 'netlify-blobs') {
     throw new Error('BRIEF_FILE_STORAGE must be local or netlify-blobs.');
   }
