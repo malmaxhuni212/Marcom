@@ -1,3 +1,4 @@
+import { getConnectionString as getNetlifyConnectionString } from '@netlify/database';
 import { z } from 'zod';
 
 const DatabaseEnvironmentSchema = z.object({
@@ -25,6 +26,21 @@ export function getDatabaseUrl(
   }
 
   return url.toString();
+}
+
+function isEnabledFlag(value: string | undefined): boolean {
+  return Boolean(value && !['0', 'false', 'no'].includes(value.toLowerCase()));
+}
+
+export function getApplicationDatabaseUrl(
+  environment: Record<string, string | undefined> = process.env,
+  resolveNetlifyConnection: () => string = getNetlifyConnectionString,
+): string {
+  if (isEnabledFlag(environment.NETLIFY)) {
+    return getDatabaseUrl({ NETLIFY_DB_URL: resolveNetlifyConnection() });
+  }
+
+  return getDatabaseUrl(environment);
 }
 
 export function isDatabaseConfigured(

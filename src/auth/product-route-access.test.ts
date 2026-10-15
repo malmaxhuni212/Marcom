@@ -17,7 +17,10 @@ test('AUTH-003 every product API handler invokes the shared access gate', () => 
   const failures: string[] = [];
   for (const file of routeFiles(API_ROOT)) {
     const name = relative(process.cwd(), file).replaceAll('\\', '/');
-    if (name === 'src/app/api/v1/auth/session/route.ts') continue;
+    if (
+      name === 'src/app/api/v1/auth/session/route.ts' ||
+      name === 'src/app/api/internal/v1/auth/bootstrap/route.ts'
+    ) continue;
 
     const source = readFileSync(file, 'utf8');
     const handlerCount = [...source.matchAll(/export async function (?:GET|POST|PUT|PATCH|DELETE)\s*\(/g)].length;

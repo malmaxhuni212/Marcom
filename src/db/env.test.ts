@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { getDatabaseUrl, usesNetlifyManagedMigrations } from './env';
+import {
+  getApplicationDatabaseUrl,
+  getDatabaseUrl,
+  usesNetlifyManagedMigrations,
+} from './env';
 
 test('uses DATABASE_URL before the Netlify fallback', () => {
   const result = getDatabaseUrl({
@@ -48,4 +52,32 @@ test('allows manual migrations when an explicit DATABASE_URL is selected', () =>
     }),
     false,
   );
+});
+
+test('uses the branch-aware Netlify runtime connection when deployed', () => {
+  let resolved = false;
+  const result = getApplicationDatabaseUrl(
+    {
+      NETLIFY: 'true',
+      DATABASE_URL: 'postgresql://local.example.test/marcom',
+    },
+    () => {
+      resolved = true;
+      return 'postgresql://runtime.example.test/marcom?sslmode=require';
+    },
+  );
+
+  assert.equal(resolved, true);
+  assert.equal(result, 'postgresql://runtime.example.test/marcom?sslmode=verify-full');
+});
+
+test('does not ask Netlify for a connection outside its runtime', () => {
+  const result = getApplicationDatabaseUrl(
+    { DATABASE_URL: 'postgresql://local.example.test/marcom' },
+    () => {
+      throw new Error('Netlify resolver must not run locally.');
+    },
+  );
+
+  assert.equal(result, 'postgresql://local.example.test/marcom');
 });

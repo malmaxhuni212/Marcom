@@ -4,7 +4,12 @@ import { getAuthConfiguration } from '@/auth/config';
 import { getAuthCookieConfiguration } from '@/auth/cookies';
 
 const PATH_HEADER = 'x-marcom-pathname';
-const PUBLIC_PATHS = new Set(['/login', '/api/v1/auth/session']);
+const PUBLIC_PATHS = new Set([
+  '/login',
+  '/bootstrap',
+  '/api/v1/auth/session',
+  '/api/internal/v1/auth/bootstrap',
+]);
 
 function unavailable(): NextResponse {
   return NextResponse.json(

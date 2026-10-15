@@ -50,6 +50,13 @@
       "when": 1792070190859,
       "tag": "20261015131630_auth_002_secure_sessions",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792094734503,
+      "tag": "20261015200534_auth_003_pilot_foundation",
+      "breakpoints": true
     }
   ]
 }

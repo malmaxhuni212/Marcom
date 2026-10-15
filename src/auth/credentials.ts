@@ -7,6 +7,20 @@ import { hashPassword, validateUsername } from './password';
 
 export const SHARED_PILOT_DISPLAY_NAME = 'MARCOM Shared Pilot';
 
+export class SharedPilotAlreadyConfiguredError extends Error {
+  constructor() {
+    super('The shared pilot credential is already configured.');
+    this.name = 'SharedPilotAlreadyConfiguredError';
+  }
+}
+
+export class PilotWorkspaceUnavailableError extends Error {
+  constructor() {
+    super('The target workspace is missing or inactive.');
+    this.name = 'PilotWorkspaceUnavailableError';
+  }
+}
+
 export interface BootstrapSharedPilotInput {
   username: string;
   password: string;
@@ -48,20 +62,27 @@ export async function bootstrapSharedPilotCredential(
       .select({ id: workspaces.id })
       .from(workspaces)
       .where(and(eq(workspaces.id, workspaceId), eq(workspaces.status, 'active')))
+      .for('update')
       .limit(1);
 
     if (!workspace) {
-      throw new Error('The target workspace is missing or inactive. Run the database seed first.');
+      throw new PilotWorkspaceUnavailableError();
     }
 
     const [existing] = await transaction
       .select({ id: users.id })
       .from(users)
-      .where(eq(users.usernameNormalized, username))
+      .innerJoin(workspaceMemberships, eq(workspaceMemberships.userId, users.id))
+      .where(
+        and(
+          eq(workspaceMemberships.workspaceId, workspaceId),
+          eq(users.authMethod, 'password'),
+        ),
+      )
       .limit(1);
 
     if (existing) {
-      throw new Error('The shared pilot username already exists. Use the password rotation command.');
+      throw new SharedPilotAlreadyConfiguredError();
     }
 
     await transaction.insert(users).values({

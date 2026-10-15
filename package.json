@@ -11,7 +11,7 @@
     "start": "next start --hostname 127.0.0.1",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test src/auth/access-config.test.ts src/auth/authenticate.test.ts src/auth/config.test.ts src/auth/http.test.ts src/auth/password.test.ts src/auth/product-route-access.test.ts src/auth/proxy.test.ts src/auth/session.test.ts src/db/env.test.ts src/db/idempotency.test.ts src/db/research-repository.test.ts src/marcom/agents/research/discovery.test.ts src/marcom/ingestion/source-storage.test.ts src/marcom/search/provider.test.ts src/marcom/validation/campaign-configuration.test.ts src/marcom/research/review.test.ts",
+    "test": "tsx --test src/auth/access-config.test.ts src/auth/authenticate.test.ts src/auth/bootstrap.test.ts src/auth/config.test.ts src/auth/http.test.ts src/auth/password.test.ts src/auth/product-route-access.test.ts src/auth/proxy.test.ts src/auth/session.test.ts src/db/env.test.ts src/db/idempotency.test.ts src/db/research-repository.test.ts src/marcom/agents/research/discovery.test.ts src/marcom/ingestion/source-storage.test.ts src/marcom/search/provider.test.ts src/marcom/validation/campaign-configuration.test.ts src/marcom/research/review.test.ts",
     "test:integration": "tsx --test src/auth/credentials.integration.test.ts",
     "auth:bootstrap": "tsx src/auth/scripts/bootstrap.ts",
     "auth:rotate-password": "tsx src/auth/scripts/rotate-password.ts",
@@ -27,6 +27,7 @@
   },
   "dependencies": {
     "@netlify/blobs": "^11.1.4",
+    "@netlify/database": "^2.0.1",
     "@next/env": "^16.3.8",
     "drizzle-orm": "^0.45.4",
     "mammoth": "^1.13.0",

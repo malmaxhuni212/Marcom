@@ -15,7 +15,7 @@ export interface PageAccess {
 export async function requirePageAccess(): Promise<PageAccess | null> {
   const requestHeaders = await headers();
   const pathname = requestHeaders.get('x-marcom-pathname') ?? '/';
-  if (pathname === '/login') return null;
+  if (pathname === '/login' || pathname === '/bootstrap') return null;
 
   const access = getAccessConfiguration();
   if (access.mode === 'local') {

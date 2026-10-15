@@ -10,6 +10,7 @@ import {
   bootstrapSharedPilotCredential,
   getSharedPilotCredentialStatus,
   rotateSharedPilotPassword,
+  SharedPilotAlreadyConfiguredError,
 } from './credentials';
 import { verifyPassword } from './password';
 import {
@@ -68,6 +69,18 @@ test(
         database,
       );
       userId = created.actor.userId;
+
+      await assert.rejects(
+        bootstrapSharedPilotCredential(
+          {
+            username: `${username}-second`,
+            password: 'another integration password',
+            workspaceId: LOCAL_WORKSPACE_ID,
+          },
+          database,
+        ),
+        SharedPilotAlreadyConfiguredError,
+      );
 
       const [stored] = await database
         .select({ passwordHash: users.passwordHash })
