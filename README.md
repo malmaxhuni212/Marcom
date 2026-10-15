@@ -23,7 +23,7 @@ Copy the environment template:
 Copy-Item -LiteralPath '.env.example' -Destination '.env.local'
 ```
 
-Add the existing Groq key, an Exa key, and the read-write Netlify Database connection string to `.env.local`:
+Add the existing Groq key, an Exa key, and the application database connection string to `.env.local`:
 
 ```text
 GROQ_API_KEY=your_groq_key
@@ -31,13 +31,13 @@ SEARCH_PROVIDER=exa
 EXA_API_KEY=your_exa_key
 SEARCH_MAX_RESULTS=25
 SEARCH_TIMEOUT_MS=15000
-NETLIFY_DB_URL=your_netlify_postgres_connection_string
+DATABASE_URL=your_local_or_self_hosted_postgres_connection_string
 CONTACT_HASH_PEPPER=generate_a_long_random_local_secret
 ```
 
 Do not commit `.env.local`.
 
-Prepare the database on first setup and whenever new migrations are pulled:
+For local or self-hosted PostgreSQL, prepare the database on first setup and whenever new migrations are pulled:
 
 ```powershell
 npm run db:migrate
@@ -46,6 +46,8 @@ npm run db:check
 ```
 
 The seed is idempotent. Running it again does not create another local workspace or actor. Normal application startup only requires `npm run dev` after the database has been prepared.
+
+For Netlify Database, set `NETLIFY_DB_URL` in the Netlify environment and do not run `npm run db:migrate` against it. Netlify applies committed files from `netlify/database/migrations/` during deploy. Use a deploy preview to test pending migrations before publishing production.
 
 For an existing checkout that still has campaigns in `memory/projects.json`, run this once after migration and seeding:
 

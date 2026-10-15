@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import type { PersonalizationEntry, OutreachCopy, PersonalizationStatus } from '@/marcom/schemas/personalization';
+import { authenticatedFetch } from '@/auth/client';
 
 interface PersonalizationPanelProps {
   projectId: string;
@@ -57,7 +58,7 @@ export default function PersonalizationPanel({
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/projects/${projectId}/personalization?recordId=${recordId}`);
+      const res = await authenticatedFetch(`/api/projects/${projectId}/personalization?recordId=${recordId}`);
       if (!res.ok) throw new Error('Failed to fetch outreach draft.');
       const data = await res.json();
       const found = data.items?.find((i: PersonalizationEntry) => i.record_id === recordId) || null;
@@ -73,7 +74,7 @@ export default function PersonalizationPanel({
     setGenerating(true);
     setError(null);
     try {
-      const res = await fetch(`/api/projects/${projectId}/personalization`, {
+      const res = await authenticatedFetch(`/api/projects/${projectId}/personalization`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ recordId, force }),
@@ -102,7 +103,7 @@ export default function PersonalizationPanel({
         follow_up_body: followUpBody,
       };
 
-      const res = await fetch(`/api/projects/${projectId}/personalization`, {
+      const res = await authenticatedFetch(`/api/projects/${projectId}/personalization`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -127,7 +128,7 @@ export default function PersonalizationPanel({
     setSaving(true);
     setError(null);
     try {
-      const res = await fetch(`/api/projects/${projectId}/personalization`, {
+      const res = await authenticatedFetch(`/api/projects/${projectId}/personalization`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

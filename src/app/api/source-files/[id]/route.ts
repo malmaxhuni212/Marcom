@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
 import { readSourceFile, readSourceMeta } from '@/marcom/ingestion/source-store';
+import { authorizeApiRequest } from '@/auth/access';
 
 export const runtime = 'nodejs';
 
@@ -8,19 +10,24 @@ interface RouteContext {
 }
 
 export async function GET(req: Request, context: RouteContext) {
+  const access = await authorizeApiRequest(req);
+  if (!access.ok) return access.response;
   const { id } = await context.params;
+  if (!z.uuid().safeParse(id).success) {
+    return NextResponse.json({ error: 'Source file not found' }, { status: 404 });
+  }
   const url = new URL(req.url);
 
   // If metadata only is requested:
   if (url.searchParams.get('info') === 'true' || url.searchParams.get('meta') === 'true') {
-    const meta = await readSourceMeta(id);
+    const meta = await readSourceMeta(access.actor, id);
     if (!meta) {
       return NextResponse.json({ error: 'Source file not found' }, { status: 404 });
     }
     return NextResponse.json({ success: true, meta });
   }
 
-  const result = await readSourceFile(id);
+  const result = await readSourceFile(access.actor, id);
   if (!result) {
     return NextResponse.json({ error: 'Source file not found' }, { status: 404 });
   }

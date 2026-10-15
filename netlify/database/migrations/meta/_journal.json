@@ -1,0 +1,55 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1791982356087,
+      "tag": "20261014125236_db_001_local_actor",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791982442652,
+      "tag": "20261014125402_db_002_campaigns_and_versions",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791982490311,
+      "tag": "20261014125450_db_002_active_config_guard",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791984167878,
+      "tag": "20261014132247_mature_rawhide_kid",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791986003613,
+      "tag": "20261014135323_exotic_adam_warlock",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792068649061,
+      "tag": "20261015125049_auth_001_shared_pilot_credentials",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792070190859,
+      "tag": "20261015131630_auth_002_secure_sessions",
+      "breakpoints": true
+    }
+  ]
+}

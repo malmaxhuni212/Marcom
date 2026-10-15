@@ -5,6 +5,7 @@ import Link from 'next/link';
 import ProspectEvidenceDrawer from './ProspectEvidenceDrawer';
 import type { ResearchEntry, ReviewStatus } from '@/marcom/schemas/research-record';
 import { evidenceCoverage, reviewStatus, type ResearchReviewSummary } from '@/marcom/research/review';
+import { authenticatedFetch } from '@/auth/client';
 
 interface ReviewResponse {
   project: { id: string; name: string };
@@ -90,7 +91,7 @@ export default function ProspectReviewTable({ projectId, initialProspectId, init
       });
       setLoading(true);
       setError(null);
-      fetch(`/api/projects/${projectId}/research?${params}`, { signal: controller.signal })
+      authenticatedFetch(`/api/projects/${projectId}/research?${params}`, { signal: controller.signal })
         .then(async (response) => {
           const result = await response.json();
           if (!response.ok) throw new Error(result.error || 'Research results could not be loaded.');
@@ -123,7 +124,7 @@ export default function ProspectReviewTable({ projectId, initialProspectId, init
     setSavingDecision(true);
     setDecisionError(null);
     try {
-      const response = await fetch(`/api/projects/${projectId}/research`, {
+      const response = await authenticatedFetch(`/api/projects/${projectId}/research`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ record_id: entry.record.record_id, status: nextStatus, note: note || null }),
@@ -145,7 +146,7 @@ export default function ProspectReviewTable({ projectId, initialProspectId, init
     setError(null);
     try {
       for (const entry of entries) {
-        const response = await fetch(`/api/projects/${projectId}/research`, {
+        const response = await authenticatedFetch(`/api/projects/${projectId}/research`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ record_id: entry.record.record_id, status: nextStatus, note: null }),
@@ -170,7 +171,7 @@ export default function ProspectReviewTable({ projectId, initialProspectId, init
     setBatchNotice(`Personalizing ${ids.length} selected lead${ids.length > 1 ? 's' : ''}...`);
     try {
       await applyBatchDecision('shortlisted');
-      const res = await fetch(`/api/projects/${projectId}/personalization`, {
+      const res = await authenticatedFetch(`/api/projects/${projectId}/personalization`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ recordIds: ids }),
@@ -226,7 +227,7 @@ export default function ProspectReviewTable({ projectId, initialProspectId, init
             <h1 className="mt-2 text-3xl font-semibold text-white/90">{data?.project.name ?? 'Campaign research'}</h1>
             <p className="mt-2 text-sm text-white/40">Filter the evidence-backed results, inspect each profile, and record a human decision.</p>
           </div>
-        <button type="button" onClick={async () => { if (confirm('Are you sure you want to delete ALL researched prospects for this project? This cannot be undone.')) { await fetch(`/api/projects/${projectId}/research?all=true`, { method: 'DELETE' }); window.location.reload(); } }} className="rounded-xl border border-red-500/20 bg-red-500/[0.05] px-4 py-2 text-xs font-medium text-red-400 transition hover:bg-red-500/10">Delete Database</button></div>
+        <button type="button" onClick={async () => { if (confirm('Are you sure you want to delete ALL researched prospects for this project? This cannot be undone.')) { await authenticatedFetch(`/api/projects/${projectId}/research?all=true`, { method: 'DELETE' }); window.location.reload(); } }} className="rounded-xl border border-red-500/20 bg-red-500/[0.05] px-4 py-2 text-xs font-medium text-red-400 transition hover:bg-red-500/10">Delete Database</button></div>
       </header>
 
       <section className="grid grid-cols-2 gap-3 md:grid-cols-5" aria-label="Research result summary">
@@ -283,7 +284,7 @@ export default function ProspectReviewTable({ projectId, initialProspectId, init
                 onClick={async () => {
                   const bNum = data?.facets.batches?.find(b => b.id === batch)?.number ?? batch;
                   if (confirm(`Are you sure you want to delete Batch ${bNum} (${items.length} prospects)? This cannot be undone.`)) {
-                    await fetch(`/api/projects/${projectId}/research?batchId=${encodeURIComponent(batch)}`, { method: 'DELETE' });
+                    await authenticatedFetch(`/api/projects/${projectId}/research?batchId=${encodeURIComponent(batch)}`, { method: 'DELETE' });
                     window.location.reload();
                   }
                 }}
@@ -381,7 +382,7 @@ export default function ProspectReviewTable({ projectId, initialProspectId, init
                 if (confirm(`Are you sure you want to delete ${selectedIds.size} selected prospects? This cannot be undone.`)) {
                   setSavingDecision(true);
                   try {
-                    await fetch(`/api/projects/${projectId}/research`, {
+                    await authenticatedFetch(`/api/projects/${projectId}/research`, {
                       method: 'DELETE',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({ recordIds: Array.from(selectedIds) }),

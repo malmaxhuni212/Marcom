@@ -11,7 +11,8 @@ import {
   saveResearch,
   startResearchRun,
 } from '@/db/repositories/research-repository';
-import { resolveLocalPilotActor } from '@/db/local-actor';
+import type { ActorContext } from '@/db/local-actor';
+import { authorizeApiRequest } from '@/auth/access';
 import { createServerMemoryStore } from '@/marcom/memory/server-store';
 import type { SearchProvider } from '@/marcom/search/provider';
 import { readSearchConfiguration, resolveSearchProvider } from '@/marcom/search/registry';
@@ -29,6 +30,7 @@ type BackgroundTask = {
   status: TaskStatus;
   message: string;
   searchProvider: string;
+  workspaceId: string;
   researchRunId?: string;
 };
 
@@ -41,9 +43,10 @@ async function processBatch(
   taskId: string,
   searchProvider: SearchProvider,
   llmProvider: GroqProvider,
+  actor: ActorContext,
+  allowFileFallback: boolean,
 ) {
-  const store = await createServerMemoryStore();
-  const actor = await resolveLocalPilotActor();
+  const store = await createServerMemoryStore(actor, allowFileFallback);
   const project = store.projects().find((candidate) => candidate.project_id === projectId);
   const task = backgroundTasks.get(taskId);
 
@@ -144,6 +147,8 @@ async function processBatch(
 }
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const access = await authorizeApiRequest(req);
+  if (!access.ok) return access.response;
   const { id: projectId } = await params;
   const body = await req.json().catch(() => ({}));
   const count = Number(body.count);
@@ -180,9 +185,19 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     status: 'running',
     message: 'Planning research...',
     searchProvider: searchProvider.key,
+    workspaceId: access.actor.workspaceId,
   });
 
-  processBatch(projectId, targetId, count, taskId, searchProvider, llmProvider).catch((error) => {
+  processBatch(
+    projectId,
+    targetId,
+    count,
+    taskId,
+    searchProvider,
+    llmProvider,
+    access.actor,
+    access.allowFileFallback,
+  ).catch((error) => {
     console.error('Batch process crashed:', error);
     const task = backgroundTasks.get(taskId);
     if (task) {
@@ -199,18 +214,25 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 }
 
 export async function GET(req: Request) {
+  const access = await authorizeApiRequest(req);
+  if (!access.ok) return access.response;
   const taskId = new URL(req.url).searchParams.get('taskId');
   if (!taskId) {
     return NextResponse.json({ error: 'taskId required' }, { status: 400 });
   }
 
   const task = backgroundTasks.get(taskId);
+  if (task && task.workspaceId !== access.actor.workspaceId) {
+    return NextResponse.json({ error: 'Task not found' }, { status: 404 });
+  }
   return task
     ? NextResponse.json(task)
     : NextResponse.json({ error: 'Task not found' }, { status: 404 });
 }
 
 export async function DELETE(req: Request) {
+  const access = await authorizeApiRequest(req);
+  if (!access.ok) return access.response;
   const taskId = new URL(req.url).searchParams.get('taskId');
   if (!taskId) {
     return NextResponse.json({ error: 'taskId required' }, { status: 400 });
@@ -220,12 +242,14 @@ export async function DELETE(req: Request) {
   if (!task) {
     return NextResponse.json({ error: 'Task not found' }, { status: 404 });
   }
+  if (task.workspaceId !== access.actor.workspaceId) {
+    return NextResponse.json({ error: 'Task not found' }, { status: 404 });
+  }
 
   task.status = 'cancelled';
   task.message = 'Cancellation requested.';
   if (task.researchRunId) {
-    const actor = await resolveLocalPilotActor();
-    await cancelResearchRun(actor, task.researchRunId);
+    await cancelResearchRun(access.actor, task.researchRunId);
   }
   return NextResponse.json({ success: true });
 }

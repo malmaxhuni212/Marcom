@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { and, desc, eq, ne } from 'drizzle-orm';
+import { and, desc, eq, isNull, ne } from 'drizzle-orm';
 import { getDatabase, type MarcomDatabase } from '../client';
 import type { ActorContext } from '../local-actor';
 import { requestHash } from '../idempotency';
@@ -9,6 +9,7 @@ import {
   campaignConfigVersions,
   campaigns,
   idempotencyRecords,
+  storedFiles,
 } from '../schema';
 import { StructuredBriefSchema, type StructuredBrief } from '@/marcom/schemas/structured-brief';
 import type { ProjectMemory } from '@/marcom/memory/types';
@@ -21,6 +22,7 @@ export interface CreateCampaignInput {
   originalBrief: string;
   sourceType: 'PASTE' | 'UPLOAD' | 'URL';
   sourceName: string;
+  sourceFileId?: string;
   idempotencyKey: string;
   requestId?: string;
 }
@@ -35,6 +37,7 @@ export class CampaignNotFoundError extends Error {}
 export class CampaignVersionConflictError extends Error {}
 export class CampaignIdempotencyConflictError extends Error {}
 export class CampaignCommandInProgressError extends Error {}
+export class CampaignSourceFileError extends Error {}
 
 function slugify(title: string, campaignId: string): string {
   const base = title
@@ -169,6 +172,7 @@ export async function createCampaign(
     originalBrief: input.originalBrief,
     sourceType: input.sourceType,
     sourceName: input.sourceName,
+    sourceFileId: input.sourceFileId,
   });
 
   return database.transaction(async (transaction) => {
@@ -219,6 +223,31 @@ export async function createCampaign(
     const now = new Date();
     const configValues = configurationValues(brief, input.sourceName);
 
+    let sourceFile: typeof storedFiles.$inferSelect | null = null;
+    if (input.sourceType === 'UPLOAD') {
+      if (!input.sourceFileId) {
+        throw new CampaignSourceFileError('An uploaded campaign brief requires a stored source file.');
+      }
+      [sourceFile] = await transaction
+        .select()
+        .from(storedFiles)
+        .where(
+          and(
+            eq(storedFiles.id, input.sourceFileId),
+            eq(storedFiles.workspaceId, actor.workspaceId),
+            eq(storedFiles.createdByMembershipId, actor.membershipId),
+            eq(storedFiles.status, 'ready'),
+            isNull(storedFiles.campaignId),
+          ),
+        )
+        .limit(1);
+      if (!sourceFile) {
+        throw new CampaignSourceFileError('The uploaded source file is missing, unavailable or already attached.');
+      }
+    } else if (input.sourceFileId) {
+      throw new CampaignSourceFileError('A source file can only be attached to an uploaded campaign brief.');
+    }
+
     const [campaign] = await transaction
       .insert(campaigns)
       .values({
@@ -235,11 +264,29 @@ export async function createCampaign(
       })
       .returning();
 
+    if (sourceFile) {
+      const [attached] = await transaction
+        .update(storedFiles)
+        .set({ campaignId })
+        .where(
+          and(
+            eq(storedFiles.id, sourceFile.id),
+            eq(storedFiles.workspaceId, actor.workspaceId),
+            isNull(storedFiles.campaignId),
+          ),
+        )
+        .returning({ id: storedFiles.id });
+      if (!attached) {
+        throw new CampaignSourceFileError('The uploaded source file could not be attached to this campaign.');
+      }
+    }
+
     await transaction.insert(campaignBriefs).values({
       id: briefId,
       campaignId,
       version: 1,
-      inputMethod: 'paste',
+      inputMethod: input.sourceType === 'UPLOAD' ? 'upload' : 'paste',
+      storedFileId: sourceFile?.id,
       sourceText: input.originalBrief,
       contentHash: createHash('sha256').update(input.originalBrief, 'utf8').digest('hex'),
       parserName: input.sourceType === 'UPLOAD' ? 'local-file-extractor' : 'campaign-intake',

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createServerMemoryStore } from '@/marcom/memory/server-store';
 import { listResearch, updateResearchReview } from '@/db/repositories/research-repository';
-import { resolveLocalPilotActor } from '@/db/local-actor';
+import { authorizeApiRequest } from '@/auth/access';
 import {
   deletePersonalization,
   getPersonalization,
@@ -15,7 +15,7 @@ import {
 } from '@/marcom/memory/personalization-store';
 import { runPersonalizationAgent } from '@/marcom/agents/personalization/agent';
 import { PersonalizationSettingsSchema } from '@/marcom/schemas/personalization';
-import type { PersonalizationEntry } from '@/marcom/schemas/personalization';
+import type { EvaluatedRoute, PersonalizationEntry } from '@/marcom/schemas/personalization';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
@@ -23,9 +23,11 @@ export const maxDuration = 300;
 type RouteCtx = { params: Promise<{ id: string }> };
 
 export async function GET(req: Request, { params }: RouteCtx) {
+  const access = await authorizeApiRequest(req);
+  if (!access.ok) return access.response;
   const { id: projectId } = await params;
-  const store = await createServerMemoryStore();
-  const actor = await resolveLocalPilotActor();
+  const store = await createServerMemoryStore(access.actor, access.allowFileFallback);
+  const actor = access.actor;
   const project = store.projects().find((p) => p.project_id === projectId);
   if (!project) return NextResponse.json({ error: 'Project not found' }, { status: 404 });
 
@@ -79,46 +81,46 @@ export async function GET(req: Request, { params }: RouteCtx) {
       const isPhone = primaryTarget.startsWith('+') || /^[0-9\s-()]+$/.test(primaryTarget);
       const isForm = primaryTarget.startsWith('http') && !isLinkedIn;
 
-      const evaluated_routes = [
-        ...emails.map((em) => {
+      const evaluated_routes: EvaluatedRoute[] = [
+        ...emails.map((em): EvaluatedRoute => {
           const isGeneric = /^(info|contact|enquiries|support|submissions|admin|press|hello)@/i.test(em);
           const isFake = /^(abuse|privacy|whois|hostmaster|postmaster)@/i.test(em);
           const isRecommended = em === primaryTarget;
           return {
             channel: 'email' as const,
             value: em,
-            verdict: (isRecommended ? 'recommended' : isFake ? 'unusable_or_fake' : isGeneric ? 'generic_gatekeeper' : 'viable_backup') as any,
+            verdict: isRecommended ? 'recommended' : isFake ? 'unusable_or_fake' : isGeneric ? 'generic_gatekeeper' : 'viable_backup',
             quality_assessment: isFake ? 'Technical abuse/WHOIS address - unusable' : isGeneric ? 'Generic/role-based team inbox' : 'Direct verified email',
             priority: isRecommended ? 1 : isGeneric ? 3 : 2,
           };
         }),
-        ...linkedin_urls.map((li) => {
+        ...linkedin_urls.map((li): EvaluatedRoute => {
           const isPersonal = li.includes('/in/');
           const isRecommended = li === primaryTarget;
           return {
             channel: 'linkedin' as const,
             value: li,
-            verdict: (isRecommended ? 'recommended' : isPersonal ? 'viable_backup' : 'generic_gatekeeper') as any,
+            verdict: isRecommended ? 'recommended' : isPersonal ? 'viable_backup' : 'generic_gatekeeper',
             quality_assessment: isPersonal ? 'Personal LinkedIn profile (direct 1-to-1 route)' : 'Company LinkedIn page',
             priority: isRecommended ? 1 : 2,
           };
         }),
-        ...phones.map((ph) => {
+        ...phones.map((ph): EvaluatedRoute => {
           const isRecommended = ph === primaryTarget;
           return {
             channel: 'phone' as const,
             value: ph,
-            verdict: (isRecommended ? 'recommended' : 'viable_backup') as any,
+            verdict: isRecommended ? 'recommended' : 'viable_backup',
             quality_assessment: 'Verified business phone number for direct contact',
             priority: isRecommended ? 1 : 2,
           };
         }),
-        ...websites.map((ws) => {
+        ...websites.map((ws): EvaluatedRoute => {
           const isRecommended = ws === primaryTarget;
           return {
             channel: 'website' as const,
             value: ws,
-            verdict: (isRecommended ? 'recommended' : 'viable_backup') as any,
+            verdict: isRecommended ? 'recommended' : 'viable_backup',
             quality_assessment: 'Official website / inquiries portal',
             priority: isRecommended ? 1 : 3,
           };
@@ -179,9 +181,11 @@ export async function GET(req: Request, { params }: RouteCtx) {
 }
 
 export async function POST(req: Request, { params }: RouteCtx) {
+  const access = await authorizeApiRequest(req);
+  if (!access.ok) return access.response;
   const { id: projectId } = await params;
-  const store = await createServerMemoryStore();
-  const actor = await resolveLocalPilotActor();
+  const store = await createServerMemoryStore(access.actor, access.allowFileFallback);
+  const actor = access.actor;
   const project = store.projects().find((p) => p.project_id === projectId);
   if (!project?.structured_brief) {
     return NextResponse.json({ error: 'Project or structured brief not found' }, { status: 404 });
@@ -265,6 +269,8 @@ export async function POST(req: Request, { params }: RouteCtx) {
 
 /** Human review decisions and draft edits */
 export async function PATCH(req: Request, { params }: RouteCtx) {
+  const access = await authorizeApiRequest(req);
+  if (!access.ok) return access.response;
   const { id: projectId } = await params;
   const body = await req.json().catch(() => ({}));
   const { record_id, copy, status, reviewer_note } = body;
@@ -290,6 +296,8 @@ export async function PATCH(req: Request, { params }: RouteCtx) {
 
 /** Save campaign outreach settings (sender info, campaign facts, etc.) */
 export async function PUT(req: Request, { params }: RouteCtx) {
+  const access = await authorizeApiRequest(req);
+  if (!access.ok) return access.response;
   const { id: projectId } = await params;
   const body = await req.json().catch(() => ({}));
 
@@ -306,6 +314,8 @@ export async function PUT(req: Request, { params }: RouteCtx) {
 }
 
 export async function DELETE(req: Request, { params }: RouteCtx) {
+  const access = await authorizeApiRequest(req);
+  if (!access.ok) return access.response;
   const { id: projectId } = await params;
   const url = new URL(req.url);
   const recordId = url.searchParams.get('recordId');

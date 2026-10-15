@@ -4,6 +4,7 @@ import { useState } from 'react';
 import PrimaryButton from '@/components/ui/PrimaryButton';
 import type { Target } from '@/marcom/schemas/structured-brief';
 import type { ResearchEntry } from '@/marcom/schemas/research-record';
+import { authenticatedFetch } from '@/auth/client';
 
 export interface ResearchCompletion {
   status: 'completed' | 'completed_with_errors';
@@ -46,7 +47,7 @@ export default function ResearchStreamForm({
       setError(null);
 
       try {
-        const res = await fetch(`/api/projects/${projectId}/batch-research`, {
+        const res = await authenticatedFetch(`/api/projects/${projectId}/batch-research`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ target_id: targetId, count: count })
@@ -58,7 +59,7 @@ export default function ResearchStreamForm({
         setActiveTaskId(taskId);
         const interval = setInterval(async () => {
           try {
-            const statusRes = await fetch(`/api/projects/${projectId}/batch-research?taskId=${taskId}`);
+            const statusRes = await authenticatedFetch(`/api/projects/${projectId}/batch-research?taskId=${taskId}`);
             if (statusRes.status === 404) {
               clearInterval(interval);
               setIsStreaming(false);
@@ -105,7 +106,7 @@ export default function ResearchStreamForm({
     setProgressMsg('Connecting to Research Agent...');
 
     try {
-      const res = await fetch(`/api/projects/${projectId}/research`, {
+      const res = await authenticatedFetch(`/api/projects/${projectId}/research`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -177,7 +178,7 @@ export default function ResearchStreamForm({
   const handleStop = async () => {
     if (!activeTaskId) return;
     try {
-      await fetch(`/api/projects/${projectId}/batch-research?taskId=${activeTaskId}`, { method: 'DELETE' });
+      await authenticatedFetch(`/api/projects/${projectId}/batch-research?taskId=${activeTaskId}`, { method: 'DELETE' });
       setProgressMsg('Stopping...');
     } catch (e) {
       console.error(e);

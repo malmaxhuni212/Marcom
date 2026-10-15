@@ -3,6 +3,7 @@ import mammoth from 'mammoth';
 import { extractPdfText, IngestionError, MAX_PDF_BYTES } from '@/marcom/ingestion/pdf';
 import { assessTextQuality, normaliseBriefText } from '@/marcom/ingestion/normalize';
 import { saveSourceFile } from '@/marcom/ingestion/source-store';
+import { authorizeApiRequest } from '@/auth/access';
 
 // pdf.js and mammoth need the Node.js runtime (Buffer, fs).
 export const runtime = 'nodejs';
@@ -11,6 +12,13 @@ const MAX_DOCX_BYTES = 15 * 1024 * 1024;
 const MAX_TEXT_BYTES = 2 * 1024 * 1024;
 
 type FileKind = 'pdf' | 'docx' | 'txt' | 'md';
+
+const DETECTED_MIME_TYPES: Record<FileKind, string> = {
+  pdf: 'application/pdf',
+  docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  txt: 'text/plain',
+  md: 'text/markdown',
+};
 
 function detectKind(file: File): FileKind | null {
   const name = file.name.toLowerCase();
@@ -58,6 +66,8 @@ function finalise(rawText: string, base: Record<string, unknown>, extraWarnings:
 }
 
 export async function POST(req: Request) {
+  const access = await authorizeApiRequest(req);
+  if (!access.ok) return access.response;
   try {
     const formData = await req.formData();
     const url = formData.get('url');
@@ -143,13 +153,18 @@ export async function POST(req: Request) {
     }
 
     // Only keep the original once extraction has succeeded; failures are not persisted.
-    const mimeType = file.type || (kind === 'pdf' ? 'application/pdf' : 'application/octet-stream');
+    const detectedMimeType = DETECTED_MIME_TYPES[kind];
+    const mimeType = file.type || detectedMimeType;
     const body = finalise(
       rawText,
       { source_type: kind, source_name: file.name, file_size: file.size, mime_type: mimeType, page_count: pageCount },
       warnings,
     );
-    const stored = await saveSourceFile(buffer, file.name, mimeType, { page_count: pageCount });
+    const stored = await saveSourceFile(buffer, file.name, {
+      actor: access.actor,
+      declaredMimeType: file.type || undefined,
+      detectedMimeType,
+    });
     return NextResponse.json({ ...body, source_file_id: stored.id });
   } catch (err) {
     if (err instanceof IngestionError) return errorResponse(err);

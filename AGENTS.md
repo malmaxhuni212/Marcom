@@ -10,7 +10,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ## Database change rules
 
-Before changing persistence code, read [`docs/database-schema.md`](docs/database-schema.md), the relevant files under `src/db/schema/`, and every existing migration under `drizzle/`.
+Before changing persistence code, read [`docs/database-schema.md`](docs/database-schema.md), the relevant files under `src/db/schema/`, and every existing migration under `netlify/database/migrations/`.
 
 - PostgreSQL is the application source of truth.
 - Drizzle schema files define the intended physical schema.

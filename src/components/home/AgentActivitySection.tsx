@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 
 import SectionHeader from '@/components/ui/SectionHeader';
 import type { AgentActivity } from '@/types';
+import { authenticatedFetch } from '@/auth/client';
 
 export default function AgentActivitySection() {
   const colorMap = {
@@ -17,7 +18,7 @@ export default function AgentActivitySection() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/activity')
+    authenticatedFetch('/api/activity')
       .then(async (res) => {
         if (!res.ok) return [];
         return res.json();

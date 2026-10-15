@@ -5,7 +5,7 @@ import { listCampaigns as listDbCampaigns } from '@/db/repositories/campaign-rep
 import { listResearch as listFileResearch } from '@/marcom/memory/research-store';
 import { readProjects as listFileProjects } from '@/marcom/memory/project-store';
 import { listPersonalizations } from '@/marcom/memory/personalization-store';
-import { resolveLocalPilotActor } from '@/db/local-actor';
+import { authorizeApiRequest } from '@/auth/access';
 import type { ResearchEntry } from '@/marcom/schemas/research-record';
 
 function formatTimestamp(isoString?: string | number | null): { formatted: string; sortTime: number } {
@@ -32,7 +32,9 @@ interface ActivityItem {
   sortTime: number;
 }
 
-export async function GET() {
+export async function GET(req: Request) {
+  const access = await authorizeApiRequest(req);
+  if (!access.ok) return access.response;
   try {
     let projects: Array<{
       project_id: string;
@@ -42,19 +44,21 @@ export async function GET() {
     }> = [];
 
     let isDb = isDatabaseConfigured();
-    let actor: any = null;
+    const actor = access.actor;
 
     if (isDb) {
       try {
-        actor = await resolveLocalPilotActor();
         projects = await listDbCampaigns(actor);
       } catch (e) {
-        console.warn('Database listCampaigns failed, falling back to JSON project store:', e);
+        if (!access.allowFileFallback) throw e;
+        console.warn('Database listCampaigns failed, falling back to JSON project store.');
         isDb = false;
         projects = listFileProjects();
       }
-    } else {
+    } else if (access.allowFileFallback) {
       projects = listFileProjects();
+    } else {
+      throw new Error('The authoritative database is unavailable.');
     }
 
     const activities: ActivityItem[] = [];
@@ -78,7 +82,8 @@ export async function GET() {
       if (isDb && actor) {
         try {
           research = await listDbResearch(actor, p.project_id);
-        } catch {
+        } catch (error) {
+          if (!access.allowFileFallback) throw error;
           research = listFileResearch(p.project_id);
         }
       } else {

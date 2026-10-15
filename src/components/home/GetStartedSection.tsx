@@ -4,6 +4,7 @@ import SectionHeader from '@/components/ui/SectionHeader';
 import { steps } from '@/data/mockData';
 import React, { useEffect, useState } from 'react';
 import BriefIntakeModal from '@/components/ui/BriefIntakeModal';
+import { authenticatedFetch } from '@/auth/client';
 
 function StepIcon({ step }: { step: number }) {
   const icons: Record<number, React.ReactElement> = {
@@ -36,7 +37,7 @@ export default function GetStartedSection() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/projects')
+    authenticatedFetch('/api/projects')
       .then(res => res.json())
       .then(data => {
         setProjects(data);

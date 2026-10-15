@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { listResearch } from '@/db/repositories/research-repository';
 import { listPersonalizations } from '@/marcom/memory/personalization-store';
-import { resolveLocalPilotActor } from '@/db/local-actor';
 import { listCampaigns } from '@/db/repositories/campaign-repository';
+import { authorizeApiRequest } from '@/auth/access';
 
 export interface NotificationItem {
   id: string;
@@ -33,8 +33,10 @@ function formatRelativeTime(timestampMs: number): string {
   return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
 }
 
-export async function GET() {
-  const actor = await resolveLocalPilotActor();
+export async function GET(req: Request) {
+  const access = await authorizeApiRequest(req);
+  if (!access.ok) return access.response;
+  const actor = access.actor;
   const projects = await listCampaigns(actor);
   const notifications: NotificationItem[] = [];
   let totalPersonalizationsCount = 0;

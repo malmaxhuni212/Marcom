@@ -4,6 +4,7 @@ import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import GlassCard from '@/components/ui/GlassCard';
 import SectionHeader from '@/components/ui/SectionHeader';
+import { authenticatedFetch } from '@/auth/client';
 
 export default function ProspectDetailClient({ params }: { params: Promise<{ id: string, recordId: string }> }) {
   const { id, recordId } = use(params);
@@ -13,7 +14,7 @@ export default function ProspectDetailClient({ params }: { params: Promise<{ id:
   useEffect(() => {
     async function load() {
       try {
-        const res = await fetch(`/api/projects/${id}/research/${recordId}`);
+        const res = await authenticatedFetch(`/api/projects/${id}/research/${recordId}`);
         if (res.ok) {
           const data = await res.json();
           setEntry(data.entry);

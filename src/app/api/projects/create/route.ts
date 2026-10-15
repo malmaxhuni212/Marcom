@@ -4,22 +4,42 @@ import { z } from 'zod';
 import { StructuredBriefSchema } from '@/marcom/schemas/structured-brief';
 import { validateResearchReadyConfiguration } from '@/marcom/validation/campaign-configuration';
 import { isDatabaseConfigured } from '@/db/env';
-import { resolveLocalPilotActor } from '@/db/local-actor';
+import { authorizeApiRequest } from '@/auth/access';
 import {
   CampaignCommandInProgressError,
   CampaignIdempotencyConflictError,
+  CampaignSourceFileError,
   createCampaign,
 } from '@/db/repositories/campaign-repository';
 
-const CreateProjectSchema = z.strictObject({
-  structured_brief: StructuredBriefSchema,
-  original_brief: z.string().min(1),
-  source_type: z.enum(['PASTE', 'UPLOAD', 'URL']),
-  source_name: z.string().min(1),
-  source_file_id: z.string().optional(),
-});
+const CreateProjectSchema = z
+  .strictObject({
+    structured_brief: StructuredBriefSchema,
+    original_brief: z.string().min(1),
+    source_type: z.enum(['PASTE', 'UPLOAD', 'URL']),
+    source_name: z.string().min(1),
+    source_file_id: z.uuid().optional(),
+  })
+  .superRefine((value, context) => {
+    if (value.source_type === 'UPLOAD' && !value.source_file_id) {
+      context.addIssue({
+        code: 'custom',
+        path: ['source_file_id'],
+        message: 'An uploaded brief requires its stored source file ID.',
+      });
+    }
+    if (value.source_type !== 'UPLOAD' && value.source_file_id) {
+      context.addIssue({
+        code: 'custom',
+        path: ['source_file_id'],
+        message: 'Only uploaded briefs can include a stored source file ID.',
+      });
+    }
+  });
 
 export async function POST(req: Request) {
+  const access = await authorizeApiRequest(req);
+  if (!access.ok) return access.response;
   try {
     const idempotencyKey = req.headers.get('idempotency-key')?.trim();
     if (!idempotencyKey || idempotencyKey.length > 200) {
@@ -35,7 +55,7 @@ export async function POST(req: Request) {
         { status: 400 },
       );
     }
-    const { structured_brief: sb, original_brief, source_type, source_name } = parsed.data;
+    const { structured_brief: sb, original_brief, source_type, source_name, source_file_id } = parsed.data;
     const readiness = validateResearchReadyConfiguration(sb);
     if (!readiness.ok) {
       return NextResponse.json(
@@ -47,24 +67,30 @@ export async function POST(req: Request) {
     let newProject;
     if (isDatabaseConfigured()) {
       try {
-        const actor = await resolveLocalPilotActor();
-        newProject = await createCampaign(actor, {
+        newProject = await createCampaign(access.actor, {
           structuredBrief: sb,
           originalBrief: original_brief,
           sourceType: source_type,
           sourceName: source_name,
+          sourceFileId: source_file_id,
           idempotencyKey,
           requestId: req.headers.get('x-request-id') ?? randomUUID(),
         });
       } catch (dbErr) {
-        if (dbErr instanceof CampaignIdempotencyConflictError || dbErr instanceof CampaignCommandInProgressError) {
+        if (
+          dbErr instanceof CampaignIdempotencyConflictError ||
+          dbErr instanceof CampaignCommandInProgressError ||
+          dbErr instanceof CampaignSourceFileError
+        ) {
           throw dbErr;
         }
-        console.warn('Database error in createCampaign, falling back to JSON memory store:', dbErr);
+        if (!access.allowFileFallback) throw dbErr;
+        console.warn('Database error in createCampaign, falling back to JSON memory store.');
       }
     }
 
     if (!newProject) {
+      if (!access.allowFileFallback) throw new Error('The authoritative database is unavailable.');
       const fs = await import('node:fs');
       const path = await import('node:path');
       const { addProject } = await import('@/marcom/memory/project-store');
@@ -110,6 +136,9 @@ export async function POST(req: Request) {
     }
     if (error instanceof CampaignCommandInProgressError) {
       return NextResponse.json({ error: error.message }, { status: 409 });
+    }
+    if (error instanceof CampaignSourceFileError) {
+      return NextResponse.json({ error: error.message }, { status: 422 });
     }
     console.error('Error creating project:', error);
     return NextResponse.json({ error: (error as Error).message || 'The campaign could not be created.' }, { status: 500 });
