@@ -55,7 +55,7 @@ The old campaign and research JSON files are retained only as recovery and impor
 - Session and CSRF tokens are stored only as keyed hashes. Sessions carry idle expiry, absolute expiry, revocation state and the credential version that created them.
 - Every campaign belongs to one workspace.
 - `stored_files` is the workspace-scoped metadata authority for uploaded briefs. Its generated `storage_key` identifies either the protected local store or a Netlify Blobs site-wide store; file bytes never live in PostgreSQL.
-- A Netlify deployment selects Netlify Blobs automatically. Non-Netlify development selects `storage/brief-sources`, which remains outside Git and the public web root.
+- A Netlify deployment selects Netlify Blobs from `BRIEF_FILE_STORAGE=netlify-blobs` or the injected Netlify Blobs runtime context. Non-Netlify development selects `storage/brief-sources`, which remains outside Git and the public web root.
 - Uploaded campaign briefs reference `stored_files.id`. Download requests first resolve the authenticated workspace-scoped database record and never accept a raw storage key from the browser.
 - A canonical `prospect` may appear in several campaigns, but each campaign can link to that prospect only once through `campaign_prospects`.
 - Human review state belongs to `campaign_prospects`, not to the canonical `prospects` row.
