@@ -49,7 +49,10 @@ export default function ResearchStreamForm({
       try {
         const res = await authenticatedFetch(`/api/projects/${projectId}/batch-research`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'Idempotency-Key': crypto.randomUUID(),
+          },
           body: JSON.stringify({ target_id: targetId, count: count })
         });
         const data = await res.json();
@@ -66,7 +69,7 @@ export default function ResearchStreamForm({
               setProgressStage('');
               setActiveTaskId(null);
               setProgressMsg('');
-              setError('Research task disappeared (server restarted). Please try again.');
+              setError('The research task could not be found. Please refresh and try again.');
               return;
             }
             if (!statusRes.ok) return;

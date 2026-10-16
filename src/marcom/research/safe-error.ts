@@ -6,7 +6,20 @@ export interface SafeResearchFailure {
   retryable: boolean;
 }
 
+export class PermanentResearchError extends Error {
+  constructor(
+    readonly code: string,
+    message: string,
+  ) {
+    super(message);
+    this.name = 'PermanentResearchError';
+  }
+}
+
 export function toSafeResearchFailure(error: unknown): SafeResearchFailure {
+  if (error instanceof PermanentResearchError) {
+    return { code: error.code, message: error.message, retryable: false };
+  }
   if (error instanceof SearchProviderError) {
     switch (error.code) {
       case 'authentication_failed':
