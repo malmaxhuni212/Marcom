@@ -67,6 +67,20 @@ The old campaign and research JSON files are retained only as recovery and impor
 - Workspace scope, uniqueness, allowed statuses and other enforceable invariants belong in PostgreSQL constraints as well as application validation.
 - Material writes that require audit, approval or idempotency must use one transaction.
 
+## Research job runtime
+
+Batch research implements backlog tasks `JOB-001`, `JOB-002`, `JOB-003` and `RES-004` using the existing PostgreSQL queue tables:
+
+1. the authenticated API validates the bounded request and `Idempotency-Key`, then creates a `queued` `jobs` row and its `research_runs` row in one transaction;
+2. the API returns `202 Accepted` with the durable job identifier and status URL;
+3. Netlify dispatches `netlify/functions/research-worker-background.mts` as a signed background function; local development uses the same runner through Next.js post-response work;
+4. the runner claims the job under `FOR UPDATE SKIP LOCKED`, records a lease and heartbeat, and persists each accepted prospect incrementally;
+5. polling reads `jobs.progress` from PostgreSQL, so refreshes and server instance changes do not lose status;
+6. cancellation is first recorded as `cancel_requested_at`; the worker observes it at a checkpoint and writes the terminal state;
+7. retryable failures use bounded `retry_scheduled` attempts, while permanent or exhausted failures store only safe error details.
+
+Do not reintroduce a module-level `Map`, promise, timer or process memory as the authoritative queue. Netlify background delivery is an execution adapter; PostgreSQL remains the source of job truth.
+
 ## Making a schema change
 
 1. Identify the owning workflow and existing table group.

@@ -19,6 +19,8 @@ import {
 } from '../schema';
 import { canonicalUrl, normalizeName } from '@/marcom/agents/research/qa';
 import type { ResearchEntry, ReviewStatus } from '@/marcom/schemas/research-record';
+import { ResearchJobPayloadSchema } from '@/marcom/research/job-contract';
+import { RESEARCH_JOB_MAX_ATTEMPTS } from '@/marcom/research/job-policy';
 
 type DatabaseTransaction = Parameters<Parameters<MarcomDatabase['transaction']>[0]>[0];
 
@@ -26,6 +28,14 @@ export interface ResearchBatchInfo {
   batch_id: string;
   batch_number: number;
 }
+
+export interface EnqueuedResearchRun {
+  jobId: string;
+  researchRunId: string;
+  created: boolean;
+}
+
+export class ResearchJobIdempotencyConflictError extends Error {}
 
 function entrySnapshot(entry: ResearchEntry): Record<string, unknown> {
   return { schemaVersion: 1, entry };
@@ -301,6 +311,110 @@ export async function startResearchRun(
       jobId,
     });
     return runId;
+  });
+}
+
+export async function enqueueResearchRun(
+  actor: ActorContext,
+  campaignId: string,
+  batch: ResearchBatchInfo,
+  requestedCount: number,
+  targetId: string,
+  idempotencyKey: string,
+  searchProvider: string,
+  database: MarcomDatabase = getDatabase(),
+): Promise<EnqueuedResearchRun> {
+  if (!Number.isInteger(requestedCount) || requestedCount < 1 || requestedCount > 50) {
+    throw new Error('Research requested count must be between 1 and 50.');
+  }
+  const normalizedKey = idempotencyKey.trim();
+  if (!normalizedKey || normalizedKey.length > 200) {
+    throw new Error('Idempotency-Key must contain between 1 and 200 characters.');
+  }
+
+  return database.transaction(async (transaction) => {
+    const [existing] = await transaction
+      .select({ job: jobs, runId: researchRuns.id })
+      .from(jobs)
+      .innerJoin(researchRuns, eq(researchRuns.jobId, jobs.id))
+      .where(and(
+        eq(jobs.workspaceId, actor.workspaceId),
+        eq(jobs.jobType, 'research.run.v1'),
+        eq(jobs.idempotencyKey, normalizedKey),
+      ))
+      .limit(1);
+    if (existing) {
+      const payload = ResearchJobPayloadSchema.safeParse(existing.job.payload);
+      if (
+        existing.job.campaignId !== campaignId
+        || !payload.success
+        || payload.data.targetId !== targetId
+        || payload.data.requestedCount !== requestedCount
+      ) {
+        throw new ResearchJobIdempotencyConflictError(
+          'The Idempotency-Key has already been used for a different research request.',
+        );
+      }
+      return { jobId: existing.job.id, researchRunId: existing.runId, created: false };
+    }
+
+    const plan = await approveSearchPlanForRun(actor, campaignId, targetId, requestedCount, transaction);
+    const now = new Date();
+    const jobId = randomUUID();
+    const researchRunId = randomUUID();
+    const payload = ResearchJobPayloadSchema.parse({
+      schemaVersion: 1,
+      batchId: batch.batch_id,
+      batchNumber: batch.batch_number,
+      searchPlanVersionId: plan.id,
+      targetId,
+      requestedCount,
+    });
+    await transaction.insert(jobs).values({
+      id: jobId,
+      workspaceId: actor.workspaceId,
+      campaignId,
+      jobType: 'research.run.v1',
+      status: 'queued',
+      payload,
+      progress: {
+        requested: requestedCount,
+        discovered: 0,
+        completed: 0,
+        duplicatesSkipped: 0,
+        failed: 0,
+        message: 'Research is queued.',
+        searchProvider,
+      },
+      idempotencyKey: normalizedKey,
+      attemptCount: 0,
+      maxAttempts: RESEARCH_JOB_MAX_ATTEMPTS,
+      runAfter: now,
+      createdByMembershipId: actor.membershipId,
+      createdAt: now,
+      updatedAt: now,
+    });
+    await transaction.insert(researchRuns).values({
+      id: researchRunId,
+      jobId,
+      campaignId,
+      searchPlanVersionId: plan.id,
+      requestedCount,
+      createdAt: now,
+    });
+    await transaction.insert(auditEvents).values({
+      id: randomUUID(),
+      workspaceId: actor.workspaceId,
+      campaignId,
+      actorType: 'membership',
+      actorMembershipId: actor.membershipId,
+      action: 'research.queued',
+      subjectType: 'research_run',
+      subjectId: researchRunId,
+      safeDiff: { requestedCount, batchId: batch.batch_id, searchProvider },
+      jobId,
+    });
+    return { jobId, researchRunId, created: true };
   });
 }
 
