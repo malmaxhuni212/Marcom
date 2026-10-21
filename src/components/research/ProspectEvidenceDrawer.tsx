@@ -4,10 +4,12 @@ import { useState } from 'react';
 import type { ResearchEntry, ReviewStatus } from '@/marcom/schemas/research-record';
 import { evidenceCoverage, reviewStatus } from '@/marcom/research/review';
 import PersonalizationPanel from '@/components/personalization/PersonalizationPanel';
+import {
+  getPersonalizationActionPresentation,
+  type PersonalizationAvailability,
+} from '@/marcom/personalization/presentation';
 
-const decisionLabels: Record<ReviewStatus, string> = {
-  needs_review: 'Restore to review',
-  shortlisted: 'Personalize',
+const decisionLabels: Partial<Record<ReviewStatus, string>> = {
   rejected: 'Reject',
   enrichment_requested: 'Request more research',
 };
@@ -37,11 +39,31 @@ export default function ProspectEvidenceDrawer({
 }) {
   const [drawerTab, setDrawerTab] = useState<'evidence' | 'outreach'>('evidence');
   const [note, setNote] = useState(entry.review?.note ?? '');
+  const [personalizationAvailability, setPersonalizationAvailability] = useState<PersonalizationAvailability>('loading');
+  const [generationRequest, setGenerationRequest] = useState(0);
   const record = entry.record;
   const status = reviewStatus(entry);
   const evidence = evidenceCoverage(entry);
   const name = record.identity.name ?? entry.seed.name;
   const resolvedProjectId = projectId || record.project_id || '';
+  const personalizationAction = getPersonalizationActionPresentation(personalizationAvailability);
+
+  const handlePersonalizationAction = async () => {
+    if (personalizationAction.action === 'view') {
+      setDrawerTab('outreach');
+      return;
+    }
+
+    try {
+      if (status !== 'shortlisted') {
+        await onDecision('shortlisted', note);
+      }
+      setDrawerTab('outreach');
+      setGenerationRequest((current) => current + 1);
+    } catch {
+      // The parent owns and displays the review-decision error.
+    }
+  };
 
   const profileFactGroups = [
     { label: 'Experience', values: record.background },
@@ -107,15 +129,16 @@ export default function ProspectEvidenceDrawer({
         </div>
 
         {/* TAB CONTENT */}
-        {drawerTab === 'outreach' ? (
-          <div className="flex-1 overflow-y-auto px-6 py-6">
+        <div className={drawerTab === 'outreach' ? 'flex-1 overflow-y-auto px-6 py-6' : 'hidden'}>
             <PersonalizationPanel
               projectId={resolvedProjectId}
               recordId={record.record_id}
               prospectName={name}
+              generationRequest={generationRequest}
+              onAvailabilityChange={setPersonalizationAvailability}
             />
-          </div>
-        ) : (
+        </div>
+        {drawerTab === 'evidence' && (
           <div className="flex-1 space-y-7 overflow-y-auto px-6 py-6">
             <section className="rounded-2xl border border-white/[0.07] bg-[#111118] p-4 flex flex-col gap-3">
               <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/40">Contact & Links</h3>
@@ -235,24 +258,23 @@ export default function ProspectEvidenceDrawer({
               <textarea id="review-note" value={note} onChange={(event) => setNote(event.target.value)} rows={3} placeholder="Add context for this decision. A reason is required for rejection." className="mt-3 w-full rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 py-3 text-sm text-white/80 outline-none placeholder:text-white/25 focus:border-cyan-300/40" />
               {error && <p role="alert" className="mt-2 text-xs text-red-300">{error}</p>}
               <div className="mt-3 flex flex-wrap gap-2">
-                {(['shortlisted', 'rejected', 'enrichment_requested'] as ReviewStatus[]).map((decision) => (
+                <button
+                  type="button"
+                  disabled={saving || personalizationAction.disabled}
+                  onClick={() => void handlePersonalizationAction()}
+                  className="rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 px-4 py-2 text-xs font-semibold text-white shadow-lg shadow-cyan-500/20 transition hover:brightness-110 disabled:opacity-40"
+                >
+                  {saving ? 'Saving...' : personalizationAction.label}
+                </button>
+                {(['rejected', 'enrichment_requested'] as ReviewStatus[]).map((decision) => (
                   <button
                     key={decision}
                     type="button"
                     disabled={saving || status === decision}
-                    onClick={async () => {
-                      await onDecision(decision, note);
-                      if (decision === 'shortlisted') {
-                        setDrawerTab('outreach');
-                      }
-                    }}
-                    className={`rounded-xl px-4 py-2 text-xs font-medium transition disabled:opacity-40 ${
-                      decision === 'shortlisted'
-                        ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold shadow-lg shadow-cyan-500/20 hover:brightness-110'
-                        : 'border border-white/[0.09] bg-white/[0.03] text-white/65 hover:bg-white/[0.06]'
-                    }`}
+                    onClick={() => void onDecision(decision, note)}
+                    className="rounded-xl border border-white/[0.09] bg-white/[0.03] px-4 py-2 text-xs font-medium text-white/65 transition hover:bg-white/[0.06] disabled:opacity-40"
                   >
-                    {saving ? 'Saving...' : decisionLabels[decision]}
+                    {saving ? 'Saving...' : decisionLabels[decision] ?? decision}
                   </button>
                 ))}
                 {status !== 'needs_review' && (

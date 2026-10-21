@@ -3,15 +3,8 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import type { ResearchEntry } from '@/marcom/schemas/research-record';
-import { evidenceCoverage, reviewStatus, type ResearchReviewSummary } from '@/marcom/research/review';
+import type { ResearchReviewSummary } from '@/marcom/research/review';
 import { authenticatedFetch } from '@/auth/client';
-
-const statusLabels = {
-  needs_review: 'Needs review',
-  shortlisted: 'Personalized',
-  rejected: 'Rejected',
-  enrichment_requested: 'More research',
-} as const;
 
 export default function ResearchResultsPreview({
   projectId,

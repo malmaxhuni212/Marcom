@@ -26,7 +26,7 @@ const emptySummary: ResearchReviewSummary = {
 
 const statusLabel: Record<ReviewStatus, string> = {
   needs_review: 'Needs review',
-  shortlisted: 'Personalized',
+  shortlisted: 'Shortlisted',
   rejected: 'Rejected',
   enrichment_requested: 'More research',
 };
@@ -134,6 +134,7 @@ export default function ProspectReviewTable({ projectId, initialProspectId, init
       setRefreshToken((value) => value + 1);
     } catch (saveError) {
       setDecisionError(saveError instanceof Error ? saveError.message : 'The review decision could not be saved.');
+      throw saveError;
     } finally {
       setSavingDecision(false);
     }
@@ -199,7 +200,7 @@ export default function ProspectReviewTable({ projectId, initialProspectId, init
   };
 
   const summary = data?.summary ?? emptySummary;
-  const items = data?.items ?? [];
+  const items = useMemo(() => data?.items ?? [], [data?.items]);
   
   const itemsByBatch = useMemo(() => {
     if (batch !== 'all') return [{ batchId: batch, items }];
@@ -207,7 +208,7 @@ export default function ProspectReviewTable({ projectId, initialProspectId, init
     const groups = new Map<string, ResearchEntry[]>();
     const unknownItems: ResearchEntry[] = [];
     for (const item of items) {
-      const bid = item.batch_id ?? (item.record as any).batch_id ?? 'batch-1';
+      const bid = item.batch_id ?? 'batch-1';
       if (!groups.has(bid)) groups.set(bid, []);
       groups.get(bid)!.push(item);
     }
@@ -245,7 +246,7 @@ export default function ProspectReviewTable({ projectId, initialProspectId, init
       <section className="grid grid-cols-2 gap-3 md:grid-cols-5" aria-label="Research result summary">
         <SummaryItem label="All prospects" value={summary.total} active={status === 'all'} onClick={() => updateFilter(setStatus, 'all')} />
         <SummaryItem label="Needs review" value={summary.needs_review} active={status === 'needs_review'} onClick={() => updateFilter(setStatus, 'needs_review')} />
-        <SummaryItem label="Personalized" value={summary.shortlisted} active={status === 'shortlisted'} onClick={() => updateFilter(setStatus, 'shortlisted')} />
+        <SummaryItem label="Shortlisted" value={summary.shortlisted} active={status === 'shortlisted'} onClick={() => updateFilter(setStatus, 'shortlisted')} />
         <SummaryItem label="More research" value={summary.enrichment_requested} active={status === 'enrichment_requested'} onClick={() => updateFilter(setStatus, 'enrichment_requested')} />
         <SummaryItem label="Rejected" value={summary.rejected} active={status === 'rejected'} onClick={() => updateFilter(setStatus, 'rejected')} />
       </section>
@@ -319,7 +320,7 @@ export default function ProspectReviewTable({ projectId, initialProspectId, init
             <select aria-label="Review status" value={status} onChange={(event) => updateFilter(setStatus, event.target.value)} className="rounded-xl border border-white/[0.08] bg-[#111118] px-3 py-2.5 text-xs text-white/65 outline-none">
               <option value="all">All statuses</option>
               <option value="needs_review">Needs review</option>
-              <option value="shortlisted">Personalized</option>
+              <option value="shortlisted">Shortlisted</option>
               <option value="enrichment_requested">More research</option>
               <option value="rejected">Rejected</option>
             </select>
@@ -457,7 +458,6 @@ export default function ProspectReviewTable({ projectId, initialProspectId, init
                     const record = entry.record;
                 const id = record.record_id;
                 const evidence = evidenceCoverage(entry);
-                const hasContact = Boolean((record.websites?.[0]?.url) || (record.social_profiles?.find(p => p.platform === 'linkedin')?.profile_url) || (record.social_profiles?.find(p => p.platform === 'instagram')?.profile_url) || record.public_contact.length);
                 return (
                   <tr key={id} className="group hover:bg-white/[0.025]">
                     <td className="px-4 py-4 align-top">
