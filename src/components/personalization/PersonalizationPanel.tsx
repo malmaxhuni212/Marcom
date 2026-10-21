@@ -1,14 +1,17 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { PersonalizationEntry, OutreachCopy, PersonalizationStatus } from '@/marcom/schemas/personalization';
 import { authenticatedFetch } from '@/auth/client';
+import type { PersonalizationAvailability } from '@/marcom/personalization/presentation';
 
 interface PersonalizationPanelProps {
   projectId: string;
   recordId: string;
   prospectName: string;
   initialEntry?: PersonalizationEntry | null;
+  generationRequest?: number;
+  onAvailabilityChange?: (availability: PersonalizationAvailability) => void;
   onUpdated?: (entry: PersonalizationEntry) => void;
 }
 
@@ -17,10 +20,12 @@ export default function PersonalizationPanel({
   recordId,
   prospectName,
   initialEntry,
+  generationRequest = 0,
+  onAvailabilityChange,
   onUpdated,
 }: PersonalizationPanelProps) {
   const [entry, setEntry] = useState<PersonalizationEntry | null>(initialEntry ?? null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(!initialEntry);
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -30,49 +35,46 @@ export default function PersonalizationPanel({
 
   // Local draft states for live editing
   const [selectedSubjectIndex, setSelectedSubjectIndex] = useState(0);
-  const [emailBody, setEmailBody] = useState('');
-  const [linkedInMessage, setLinkedInMessage] = useState('');
-  const [followUpBody, setFollowUpBody] = useState('');
+  const [emailBody, setEmailBody] = useState(initialEntry?.copy?.email_body || '');
+  const [linkedInMessage, setLinkedInMessage] = useState(initialEntry?.copy?.linkedin_message || '');
+  const [followUpBody, setFollowUpBody] = useState(initialEntry?.copy?.follow_up_body || '');
   const [hasChanges, setHasChanges] = useState(false);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const handledGenerationRequest = useRef(0);
 
-  // Sync state when entry changes
-  useEffect(() => {
-    if (initialEntry) {
-      setEntry(initialEntry);
-    } else {
-      fetchEntry();
-    }
-  }, [projectId, recordId, initialEntry]);
+  const applyEntry = useCallback((nextEntry: PersonalizationEntry | null) => {
+    setEntry(nextEntry);
+    setEmailBody(nextEntry?.copy?.email_body || '');
+    setLinkedInMessage(nextEntry?.copy?.linkedin_message || '');
+    setFollowUpBody(nextEntry?.copy?.follow_up_body || '');
+    setHasChanges(false);
+  }, []);
 
-  useEffect(() => {
-    if (entry?.copy) {
-      setEmailBody(entry.copy.email_body || '');
-      setLinkedInMessage(entry.copy.linkedin_message || '');
-      setFollowUpBody(entry.copy.follow_up_body || '');
-      setHasChanges(false);
-    }
-  }, [entry]);
-
-  const fetchEntry = async () => {
-    setLoading(true);
-    setError(null);
+  const fetchEntry = useCallback(async () => {
     try {
       const res = await authenticatedFetch(`/api/projects/${projectId}/personalization?recordId=${recordId}`);
+      if (res.status === 404) {
+        applyEntry(null);
+        onAvailabilityChange?.('absent');
+        return;
+      }
       if (!res.ok) throw new Error('Failed to fetch outreach draft.');
       const data = await res.json();
       const found = data.item || data.items?.find((i: PersonalizationEntry) => i.record_id === recordId) || null;
-      setEntry(found);
+      applyEntry(found);
+      onAvailabilityChange?.(found ? 'ready' : 'absent');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error loading personalization.');
+      onAvailabilityChange?.('error');
     } finally {
       setLoading(false);
     }
-  };
+  }, [applyEntry, onAvailabilityChange, projectId, recordId]);
 
-  const handleGenerate = async (force = false) => {
+  const handleGenerate = useCallback(async (force = false) => {
     setGenerating(true);
     setError(null);
+    onAvailabilityChange?.('generating');
     try {
       const res = await authenticatedFetch(`/api/projects/${projectId}/personalization`, {
         method: 'POST',
@@ -83,14 +85,33 @@ export default function PersonalizationPanel({
       if (!res.ok || data.success !== true) throw new Error(data.error || 'Failed to generate outreach.');
       const updated = data.items?.find((i: PersonalizationEntry) => i.record_id === recordId) || null;
       if (!updated) throw new Error('The server completed without returning an outreach draft.');
-      setEntry(updated);
+      applyEntry(updated);
+      onAvailabilityChange?.('ready');
       if (updated && onUpdated) onUpdated(updated);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to generate outreach.');
+      onAvailabilityChange?.('error');
     } finally {
       setGenerating(false);
     }
-  };
+  }, [applyEntry, onAvailabilityChange, onUpdated, projectId, recordId]);
+
+  // Sync state when entry changes.
+  useEffect(() => {
+    if (initialEntry) {
+      onAvailabilityChange?.('ready');
+      return;
+    }
+    const timer = window.setTimeout(() => void fetchEntry(), 0);
+    return () => window.clearTimeout(timer);
+  }, [fetchEntry, initialEntry, onAvailabilityChange]);
+
+  // A parent can explicitly request one generation without relying on tab mounting.
+  useEffect(() => {
+    if (generationRequest <= 0 || generationRequest <= handledGenerationRequest.current) return;
+    handledGenerationRequest.current = generationRequest;
+    void handleGenerate(false);
+  }, [generationRequest, handleGenerate]);
 
   const handleSaveDraft = async () => {
     if (!entry?.copy) return;
@@ -115,8 +136,7 @@ export default function PersonalizationPanel({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to save copy changes.');
       const updated = data.item || data.items?.find((i: PersonalizationEntry) => i.record_id === recordId) || null;
-      setEntry(updated);
-      setHasChanges(false);
+      applyEntry(updated);
       if (updated && onUpdated) onUpdated(updated);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save changes.');
@@ -140,7 +160,7 @@ export default function PersonalizationPanel({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to update status.');
       const updated = data.item || data.items?.find((i: PersonalizationEntry) => i.record_id === recordId) || null;
-      setEntry(updated);
+      applyEntry(updated);
       if (updated && onUpdated) onUpdated(updated);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update status.');
@@ -262,7 +282,6 @@ export default function PersonalizationPanel({
   const isFormPrimary = normChannel === 'contact_form' || normChannel === 'website_contact_form';
   const isEmailPrimary = !isLinkedInPrimary && !isPhonePrimary && !isFormPrimary;
 
-  const primaryHook = strategy?.hooks?.find((h) => h.id === strategy?.primary_hook_id) || strategy?.hooks?.[0];
   const phoneOpener = `Hi, this is our team with Maya Book Awards. I'm calling directly for ${prospectName} regarding your literary work and publications. Do you have 60 seconds?`;
   const phoneBridge = `${strategy?.angle || strategy?.relevance_thesis || 'We are reaching out to select authors and publishers regarding entries for the 2026 Maya Book Awards.'}`;
   const phoneCta = `"${strategy?.call_to_action || 'Would you be open to reviewing the guidelines for this year’s submissions?'}"`;
