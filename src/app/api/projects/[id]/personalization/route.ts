@@ -12,10 +12,11 @@ import {
   summarizePersonalizations,
   updatePersonalizationCopy,
   updatePersonalizationStatus,
-} from '@/marcom/memory/personalization-store';
+} from '@/db/repositories/personalization-repository';
 import { runPersonalizationAgent } from '@/marcom/agents/personalization/agent';
 import { PersonalizationSettingsSchema } from '@/marcom/schemas/personalization';
 import type { EvaluatedRoute, PersonalizationEntry } from '@/marcom/schemas/personalization';
+import { GeneratePersonalizationRequestSchema } from '@/marcom/personalization/request-contract';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
@@ -36,8 +37,8 @@ export async function GET(req: Request, { params }: RouteCtx) {
   const batch = url.searchParams.get('batch');
   const status = url.searchParams.get('status');
 
-  const settings = getPersonalizationSettings(projectId);
-  const allEntries = listPersonalizations(projectId);
+  const settings = await getPersonalizationSettings(actor, projectId);
+  const allEntries = await listPersonalizations(actor, projectId);
   const allResearch = await listResearch(actor, projectId);
   const researchMap = new Map(allResearch.map((r) => [r.record.record_id, r.record]));
 
@@ -191,17 +192,31 @@ export async function POST(req: Request, { params }: RouteCtx) {
     return NextResponse.json({ error: 'Project or structured brief not found' }, { status: 404 });
   }
 
-  const body = await req.json().catch(() => ({}));
-  const { recordId, batchId, mode = 'single' } = body;
+  const parsedBody = GeneratePersonalizationRequestSchema.safeParse(await req.json().catch(() => null));
+  if (!parsedBody.success) {
+    return NextResponse.json(
+      { error: parsedBody.error.issues[0]?.message ?? 'Invalid personalization request.' },
+      { status: 400 },
+    );
+  }
+  const body = parsedBody.data;
+  const { recordId, recordIds, batchId } = body;
+  const mode = body.allShortlisted ? 'all_shortlisted' : (body.mode ?? 'single');
   const forceRegenerate = Boolean(body.forceRegenerate || body.force);
 
   const allResearch = await listResearch(actor, projectId);
-  const settings = getPersonalizationSettings(projectId);
+  const settings = await getPersonalizationSettings(actor, projectId);
 
   // Targets to personalize
   let candidates = allResearch;
 
-  if (mode === 'single' && recordId) {
+  if (recordIds) {
+    const selected = new Set(recordIds);
+    candidates = allResearch.filter((r) => selected.has(r.record.record_id));
+    if (candidates.length !== selected.size) {
+      return NextResponse.json({ error: 'One or more selected research records were not found.' }, { status: 404 });
+    }
+  } else if (mode === 'single' && recordId) {
     candidates = allResearch.filter((r) => r.record.record_id === recordId);
     if (!candidates.length) {
       return NextResponse.json({ error: 'Research record not found' }, { status: 404 });
@@ -226,7 +241,7 @@ export async function POST(req: Request, { params }: RouteCtx) {
   const errors: { record_id: string; error: string }[] = [];
 
   for (const researchEntry of candidates) {
-    const existing = getPersonalization(projectId, researchEntry.record.record_id);
+    const existing = await getPersonalization(actor, projectId, researchEntry.record.record_id);
     if (existing && !forceRegenerate && existing.status !== 'failed') {
       results.push(existing);
       continue;
@@ -242,19 +257,37 @@ export async function POST(req: Request, { params }: RouteCtx) {
         force: forceRegenerate,
       });
 
-      savePersonalization(projectId, generated);
+      await savePersonalization(actor, projectId, generated);
       await updateResearchReview(actor, projectId, researchEntry.record.record_id, 'shortlisted', 'Personalized by Agent 3');
       results.push(generated);
     } catch (err) {
-      console.error(`Error personalizing record ${researchEntry.record.record_id}:`, err);
+      console.error(JSON.stringify({
+        event: 'personalization.prospect.failed',
+        campaignId: projectId,
+        recordId: researchEntry.record.record_id,
+        errorType: err instanceof Error ? err.name : 'UnknownError',
+      }));
       errors.push({
         record_id: researchEntry.record.record_id,
-        error: (err as Error).message,
+        error: 'Outreach generation failed for this prospect.',
       });
     }
   }
 
-  const allUpdated = listPersonalizations(projectId);
+  if (!results.length) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: errors[0]?.error || 'No outreach drafts were generated.',
+        processed: 0,
+        errors,
+        items: [],
+      },
+      { status: 502 },
+    );
+  }
+
+  const allUpdated = await listPersonalizations(actor, projectId);
   const summary = summarizePersonalizations(allUpdated);
 
   return NextResponse.json({
@@ -273,24 +306,25 @@ export async function PATCH(req: Request, { params }: RouteCtx) {
   if (!access.ok) return access.response;
   const { id: projectId } = await params;
   const body = await req.json().catch(() => ({}));
-  const { record_id, copy, status, reviewer_note } = body;
+  const recordId = typeof body.recordId === 'string' ? body.recordId : body.record_id;
+  const { copy, status, reviewer_note } = body;
 
-  if (!record_id) {
-    return NextResponse.json({ error: 'record_id is required' }, { status: 400 });
+  if (!recordId) {
+    return NextResponse.json({ error: 'recordId is required' }, { status: 400 });
   }
 
   let updated: PersonalizationEntry | null = null;
 
   if (copy) {
-    updated = updatePersonalizationCopy(projectId, record_id, copy);
+    updated = await updatePersonalizationCopy(access.actor, projectId, recordId, copy);
   }
 
   if (status) {
-    updated = updatePersonalizationStatus(projectId, record_id, status, reviewer_note);
+    updated = await updatePersonalizationStatus(access.actor, projectId, recordId, status, reviewer_note);
   }
 
   return updated
-    ? NextResponse.json({ success: true, item: updated })
+    ? NextResponse.json({ success: true, item: updated, items: [updated] })
     : NextResponse.json({ error: 'Personalization entry not found' }, { status: 404 });
 }
 
@@ -303,7 +337,7 @@ export async function PUT(req: Request, { params }: RouteCtx) {
 
   try {
     const parsed = PersonalizationSettingsSchema.partial().parse(body);
-    const updated = savePersonalizationSettings(projectId, parsed);
+    const updated = await savePersonalizationSettings(access.actor, projectId, parsed);
     return NextResponse.json({ success: true, settings: updated });
   } catch (err) {
     return NextResponse.json(
@@ -324,6 +358,6 @@ export async function DELETE(req: Request, { params }: RouteCtx) {
     return NextResponse.json({ error: 'recordId is required' }, { status: 400 });
   }
 
-  const ok = deletePersonalization(projectId, recordId);
+  const ok = await deletePersonalization(access.actor, projectId, recordId);
   return ok ? NextResponse.json({ success: true }) : NextResponse.json({ error: 'Not found' }, { status: 404 });
 }

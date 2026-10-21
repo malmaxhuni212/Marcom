@@ -159,6 +159,7 @@ export default function ProspectReviewTable({ projectId, initialProspectId, init
       setRefreshToken((value) => value + 1);
     } catch (batchError) {
       setError(batchError instanceof Error ? batchError.message : 'The selected prospects could not be updated.');
+      throw batchError;
     } finally {
       setSavingDecision(false);
     }
@@ -177,10 +178,21 @@ export default function ProspectReviewTable({ projectId, initialProspectId, init
         body: JSON.stringify({ recordIds: ids }),
       });
       const result = await res.json();
-      setBatchNotice(`✓ Generated outreach for ${result.items?.length || ids.length} prospects! Check the Outreach tab.`);
+      if (!res.ok || result.success !== true) {
+        throw new Error(result.error || 'Failed to personalize selected prospects.');
+      }
+      const generatedCount = Array.isArray(result.items) ? result.items.length : 0;
+      if (generatedCount === 0) {
+        throw new Error('No outreach drafts were generated. Please review the server logs and try again.');
+      }
+      const failureSuffix = Array.isArray(result.errors) && result.errors.length > 0
+        ? ` ${result.errors.length} prospect${result.errors.length === 1 ? '' : 's'} failed.`
+        : '';
+      setBatchNotice(`✓ Generated outreach for ${generatedCount} prospect${generatedCount === 1 ? '' : 's'}.${failureSuffix}`);
       setTimeout(() => setBatchNotice(null), 5000);
-    } catch {
-      setError('Failed to personalize selected prospects.');
+    } catch (personalizationError) {
+      setBatchNotice(null);
+      setError(personalizationError instanceof Error ? personalizationError.message : 'Failed to personalize selected prospects.');
     } finally {
       setPersonalizingBatch(false);
     }
@@ -405,7 +417,7 @@ export default function ProspectReviewTable({ projectId, initialProspectId, init
         {batchNotice && (
           <div className="border-b border-cyan-400/20 bg-cyan-400/[0.08] px-4 py-2.5 text-xs text-cyan-200 flex items-center justify-between">
             <span>{batchNotice}</span>
-            <a href="/outreach" className="font-semibold text-cyan-300 underline hover:text-white ml-2">
+            <a href={`/outreach?project=${encodeURIComponent(projectId)}`} className="font-semibold text-cyan-300 underline hover:text-white ml-2">
               Go to Outreach →
             </a>
           </div>

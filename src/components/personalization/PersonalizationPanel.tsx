@@ -61,7 +61,7 @@ export default function PersonalizationPanel({
       const res = await authenticatedFetch(`/api/projects/${projectId}/personalization?recordId=${recordId}`);
       if (!res.ok) throw new Error('Failed to fetch outreach draft.');
       const data = await res.json();
-      const found = data.items?.find((i: PersonalizationEntry) => i.record_id === recordId) || null;
+      const found = data.item || data.items?.find((i: PersonalizationEntry) => i.record_id === recordId) || null;
       setEntry(found);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error loading personalization.');
@@ -80,8 +80,9 @@ export default function PersonalizationPanel({
         body: JSON.stringify({ recordId, force }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to generate outreach.');
+      if (!res.ok || data.success !== true) throw new Error(data.error || 'Failed to generate outreach.');
       const updated = data.items?.find((i: PersonalizationEntry) => i.record_id === recordId) || null;
+      if (!updated) throw new Error('The server completed without returning an outreach draft.');
       setEntry(updated);
       if (updated && onUpdated) onUpdated(updated);
     } catch (err) {
@@ -113,7 +114,7 @@ export default function PersonalizationPanel({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to save copy changes.');
-      const updated = data.items?.find((i: PersonalizationEntry) => i.record_id === recordId) || null;
+      const updated = data.item || data.items?.find((i: PersonalizationEntry) => i.record_id === recordId) || null;
       setEntry(updated);
       setHasChanges(false);
       if (updated && onUpdated) onUpdated(updated);
@@ -138,7 +139,7 @@ export default function PersonalizationPanel({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to update status.');
-      const updated = data.items?.find((i: PersonalizationEntry) => i.record_id === recordId) || null;
+      const updated = data.item || data.items?.find((i: PersonalizationEntry) => i.record_id === recordId) || null;
       setEntry(updated);
       if (updated && onUpdated) onUpdated(updated);
     } catch (err) {
