@@ -1,6 +1,6 @@
 # Database schema guide
 
-This guide is the entry point for developers and coding agents working on MARCOM persistence. It covers backlog tasks DB-001, DB-002 and DB-003 at a practical level. The executable schema remains in code and migrations.
+This guide is the entry point for developers and coding agents working on MARCOM persistence. It covers backlog tasks DB-001, DB-002, DB-003, MSG-001 and MSG-002 at a practical level. The executable schema remains in code and migrations.
 
 ## Sources of truth
 
@@ -30,10 +30,10 @@ PostgreSQL is authoritative for:
 - campaign-specific prospect state and human review decisions;
 - evidence and provider-operation provenance;
 - duplicate candidates, idempotency records and audit events.
+- campaign personalisation settings and evidence-grounded strategy profiles;
+- immutable, versioned message drafts and their exact review state.
 
-Personalisation output is still stored in JSON files under `memory/personalization/`. That is a temporary boundary, not a second source of truth for campaigns or research. Do not extend JSON storage to new database-owned features.
-
-The old campaign and research JSON files are retained only as recovery and import inputs. Import commands do not delete them.
+The old campaign, research and personalisation JSON files are retained only as local recovery or import inputs. Runtime personalisation routes must not read or write them. Import commands do not delete legacy files.
 
 ## Table groups
 
@@ -45,6 +45,7 @@ The old campaign and research JSON files are retained only as recovery and impor
 | Research queue | `jobs`, `job_items`, `research_runs` | Tracks bounded work, retries, progress and terminal status. |
 | Prospect data | `prospects`, `prospect_identifiers`, `contact_points`, `campaign_prospects`, `duplicate_candidates` | Separates a canonical person or organisation from its campaign-specific review and engagement state. |
 | Evidence and provenance | `research_results`, `evidence_items`, `provider_operations` | Preserves raw search results, evidence for facts, provider identity, usage and cost data. |
+| Personalisation and messages | `personalization_settings`, `personalization_profiles`, `message_drafts` | Stores campaign guidance, the current evidence-grounded strategy projection and immutable message versions. |
 | Control | `idempotency_records`, `audit_events` | Prevents duplicate command effects and records material state changes. |
 
 ## Important relationships and invariants
@@ -62,6 +63,10 @@ The old campaign and research JSON files are retained only as recovery and impor
 - A research run is tied to one job, one campaign and one search-plan version.
 - A research result keeps the vendor result and may link to the canonical prospect and campaign prospect created from it.
 - Evidence belongs to a campaign prospect and keeps its source URL, retrieval time, confidence and provider provenance.
+- A personalisation profile belongs to exactly one campaign prospect. It is the current strategy projection, not a substitute for research evidence.
+- `message_drafts` holds immutable copy versions. A human edit creates the next version and supersedes the previous current version; approval applies to one exact version.
+- `personalization_profiles.current_message_draft_id` selects the version shown by the current UI without discarding message history.
+- Campaign personalisation settings are workspace-scoped and versioned optimistically with `row_version`.
 - Contact values are copied from evidence, normalised for comparison and protected with a deterministic hash. Do not invent contact details.
 - Approved configuration and search-plan versions must not be overwritten. A material change creates another version.
 - Workspace scope, uniqueness, allowed statuses and other enforceable invariants belong in PostgreSQL constraints as well as application validation.

@@ -46,7 +46,13 @@ export default function OutreachPage() {
       .then((data: Project[]) => {
         setProjects(data);
         if (data.length > 0) {
-          // Default to the first active project or Maya Book Awards if present
+          const requestedProjectId = new URLSearchParams(window.location.search).get('project');
+          const requestedProject = data.find((project) => project.id === requestedProjectId);
+          if (requestedProject) {
+            setSelectedProjectId(requestedProject.id);
+            return;
+          }
+          // Preserve the legacy default only when the URL does not identify a campaign.
           const mba = data.find((p) => p.name.toLowerCase().includes('book') || p.name.toLowerCase().includes('maya'));
           setSelectedProjectId(mba ? mba.id : data[0].id);
         }
@@ -93,8 +99,13 @@ export default function OutreachPage() {
         body: JSON.stringify({ allShortlisted: true }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Batch personalization failed.');
-      setBatchNotice(`✓ Successfully processed ${data.items?.length || 0} prospects!`);
+      if (!res.ok || data.success !== true) throw new Error(data.error || 'Batch personalization failed.');
+      const processed = Array.isArray(data.items) ? data.items.length : 0;
+      if (processed === 0) throw new Error('No outreach drafts were generated.');
+      const failureSuffix = Array.isArray(data.errors) && data.errors.length > 0
+        ? ` ${data.errors.length} prospect${data.errors.length === 1 ? '' : 's'} failed.`
+        : '';
+      setBatchNotice(`✓ Successfully processed ${processed} prospect${processed === 1 ? '' : 's'}.${failureSuffix}`);
       await loadPersonalizationData();
       setTimeout(() => setBatchNotice(null), 5000);
     } catch (err) {
