@@ -1,5 +1,6 @@
 import { and, eq } from 'drizzle-orm';
 import { getDatabase, type MarcomDatabase } from './client';
+import { isDatabaseConfigured } from './env';
 import { users, workspaceMemberships, workspaces } from './schema';
 
 export const LOCAL_WORKSPACE_ID = '10000000-0000-4000-8000-000000000001';
@@ -23,32 +24,42 @@ export function getLocalPilotActor(): ActorContext {
 }
 
 export async function resolveLocalPilotActor(
-  database: MarcomDatabase = getDatabase(),
+  database?: MarcomDatabase,
 ): Promise<ActorContext> {
-  const [actor] = await database
-    .select({
-      workspaceId: workspaces.id,
-      userId: users.id,
-      membershipId: workspaceMemberships.id,
-    })
-    .from(workspaceMemberships)
-    .innerJoin(workspaces, eq(workspaces.id, workspaceMemberships.workspaceId))
-    .innerJoin(users, eq(users.id, workspaceMemberships.userId))
-    .where(
-      and(
-        eq(workspaces.id, LOCAL_WORKSPACE_ID),
-        eq(users.id, LOCAL_USER_ID),
-        eq(workspaceMemberships.id, LOCAL_MEMBERSHIP_ID),
-        eq(workspaces.status, 'active'),
-        eq(users.status, 'active'),
-        eq(workspaceMemberships.status, 'active'),
-      ),
-    )
-    .limit(1);
-
-  if (!actor) {
-    throw new Error('The LocalPilotActor seed is missing or inactive. Run npm run db:seed.');
+  if (!isDatabaseConfigured()) {
+    return getLocalPilotActor();
   }
 
-  return actor;
+  try {
+    const db = database ?? getDatabase();
+    const [actor] = await db
+      .select({
+        workspaceId: workspaces.id,
+        userId: users.id,
+        membershipId: workspaceMemberships.id,
+      })
+      .from(workspaceMemberships)
+      .innerJoin(workspaces, eq(workspaces.id, workspaceMemberships.workspaceId))
+      .innerJoin(users, eq(users.id, workspaceMemberships.userId))
+      .where(
+        and(
+          eq(workspaces.id, LOCAL_WORKSPACE_ID),
+          eq(users.id, LOCAL_USER_ID),
+          eq(workspaceMemberships.id, LOCAL_MEMBERSHIP_ID),
+          eq(workspaces.status, 'active'),
+          eq(users.status, 'active'),
+          eq(workspaceMemberships.status, 'active'),
+        ),
+      )
+      .limit(1);
+
+    if (!actor) {
+      throw new Error('The LocalPilotActor seed is missing or inactive. Run npm run db:seed.');
+    }
+
+    return actor;
+  } catch (error) {
+    console.warn('Database error in resolveLocalPilotActor, falling back to static local actor.', error);
+    return getLocalPilotActor();
+  }
 }
