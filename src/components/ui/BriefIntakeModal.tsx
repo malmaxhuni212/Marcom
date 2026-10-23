@@ -10,7 +10,7 @@ import { authenticatedFetch } from '@/auth/client';
 interface BriefIntakeModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (projectId?: string) => void;
 }
 
 type Step = 'INPUT' | 'PROCESSING' | 'REVIEW';
@@ -247,13 +247,13 @@ export default function BriefIntakeModal({ isOpen, onClose, onSuccess }: BriefIn
         }),
       });
       
+      const data = await res.json().catch(() => null);
       if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || 'Failed to create project');
+        throw new Error(data?.error || 'Failed to create project');
       }
 
       handleReset();
-      onSuccess();
+      onSuccess(typeof data?.project?.project_id === 'string' ? data.project.project_id : undefined);
       onClose();
     } catch (err: unknown) {
       setError((err as Error).message);
