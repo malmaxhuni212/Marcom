@@ -1,18 +1,36 @@
 import { NextResponse } from 'next/server';
 import { createServerMemoryStore } from '@/marcom/memory/server-store';
-import { listResearch, updateResearchReview } from '@/db/repositories/research-repository';
+import { isDatabaseConfigured } from '@/db/env';
+import {
+  listResearch as listDbResearch,
+  updateResearchReview as updateDbResearchReview,
+} from '@/db/repositories/research-repository';
+import {
+  listResearch as listFileResearch,
+  updateResearchReview as updateFileResearchReview,
+} from '@/marcom/memory/research-store';
 import { authorizeApiRequest } from '@/auth/access';
 import {
-  deletePersonalization,
-  getPersonalization,
-  getPersonalizationSettings,
-  listPersonalizations,
-  savePersonalization,
-  savePersonalizationSettings,
+  deletePersonalization as deleteDbPersonalization,
+  getPersonalization as getDbPersonalization,
+  getPersonalizationSettings as getDbPersonalizationSettings,
+  listPersonalizations as listDbPersonalizations,
+  savePersonalization as saveDbPersonalization,
+  savePersonalizationSettings as saveDbPersonalizationSettings,
   summarizePersonalizations,
-  updatePersonalizationCopy,
-  updatePersonalizationStatus,
+  updatePersonalizationCopy as updateDbPersonalizationCopy,
+  updatePersonalizationStatus as updateDbPersonalizationStatus,
 } from '@/db/repositories/personalization-repository';
+import {
+  deletePersonalization as deleteFilePersonalization,
+  getPersonalization as getFilePersonalization,
+  getPersonalizationSettings as getFilePersonalizationSettings,
+  listPersonalizations as listFilePersonalizations,
+  savePersonalization as saveFilePersonalization,
+  savePersonalizationSettings as saveFilePersonalizationSettings,
+  updatePersonalizationCopy as updateFilePersonalizationCopy,
+  updatePersonalizationStatus as updateFilePersonalizationStatus,
+} from '@/marcom/memory/personalization-store';
 import { runPersonalizationAgent } from '@/marcom/agents/personalization/agent';
 import { PersonalizationSettingsSchema } from '@/marcom/schemas/personalization';
 import type { EvaluatedRoute, PersonalizationEntry } from '@/marcom/schemas/personalization';
@@ -29,6 +47,7 @@ export async function GET(req: Request, { params }: RouteCtx) {
   const { id: projectId } = await params;
   const store = await createServerMemoryStore(access.actor, access.allowFileFallback);
   const actor = access.actor;
+  const isDb = isDatabaseConfigured();
   const project = store.projects().find((p) => p.project_id === projectId);
   if (!project) return NextResponse.json({ error: 'Project not found' }, { status: 404 });
 
@@ -37,9 +56,15 @@ export async function GET(req: Request, { params }: RouteCtx) {
   const batch = url.searchParams.get('batch');
   const status = url.searchParams.get('status');
 
-  const settings = await getPersonalizationSettings(actor, projectId);
-  const allEntries = await listPersonalizations(actor, projectId);
-  const allResearch = await listResearch(actor, projectId);
+  const settings = isDb
+    ? await getDbPersonalizationSettings(actor, projectId)
+    : getFilePersonalizationSettings(projectId);
+  const allEntries = isDb
+    ? await listDbPersonalizations(actor, projectId)
+    : listFilePersonalizations(projectId);
+  const allResearch = isDb
+    ? await listDbResearch(actor, projectId)
+    : listFileResearch(projectId);
   const researchMap = new Map(allResearch.map((r) => [r.record.record_id, r.record]));
 
   const enrichEntry = (e: PersonalizationEntry): PersonalizationEntry => {
@@ -187,6 +212,7 @@ export async function POST(req: Request, { params }: RouteCtx) {
   const { id: projectId } = await params;
   const store = await createServerMemoryStore(access.actor, access.allowFileFallback);
   const actor = access.actor;
+  const isDb = isDatabaseConfigured();
   const project = store.projects().find((p) => p.project_id === projectId);
   if (!project?.structured_brief) {
     return NextResponse.json({ error: 'Project or structured brief not found' }, { status: 404 });
@@ -204,8 +230,12 @@ export async function POST(req: Request, { params }: RouteCtx) {
   const mode = body.allShortlisted ? 'all_shortlisted' : (body.mode ?? 'single');
   const forceRegenerate = Boolean(body.forceRegenerate || body.force);
 
-  const allResearch = await listResearch(actor, projectId);
-  const settings = await getPersonalizationSettings(actor, projectId);
+  const allResearch = isDb
+    ? await listDbResearch(actor, projectId)
+    : listFileResearch(projectId);
+  const settings = isDb
+    ? await getDbPersonalizationSettings(actor, projectId)
+    : getFilePersonalizationSettings(projectId);
 
   // Targets to personalize
   let candidates = allResearch;
@@ -241,7 +271,9 @@ export async function POST(req: Request, { params }: RouteCtx) {
   const errors: { record_id: string; error: string }[] = [];
 
   for (const researchEntry of candidates) {
-    const existing = await getPersonalization(actor, projectId, researchEntry.record.record_id);
+    const existing = isDb
+      ? await getDbPersonalization(actor, projectId, researchEntry.record.record_id)
+      : getFilePersonalization(projectId, researchEntry.record.record_id);
     if (existing && !forceRegenerate && existing.status !== 'failed') {
       results.push(existing);
       continue;
@@ -257,8 +289,13 @@ export async function POST(req: Request, { params }: RouteCtx) {
         force: forceRegenerate,
       });
 
-      await savePersonalization(actor, projectId, generated);
-      await updateResearchReview(actor, projectId, researchEntry.record.record_id, 'shortlisted', 'Personalized by Agent 3');
+      if (isDb) {
+        await saveDbPersonalization(actor, projectId, generated);
+        await updateDbResearchReview(actor, projectId, researchEntry.record.record_id, 'shortlisted', 'Personalized by Agent 3');
+      } else {
+        saveFilePersonalization(projectId, generated);
+        updateFileResearchReview(projectId, researchEntry.record.record_id, 'shortlisted', 'Personalized by Agent 3');
+      }
       results.push(generated);
     } catch (err) {
       console.error(JSON.stringify({
@@ -287,7 +324,9 @@ export async function POST(req: Request, { params }: RouteCtx) {
     );
   }
 
-  const allUpdated = await listPersonalizations(actor, projectId);
+  const allUpdated = isDb
+    ? await listDbPersonalizations(actor, projectId)
+    : listFilePersonalizations(projectId);
   const summary = summarizePersonalizations(allUpdated);
 
   return NextResponse.json({
@@ -305,6 +344,7 @@ export async function PATCH(req: Request, { params }: RouteCtx) {
   const access = await authorizeApiRequest(req);
   if (!access.ok) return access.response;
   const { id: projectId } = await params;
+  const isDb = isDatabaseConfigured();
   const body = await req.json().catch(() => ({}));
   const recordId = typeof body.recordId === 'string' ? body.recordId : body.record_id;
   const { copy, status, reviewer_note } = body;
@@ -316,11 +356,15 @@ export async function PATCH(req: Request, { params }: RouteCtx) {
   let updated: PersonalizationEntry | null = null;
 
   if (copy) {
-    updated = await updatePersonalizationCopy(access.actor, projectId, recordId, copy);
+    updated = isDb
+      ? await updateDbPersonalizationCopy(access.actor, projectId, recordId, copy)
+      : updateFilePersonalizationCopy(projectId, recordId, copy);
   }
 
   if (status) {
-    updated = await updatePersonalizationStatus(access.actor, projectId, recordId, status, reviewer_note);
+    updated = isDb
+      ? await updateDbPersonalizationStatus(access.actor, projectId, recordId, status, reviewer_note)
+      : updateFilePersonalizationStatus(projectId, recordId, status, reviewer_note);
   }
 
   return updated
@@ -333,11 +377,14 @@ export async function PUT(req: Request, { params }: RouteCtx) {
   const access = await authorizeApiRequest(req);
   if (!access.ok) return access.response;
   const { id: projectId } = await params;
+  const isDb = isDatabaseConfigured();
   const body = await req.json().catch(() => ({}));
 
   try {
     const parsed = PersonalizationSettingsSchema.partial().parse(body);
-    const updated = await savePersonalizationSettings(access.actor, projectId, parsed);
+    const updated = isDb
+      ? await saveDbPersonalizationSettings(access.actor, projectId, parsed)
+      : saveFilePersonalizationSettings(projectId, parsed);
     return NextResponse.json({ success: true, settings: updated });
   } catch (err) {
     return NextResponse.json(
@@ -351,6 +398,7 @@ export async function DELETE(req: Request, { params }: RouteCtx) {
   const access = await authorizeApiRequest(req);
   if (!access.ok) return access.response;
   const { id: projectId } = await params;
+  const isDb = isDatabaseConfigured();
   const url = new URL(req.url);
   const recordId = url.searchParams.get('recordId');
 
@@ -358,6 +406,8 @@ export async function DELETE(req: Request, { params }: RouteCtx) {
     return NextResponse.json({ error: 'recordId is required' }, { status: 400 });
   }
 
-  const ok = await deletePersonalization(access.actor, projectId, recordId);
+  const ok = isDb
+    ? await deleteDbPersonalization(access.actor, projectId, recordId)
+    : deleteFilePersonalization(projectId, recordId);
   return ok ? NextResponse.json({ success: true }) : NextResponse.json({ error: 'Not found' }, { status: 404 });
 }
