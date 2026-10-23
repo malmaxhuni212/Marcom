@@ -46,12 +46,12 @@ function composeBrief(
 ): string {
   const parts = [
     'MARCOM STRUCTURED PROJECT BRIEF',
-    "The user answered the sections below in their own words. These answers are the primary source of truth.",
+    'The user answered the sections below in their own words. Any non-empty section answers are the primary source of truth.',
     `Project name: ${name.trim() || '(not provided - suggest one from the brief)'}`,
     ...BRIEF_SECTIONS.map((s) => `## ${s.title}\n${sections[s.key].trim() || '(not provided)'}`),
   ];
   if (documents.length || links.length) {
-    parts.push('=== SUPPORTING MATERIAL (secondary; must not override the answers above - report any contradictions as conflicts) ===');
+    parts.push('=== SUPPORTING MATERIAL (supplements the answers above; may fill sections marked "(not provided)", but must never override non-empty user answers - report any contradictions as conflicts) ===');
     for (const doc of documents) parts.push(`### Supporting document: ${doc.name}\n${doc.text}`);
     if (links.length) parts.push(`### Reference links\n${links.map((l) => `- ${l}`).join('\n')}`);
   }
@@ -59,6 +59,20 @@ function composeBrief(
 }
 
 const isGoogleDoc = (link: string) => /^https:\/\/docs\.google\.com\/document\//i.test(link);
+const SUPPORTED_EXTENSIONS = ['.pdf', '.docx', '.txt', '.md'];
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+}
+
+function getFileBadge(name: string): string {
+  const ext = name.slice(name.lastIndexOf('.')).toLowerCase();
+  if (ext === '.pdf') return 'PDF';
+  if (ext === '.docx') return 'DOCX';
+  if (ext === '.md') return 'MD';
+  return 'TXT';
+}
 
 export default function BriefIntakeModal({ isOpen, onClose, onSuccess }: BriefIntakeModalProps) {
   const [step, setStep] = useState<Step>('INPUT');
@@ -67,6 +81,7 @@ export default function BriefIntakeModal({ isOpen, onClose, onSuccess }: BriefIn
   const [sections, setSections] = useState<Record<SectionKey, string>>(EMPTY_SECTIONS);
   const [projectName, setProjectName] = useState('');
   const [files, setFiles] = useState<File[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
   const [linksText, setLinksText] = useState('');
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -77,8 +92,6 @@ export default function BriefIntakeModal({ isOpen, onClose, onSuccess }: BriefIn
   const [sourceFileId, setSourceFileId] = useState<string | null>(null);
   const [sourceFileName, setSourceFileName] = useState<string | null>(null);
   const [extractionWarnings, setExtractionWarnings] = useState<string[]>([]);
-  const [pageCount, setPageCount] = useState<number | null>(null);
-  const [fileSize, setFileSize] = useState<number | null>(null);
   const [processingStage, setProcessingStage] = useState<'EXTRACTING' | 'ANALYZING'>('EXTRACTING');
   
   // Create Project state
@@ -91,14 +104,39 @@ export default function BriefIntakeModal({ isOpen, onClose, onSuccess }: BriefIn
     setSections(EMPTY_SECTIONS);
     setProjectName('');
     setFiles([]);
+    setIsDragging(false);
     setLinksText('');
     setError(null);
     setStructuredBrief(null);
     setSourceFileId(null);
     setSourceFileName(null);
     setExtractionWarnings([]);
-    setPageCount(null);
-    setFileSize(null);
+  };
+
+  const addFiles = (incoming: File[]) => {
+    setError(null);
+    const valid: File[] = [];
+    const rejected: string[] = [];
+
+    for (const file of incoming) {
+      const lower = file.name.toLowerCase();
+      if (SUPPORTED_EXTENSIONS.some((ext) => lower.endsWith(ext))) {
+        valid.push(file);
+      } else {
+        rejected.push(file.name);
+      }
+    }
+
+    if (rejected.length > 0) {
+      setError(`Unsupported file format (${rejected.join(', ')}). Please upload a PDF (.pdf), Word document (.docx), TXT (.txt) or Markdown (.md) file.`);
+    }
+
+    if (valid.length > 0) {
+      setFiles((prev) => [
+        ...prev,
+        ...valid.filter((p) => !prev.some((f) => f.name === p.name && f.size === p.size)),
+      ]);
+    }
   };
 
   /** Runs one /api/extract call and returns its JSON. Throws a labelled error on failure. */
@@ -114,11 +152,14 @@ export default function BriefIntakeModal({ isOpen, onClose, onSuccess }: BriefIn
     setError(null);
 
     try {
-      if (!sections.overview.trim() || !sections.goals.trim()) {
-        throw new Error('Please complete the required sections: Project Overview and Goals and Objectives.');
+      const links = linksText.split(/\s+/).map((l) => l.trim()).filter(Boolean);
+      const hasRequiredSections = Boolean(sections.overview.trim() && sections.goals.trim());
+      const hasSupportingDocs = files.length > 0 || links.some(isGoogleDoc);
+
+      if (!hasRequiredSections && !hasSupportingDocs) {
+        throw new Error('Please complete the required sections (Project Overview and Goals and Objectives) or upload a PDF / Word brief document.');
       }
 
-      const links = linksText.split(/\s+/).map((l) => l.trim()).filter(Boolean);
       setStep('PROCESSING');
       setProcessingStage(files.length || links.some(isGoogleDoc) ? 'EXTRACTING' : 'ANALYZING');
 
@@ -137,8 +178,6 @@ export default function BriefIntakeModal({ isOpen, onClose, onSuccess }: BriefIn
         if (!firstFileId && data.source_file_id) {
           firstFileId = data.source_file_id;
           firstFileName = data.source_name || f.name;
-          setPageCount(data.page_count ?? null);
-          setFileSize(data.file_size ?? null);
         }
       }
       for (const link of links.filter(isGoogleDoc)) {
@@ -286,58 +325,118 @@ export default function BriefIntakeModal({ isOpen, onClose, onSuccess }: BriefIn
               ))}
 
               {/* Secondary: supporting documents and links */}
-              <details className="group rounded-2xl border border-dashed border-white/[0.08] bg-white/[0.01]" open={files.length > 0 || !!linksText}>
-                <summary className="cursor-pointer list-none px-5 py-4 flex items-center justify-between text-[13px] text-white/60 hover:text-white/80">
-                  <span>Supporting documents and links <span className="text-white/30">(optional)</span></span>
-                  <span className="text-white/30 group-open:rotate-45 transition-transform text-lg leading-none">+</span>
-                </summary>
-                <div className="px-5 pb-5 flex flex-col gap-4">
-                  <p className="text-[12px] text-white/35">These supplement your answers above. If they conflict with your answers, MARCOM will flag it for review rather than overriding you.</p>
-                  <div>
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      className="hidden"
-                      multiple
-                      accept=".pdf,.docx,.txt,.md"
-                      onChange={e => {
-                        const picked = Array.from(e.target.files ?? []);
-                        setFiles(prev => [...prev, ...picked.filter(p => !prev.some(f => f.name === p.name && f.size === p.size))]);
-                        e.target.value = '';
-                      }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="px-4 py-2 rounded-lg text-[13px] bg-white/[0.04] border border-white/[0.08] text-white/70 hover:bg-white/[0.07] transition-colors"
-                    >
-                      Attach documents
-                    </button>
-                    <span className="ml-3 text-[11px] text-white/30">PDF, Word (.docx), TXT or Markdown</span>
-                    {files.length > 0 && (
-                      <ul className="mt-3 flex flex-col gap-1.5">
-                        {files.map((f, i) => (
-                          <li key={`${f.name}-${i}`} className="flex items-center justify-between gap-3 px-3 py-2 rounded-lg bg-white/[0.03] text-[12.5px] text-white/70">
-                            <span className="truncate">{f.name} <span className="text-white/30">· {(f.size / 1024 / 1024).toFixed(2)} MB</span></span>
-                            <button type="button" onClick={() => setFiles(prev => prev.filter((_, j) => j !== i))} className="text-white/30 hover:text-red-400" aria-label={`Remove ${f.name}`}>✕</button>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <label htmlFor="brief-links" className="text-[12.5px] text-white/50">Reference links (one per line). Public Google Docs are imported automatically.</label>
-                    <textarea
-                      id="brief-links"
-                      rows={2}
-                      placeholder="https://..."
-                      value={linksText}
-                      onChange={e => setLinksText(e.target.value)}
-                      className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl p-3 text-sm text-white/80 placeholder:text-white/30 focus:outline-none focus:border-accent-blue/50 resize-y"
-                    />
-                  </div>
+              <div className="flex flex-col gap-4 p-5 rounded-2xl bg-white/[0.015] border border-white/[0.06]">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <span className="text-[11px] uppercase tracking-wider font-medium text-white/35">Supporting Documents and Links</span>
+                  <span className="text-[11px] text-white/25">Optional</span>
                 </div>
-              </details>
+                <p className="text-[12.5px] text-white/40 leading-relaxed">
+                  Attach a PDF or Word document (`.pdf`, `.docx`), plain text file, or reference links to supplement your brief. Any answers you wrote above remain primary; if a document conflicts with your answers, MARCOM will flag it for review.
+                </p>
+
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  className="hidden"
+                  multiple
+                  accept=".pdf,.docx,.txt,.md,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown"
+                  onChange={e => {
+                    addFiles(Array.from(e.target.files ?? []));
+                    e.target.value = '';
+                  }}
+                />
+
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => fileInputRef.current?.click()}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      fileInputRef.current?.click();
+                    }
+                  }}
+                  onDragOver={e => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (!isDragging) setIsDragging(true);
+                  }}
+                  onDragLeave={e => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setIsDragging(false);
+                  }}
+                  onDrop={e => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setIsDragging(false);
+                    addFiles(Array.from(e.dataTransfer.files ?? []));
+                  }}
+                  className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl border border-dashed transition-colors cursor-pointer ${
+                    isDragging
+                      ? 'border-cyan-400/60 bg-cyan-500/[0.08]'
+                      : 'border-white/[0.12] bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/[0.2]'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 text-xs font-semibold shrink-0">
+                      DOC
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[13px] font-medium text-white/85">
+                        Drop PDF or Word (.docx) files here, or click to browse
+                      </span>
+                      <span className="text-[11.5px] text-white/35">
+                        Supports PDF (.pdf), Word (.docx), TXT (.txt) and Markdown (.md) · Up to 10 MB per file
+                      </span>
+                    </div>
+                  </div>
+                  <span className="self-start sm:self-center px-3.5 py-2 rounded-lg text-[12.5px] font-medium bg-white/[0.06] border border-white/[0.1] text-white/80 hover:bg-white/[0.1] transition-colors shrink-0">
+                    Choose files
+                  </span>
+                </div>
+
+                {files.length > 0 && (
+                  <ul className="flex flex-col gap-2">
+                    {files.map((f, i) => (
+                      <li
+                        key={`${f.name}-${i}`}
+                        className="flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.07] text-[12.5px] text-white/80"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <span className="px-2 py-0.5 rounded text-[10px] font-semibold tracking-wider bg-cyan-500/15 text-cyan-300 border border-cyan-500/25 shrink-0">
+                            {getFileBadge(f.name)}
+                          </span>
+                          <span className="truncate font-medium">{f.name}</span>
+                          <span className="text-white/35 shrink-0">· {formatFileSize(f.size)}</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setFiles(prev => prev.filter((_, j) => j !== i))}
+                          className="px-2 py-1 rounded text-white/40 hover:text-red-400 hover:bg-red-500/10 transition-colors shrink-0"
+                          aria-label={`Remove ${f.name}`}
+                        >
+                          Remove
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                <div className="flex flex-col gap-2 pt-1">
+                  <label htmlFor="brief-links" className="text-[12.5px] text-white/50">
+                    Reference links (one per line). Public Google Docs are imported automatically.
+                  </label>
+                  <textarea
+                    id="brief-links"
+                    rows={2}
+                    placeholder="https://docs.google.com/document/d/... or https://..."
+                    value={linksText}
+                    onChange={e => setLinksText(e.target.value)}
+                    className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl p-3 text-sm text-white/80 placeholder:text-white/30 focus:outline-none focus:border-accent-blue/50 resize-y"
+                  />
+                </div>
+              </div>
             </div>
           )}
 
