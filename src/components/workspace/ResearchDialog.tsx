@@ -98,7 +98,7 @@ export default function ResearchDialog() {
       <div className="flex flex-wrap items-center gap-2.5 border-t border-[#2A2F39] px-7 pb-6 pt-4">
         <span className="flex min-w-[200px] flex-1 items-center gap-1.5 text-xs text-[#8A909C]">
           <Icon name="bell" size={14} />
-          We&apos;ll show the new prospects in Review when they&apos;re ready
+          We&apos;ll show the new prospects in Prospects when they&apos;re ready
         </span>
         <button type="button" onClick={closeResearch} className={`${btnSecondary} h-[46px]`}>Cancel</button>
         <button type="button" onClick={submit} disabled={!selected || running} className={`${btnPrimary} h-[46px]`}>

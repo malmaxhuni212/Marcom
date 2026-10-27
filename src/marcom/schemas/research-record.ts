@@ -46,6 +46,23 @@ export const PublicContactSchema = z.strictObject({
   confidence: ClaimConfidenceSchema,
 });
 
+/**
+ * A named person inside an organisation prospect who plausibly handles the kind of request
+ * the campaign makes (partnerships, outreach, communications, programmes, ...).
+ * Every value must be copied from a supplied source; QA removes anything not seen verbatim.
+ */
+export const KeyContactSchema = z.strictObject({
+  name: nonEmpty,
+  role: z.string().nullable(),
+  department: z.string().nullable(),
+  email: z.string().nullable(),
+  linkedin_url: z.string().nullable(),
+  phone: z.string().nullable(),
+  relevance: z.string().nullable().describe('Why this person is the right route for this campaign.'),
+  source_ids: z.array(nonEmpty).min(1),
+  confidence: ClaimConfidenceSchema,
+});
+
 export const FitAssessmentSchema = z.strictObject({
   score: z.number().int().min(0).max(100),
   band: z.enum(['irrelevant', 'weak', 'possible', 'strong', 'highly_relevant']),
@@ -84,6 +101,8 @@ export const ResearchRecordSchema = z.strictObject({
   websites: z.array(WebsiteSchema),
   social_profiles: z.array(SocialProfileSchema),
   public_contact: z.array(PublicContactSchema),
+  /** Optional for records researched before key-contact discovery existed. */
+  key_contacts: z.array(KeyContactSchema).optional(),
 
   background: z.array(nonEmpty),
   work_and_projects: z.array(nonEmpty),
@@ -111,6 +130,7 @@ export type Evidence = z.infer<typeof EvidenceSchema>;
 export type Website = z.infer<typeof WebsiteSchema>;
 export type SocialProfile = z.infer<typeof SocialProfileSchema>;
 export type PublicContact = z.infer<typeof PublicContactSchema>;
+export type KeyContact = z.infer<typeof KeyContactSchema>;
 export type ClaimConfidence = z.infer<typeof ClaimConfidenceSchema>;
 export type FitAssessment = z.infer<typeof FitAssessmentSchema>;
 export type ResearchRecord = z.infer<typeof ResearchRecordSchema>;

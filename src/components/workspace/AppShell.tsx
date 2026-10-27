@@ -13,9 +13,7 @@ import { initials } from './format';
 
 const PRIMARY_NAV = [
   { href: '/', label: 'Today', icon: 'home' as const },
-  { href: '/review', label: 'Review', icon: 'review' as const, badge: true },
-  { href: '/prospects', label: 'Prospects', icon: 'list' as const },
-  { href: '/outreach', label: 'Outreach', icon: 'send' as const },
+  { href: '/prospects', label: 'Prospects', icon: 'list' as const, badge: true },
 ];
 
 const SECONDARY_NAV = [
@@ -25,7 +23,7 @@ const SECONDARY_NAV = [
 ];
 
 function ProjectSwitcher({ onNavigate }: { onNavigate: () => void }) {
-  const { projects, activeProject, setActiveId } = useWorkspace();
+  const { projects, activeProject, bundle, setActiveId, openNewProject } = useWorkspace();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -38,6 +36,9 @@ function ProjectSwitcher({ onNavigate }: { onNavigate: () => void }) {
     return () => document.removeEventListener('mousedown', close);
   }, [open]);
 
+  const totalCount = bundle?.summary?.total ?? activeProject?.prospectsCurrent ?? 0;
+  const reviewCount = bundle?.summary?.needs_review ?? activeProject?.reviewCount ?? 0;
+
   return (
     <div ref={ref} className="relative">
       <button
@@ -45,23 +46,53 @@ function ProjectSwitcher({ onNavigate }: { onNavigate: () => void }) {
         aria-label="Switch project"
         aria-expanded={open}
         onClick={() => setOpen((value) => !value)}
-        className="flex w-full items-center gap-2.5 rounded-[14px] border border-[#2A2F39] bg-[#171A20] p-2.5 text-left transition hover:border-[#3A3F4A]"
+        className={`flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition ${
+          open
+            ? 'border-[#2E6B75] bg-[#141920] shadow-[0_0_0_1px_rgba(94,211,223,0.2)]'
+            : 'border-[#232832] bg-[#13161C] hover:border-[#343B48] hover:bg-[#171B22]'
+        }`}
       >
-        {activeProject ? <ProjectArt seed={activeProject.id} size={36} radius={10} /> : <span className="h-9 w-9 rounded-[10px] bg-[#1F232B]" />}
+        {activeProject ? (
+          <ProjectArt seed={activeProject.id} size={38} radius={11} />
+        ) : (
+          <span className="h-[38px] w-[38px] shrink-0 rounded-[11px] bg-[#1F232B]" />
+        )}
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <span className="truncate text-[13px] font-semibold text-[#F1F2F4]">{activeProject?.name ?? 'No project yet'}</span>
-          <span className="truncate text-xs text-[#8A909C]">{activeProject ? `${activeProject.prospectsCurrent} prospects · ${activeProject.reviewCount} to review` : 'Create one to begin'}</span>
+          <span className="truncate text-[13.5px] font-semibold text-[#F1F2F4]">
+            {activeProject?.name ?? 'No project yet'}
+          </span>
+          <span className="truncate text-[11.5px] text-[#9BA1AE]">
+            {activeProject ? `${totalCount} found · ${reviewCount} to review` : 'Create one to begin'}
+          </span>
         </span>
-        <Icon name="updown" size={16} className="text-[#A7ADB8]" />
+        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-[#1C2029] text-[#A7ADB8]">
+          <Icon name="updown" size={14} />
+        </span>
       </button>
 
       {open && (
-        <section role="dialog" aria-label="Projects" className="absolute left-0 top-[calc(100%+8px)] z-[60] w-[340px] max-w-[calc(100vw-32px)] rounded-[20px] border border-[#2E333D] bg-[#171A20] pb-2.5 shadow-[0_24px_60px_rgba(0,0,0,0.6)]">
-          <div className="flex items-center justify-between px-4 pb-2.5 pt-4">
-            <h2 className="m-0 text-[15px] font-semibold text-[#F1F2F4]">Projects</h2>
-            <span className="text-xs text-[#8A909C]">{projects.length} total</span>
+        <section
+          role="dialog"
+          aria-label="Projects"
+          className="absolute left-0 top-[calc(100%+8px)] z-[80] w-[284px] rounded-2xl border border-[#2E333D] bg-[#151820] p-2.5 shadow-[0_24px_60px_rgba(0,0,0,0.75)]"
+        >
+          <div className="flex items-center justify-between px-2.5 pb-2 pt-1">
+            <h2 className="m-0 text-xs font-bold uppercase tracking-[0.1em] text-[#8A909C]">
+              Projects · {projects.length}
+            </h2>
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                openNewProject();
+                onNavigate();
+              }}
+              className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-[#5ED3DF] hover:bg-[#1C222B]"
+            >
+              <Icon name="plus" size={12} stroke={2.4} /> New
+            </button>
           </div>
-          <ul className="m-0 flex max-h-[420px] list-none flex-col gap-1.5 overflow-y-auto px-2.5 py-0">
+          <ul className="m-0 flex max-h-[340px] list-none flex-col gap-1.5 overflow-y-auto p-0">
             {projects.map((project) => {
               const current = project.id === activeProject?.id;
               const stage = project.reviewCount > 0 ? 4 : project.prospectsCurrent > 0 ? 3 : 2;
@@ -75,21 +106,37 @@ function ProjectSwitcher({ onNavigate }: { onNavigate: () => void }) {
                       setOpen(false);
                       onNavigate();
                     }}
-                    className={`flex w-full gap-3 rounded-[14px] border p-3 text-left transition ${current ? 'border-[#2E6B75] bg-[#12313A]' : 'border-transparent hover:bg-[#1F232B]'}`}
+                    className={`flex w-full items-start gap-2.5 rounded-xl border p-2.5 text-left transition ${
+                      current
+                        ? 'border-[#2E6B75] bg-[#112A32]'
+                        : 'border-transparent bg-[#111318] hover:border-[#2A2F39] hover:bg-[#1A1E26]'
+                    }`}
                   >
-                    <ProjectArt seed={project.id} size={40} radius={11} />
+                    <ProjectArt seed={project.id} size={36} radius={10} />
                     <span className="flex min-w-0 flex-1 flex-col gap-1.5">
-                      <span className="text-sm font-semibold leading-snug text-[#F1F2F4]">{project.name}</span>
-                      <span className="grid grid-cols-4 gap-[3px]">
+                      <span className="flex items-center justify-between gap-1.5">
+                        <span className="truncate text-[13.5px] font-semibold text-[#F1F2F4]">
+                          {project.name}
+                        </span>
+                        {current && <Icon name="check" size={15} stroke={2.5} className="shrink-0 text-[#5ED3DF]" />}
+                      </span>
+                      <span className="grid grid-cols-4 gap-1">
                         {[0, 1, 2, 3].map((step) => (
-                          <span key={step} className="h-[3px] rounded-sm" style={{ background: step < stage ? '#5ED3DF' : current ? '#2A4A50' : '#2A2F39' }} />
+                          <span
+                            key={step}
+                            className="h-[3px] rounded-sm"
+                            style={{ background: step < stage ? '#5ED3DF' : current ? '#23434B' : '#252A34' }}
+                          />
                         ))}
                       </span>
-                      <span className={`text-xs ${current ? 'text-[#B5D9DE]' : 'text-[#A7ADB8]'}`}>
-                        <span className="font-semibold text-[#F2C36B]">{project.reviewCount} to review</span> · {project.qualifiedCount} drafts · {project.prospectsCurrent} found
+                      <span className={`flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11.5px] ${current ? 'text-[#B5D9DE]' : 'text-[#9BA1AE]'}`}>
+                        <span className="font-semibold text-[#F2C36B]">{project.reviewCount} to review</span>
+                        <span>·</span>
+                        <span>{project.qualifiedCount} personalized</span>
+                        <span>·</span>
+                        <span>{project.prospectsCurrent} found</span>
                       </span>
                     </span>
-                    {current && <Icon name="check" size={18} stroke={2.4} className="text-[#5ED3DF]" />}
                   </button>
                 </li>
               );
@@ -103,48 +150,70 @@ function ProjectSwitcher({ onNavigate }: { onNavigate: () => void }) {
 
 function SidebarNav({ onNavigate }: { onNavigate: () => void }) {
   const pathname = usePathname();
-  const { activeProject, openNewProject } = useWorkspace();
-  const isActive = (href: string) => (href === '/' ? pathname === '/' : pathname.startsWith(href)) || (href === '/' && pathname === '/overview');
+  const { activeProject, bundle, openNewProject } = useWorkspace();
+  const isActive = (href: string) =>
+    href === '/'
+      ? pathname === '/' || pathname === '/overview'
+      : href === '/prospects'
+        ? pathname.startsWith('/prospects') || pathname.startsWith('/review') || pathname.startsWith('/outreach')
+        : pathname.startsWith(href);
+  const reviewCount = bundle?.summary?.needs_review ?? activeProject?.reviewCount ?? 0;
 
   const linkClass = (active: boolean) =>
-    `flex h-[42px] items-center gap-3 rounded-xl px-3 text-sm font-medium no-underline transition ${active ? 'bg-[#1F232B] text-[#F1F2F4]' : 'text-[#A7ADB8] hover:bg-[#15181D] hover:text-[#F1F2F4]'}`;
+    `flex h-[42px] items-center gap-3 rounded-xl px-3 text-[13.5px] font-medium no-underline transition ${
+      active
+        ? 'bg-[#1A1F28] font-semibold text-[#F1F2F4] shadow-[inset_3px_0_0_#5ED3DF]'
+        : 'text-[#A7ADB8] hover:bg-[#14171E] hover:text-[#F1F2F4]'
+    }`;
 
   return (
-    <nav aria-label="Main" className="flex h-full min-h-full w-[248px] flex-col gap-[18px] bg-[#0B0D10] px-4 pb-5 pt-6 text-[#F1F2F4]">
-      <div className="px-2 pb-0.5 pt-1 text-sm font-semibold tracking-[0.32em]">MARCOM</div>
-      <ProjectSwitcher onNavigate={onNavigate} />
-      <button
-        type="button"
-        onClick={() => {
-          openNewProject();
-          onNavigate();
-        }}
-        className="-mt-2 flex h-10 items-center gap-2.5 rounded-xl border border-dashed border-[#2E333D] px-3 text-[13px] font-semibold text-[#C9CDD4] transition hover:border-[#3A3F4A] hover:text-[#F1F2F4]"
-      >
-        <Icon name="plus" size={16} stroke={2.2} />
-        New project
-      </button>
+    <nav aria-label="Main" className="flex h-full min-h-full w-[256px] flex-col gap-5 bg-[#0B0D10] px-4 pb-5 pt-6 text-[#F1F2F4]">
+      <div className="flex items-center justify-between px-1.5">
+        <div className="flex items-center gap-2.5">
+          <span className="h-2 w-2 rounded-full bg-[#5ED3DF]" />
+          <span className="text-[13px] font-bold tracking-[0.28em] text-[#F1F2F4]">MARCOM</span>
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            openNewProject();
+            onNavigate();
+          }}
+          title="Create new project"
+          className="inline-flex h-7 items-center gap-1 rounded-lg border border-[#252A34] bg-[#13161C] px-2 text-[11.5px] font-semibold text-[#C9CDD4] transition hover:border-[#3A3F4A] hover:text-[#F1F2F4]"
+        >
+          <Icon name="plus" size={12} stroke={2.4} /> New
+        </button>
+      </div>
 
-      <div className="flex flex-col gap-0.5">
+      <ProjectSwitcher onNavigate={onNavigate} />
+
+      <div className="flex flex-col gap-1">
+        <div className="px-2.5 pb-1 text-[10.5px] font-bold uppercase tracking-[0.12em] text-[#68707E]">
+          Workspace
+        </div>
         {PRIMARY_NAV.map((item) => (
           <Link key={item.href} href={item.href} onClick={onNavigate} className={linkClass(isActive(item.href))}>
             <Icon name={item.icon} size={18} stroke={1.8} />
             <span className="flex-1">{item.label}</span>
-            {item.badge && activeProject && activeProject.reviewCount > 0 && (
-              <span className="flex h-5 min-w-[22px] items-center justify-center rounded-[10px] bg-[#F2C36B] px-1.5 text-[11px] font-bold text-[#0E1014]">
-                {activeProject.reviewCount}
+            {item.badge && reviewCount > 0 && (
+              <span className="flex h-5 min-w-[22px] items-center justify-center rounded-full bg-[#F2C36B] px-1.5 text-[11px] font-bold text-[#0E1014]">
+                {reviewCount}
               </span>
             )}
           </Link>
         ))}
       </div>
 
-      <div className="mx-2 h-px bg-[#1C1F26]" />
+      <div className="mx-2 h-px bg-[#181B22]" />
 
-      <div className="flex flex-col gap-0.5">
+      <div className="flex flex-col gap-1">
+        <div className="px-2.5 pb-1 text-[10.5px] font-bold uppercase tracking-[0.12em] text-[#68707E]">
+          Configuration
+        </div>
         {SECONDARY_NAV.map((item) => (
           <Link key={item.href} href={item.href} onClick={onNavigate} className={`${linkClass(isActive(item.href))} !h-10 ${isActive(item.href) ? '' : '!text-[#8A909C]'}`}>
-            <Icon name={item.icon} size={18} stroke={1.8} />
+            <Icon name={item.icon} size={17} stroke={1.8} />
             {item.label}
           </Link>
         ))}
@@ -202,7 +271,7 @@ function AccountMenu() {
             </span>
           </div>
           <nav aria-label="Account" className="flex flex-col px-2 pb-2 pt-1.5">
-            <Link href="/outreach?settings=1" onClick={() => setOpen(false)} className="flex h-10 items-center rounded-[10px] px-2.5 text-sm text-[#F1F2F4] no-underline hover:bg-[#1F232B]">Sender & outreach details</Link>
+            <Link href="/prospects?settings=1" onClick={() => setOpen(false)} className="flex h-10 items-center rounded-[10px] px-2.5 text-sm text-[#F1F2F4] no-underline hover:bg-[#1F232B]">Sender & outreach details</Link>
             <Link href="/settings" onClick={() => setOpen(false)} className="flex h-10 items-center rounded-[10px] px-2.5 text-sm text-[#F1F2F4] no-underline hover:bg-[#1F232B]">Workspace settings</Link>
             <button type="button" onClick={() => void signOut()} className="flex h-10 items-center rounded-[10px] px-2.5 text-left text-sm text-[#F28B82] hover:bg-[#1C1517]">Sign out</button>
           </nav>
@@ -267,8 +336,8 @@ function ResearchRunToast() {
       <span className="flex min-w-0 flex-1 flex-col gap-1">
         <span className="text-sm font-semibold text-[#F1F2F4]">{running ? researchRun.label : researchRun.status === 'completed' ? 'Research finished' : researchRun.status === 'cancelled' ? 'Research stopped' : 'Research failed'}</span>
         <span className="text-[13px] leading-snug">{researchRun.message}</span>
-        {!running && researchRun.status === 'completed' && !pathname.startsWith('/review') && (
-          <Link href="/review" onClick={dismissResearchRun} className="mt-1 text-[13px] font-semibold text-[#5ED3DF] no-underline">Review new prospects →</Link>
+        {!running && researchRun.status === 'completed' && !pathname.startsWith('/prospects') && (
+          <Link href="/prospects?tab=review" onClick={dismissResearchRun} className="mt-1 text-[13px] font-semibold text-[#5ED3DF] no-underline">Review new prospects →</Link>
         )}
       </span>
       {running ? (
@@ -287,14 +356,14 @@ function ShellInner({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-screen bg-[#0E1014] font-sans text-[#F1F2F4]">
-      <aside className="sticky top-0 hidden h-screen w-[248px] shrink-0 overflow-y-auto border-r border-[#1C1F26] bg-[#0B0D10] lg:block">
+      <aside className="sticky top-0 z-50 hidden h-screen w-[256px] shrink-0 overflow-visible border-r border-[#1C1F26] bg-[#0B0D10] lg:block">
         <SidebarNav onNavigate={() => undefined} />
       </aside>
 
       {mobileNav && (
         <div className="fixed inset-0 z-[55] lg:hidden">
           <button type="button" aria-label="Close navigation" onClick={() => setMobileNav(false)} className="absolute inset-0 h-full w-full bg-[rgba(4,5,7,0.6)]" />
-          <aside className="relative h-full w-[248px] overflow-y-auto border-r border-[#1C1F26] bg-[#0B0D10]">
+          <aside className="relative h-full w-[256px] overflow-visible border-r border-[#1C1F26] bg-[#0B0D10]">
             <SidebarNav onNavigate={() => setMobileNav(false)} />
           </aside>
         </div>

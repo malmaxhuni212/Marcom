@@ -10,8 +10,8 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { authenticatedFetch } from '@/auth/client';
 import type { Project } from '@/types';
 import type { ProjectMemory } from '@/marcom/memory/types';
-import type { ResearchEntry } from '@/marcom/schemas/research-record';
-import type { ResearchReviewSummary } from '@/marcom/research/review';
+import type { ResearchEntry, ReviewStatus } from '@/marcom/schemas/research-record';
+import { summarizeResearch, type ResearchReviewSummary } from '@/marcom/research/review';
 import type { PersonalizationEntry, PersonalizationSettings } from '@/marcom/schemas/personalization';
 
 const ACTIVE_PROJECT_KEY = 'marcom_active_project';
@@ -54,6 +54,7 @@ interface WorkspaceValue {
   reload: () => Promise<void>;
   refreshProjects: () => Promise<Project[]>;
   updateDraft: (entry: PersonalizationEntry) => void;
+  updateResearchReview: (recordId: string, status: ReviewStatus, note: string | null) => void;
   setSettings: (settings: PersonalizationSettings) => void;
   researchRun: ResearchRun | null;
   startResearch: (input: StartResearchInput) => Promise<void>;
@@ -85,6 +86,14 @@ async function fetchJson<T>(url: string): Promise<T> {
 }
 
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
+  const existing = useContext(WorkspaceContext);
+  if (existing) {
+    return <>{children}</>;
+  }
+  return <WorkspaceProviderRoot>{children}</WorkspaceProviderRoot>;
+}
+
+function WorkspaceProviderRoot({ children }: { children: ReactNode }) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [projectsLoaded, setProjectsLoaded] = useState(false);
   const [projectsError, setProjectsError] = useState<string | null>(null);
@@ -96,6 +105,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [newProjectOpen, setNewProjectOpen] = useState(false);
   const [researchDialog, setResearchDialog] = useState<{ open: boolean; targetId?: string }>({ open: false });
   const activeIdRef = useRef<string | null>(null);
+  const bundleRef = useRef<ProjectBundle | null>(null);
   const pollRef = useRef<number | null>(null);
 
   const refreshProjects = useCallback(async () => {
@@ -119,14 +129,16 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         fetchJson<{ items?: PersonalizationEntry[]; settings?: PersonalizationSettings }>(`/api/projects/${projectId}/personalization`).catch(() => null),
       ]);
       if (activeIdRef.current !== projectId) return;
-      setBundle({
+      const nextBundle: ProjectBundle = {
         projectId,
         project: detail.project,
         research: detail.research ?? [],
         summary: detail.research_summary,
         drafts: personalization?.items ?? [],
         settings: personalization?.settings ?? null,
-      });
+      };
+      bundleRef.current = nextBundle;
+      setBundle(nextBundle);
       setBundleError(null);
     } catch (error) {
       if (activeIdRef.current === projectId) setBundleError((error as Error).message);
@@ -134,25 +146,40 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Initial project list + active project (URL ?project= wins, then the remembered project, then the first).
+  // Fire loadBundle in parallel if a remembered/requested project ID is available to eliminate waterfall latency.
   useEffect(() => {
+    const requested = new URLSearchParams(window.location.search).get('project');
+    let remembered: string | null = null;
+    try {
+      remembered = window.localStorage.getItem(ACTIVE_PROJECT_KEY);
+    } catch {
+      remembered = null;
+    }
+    const eagerCandidate = requested || remembered;
+    if (eagerCandidate) {
+      activeIdRef.current = eagerCandidate;
+      setActiveIdState(eagerCandidate);
+      void loadBundle(eagerCandidate);
+    }
+
     void refreshProjects().then((list) => {
-      if (!list.length) return;
-      const requested = new URLSearchParams(window.location.search).get('project');
-      let remembered: string | null = null;
-      try {
-        remembered = window.localStorage.getItem(ACTIVE_PROJECT_KEY);
-      } catch {
-        remembered = null;
+      if (!list.length) {
+        activeIdRef.current = null;
+        setActiveIdState(null);
+        return;
       }
       const chosen = [requested, remembered].find((id) => id && list.some((project) => project.id === id)) ?? list[0]!.id;
-      activeIdRef.current = chosen;
-      setActiveIdState(chosen);
+      if (chosen !== activeIdRef.current) {
+        activeIdRef.current = chosen;
+        setActiveIdState(chosen);
+      }
     });
-  }, [refreshProjects]);
+  }, [refreshProjects, loadBundle]);
 
   useEffect(() => {
     if (!activeId) return;
     activeIdRef.current = activeId;
+    if (bundleRef.current?.projectId === activeId) return;
     void loadBundle(activeId);
   }, [activeId, loadBundle]);
 
@@ -180,6 +207,28 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       const merged = (draft: PersonalizationEntry) =>
         draft.record_id === entry.record_id ? { ...entry, candidate_contacts: entry.candidate_contacts ?? draft.candidate_contacts, strategy: entry.strategy ?? draft.strategy } : draft;
       return { ...current, drafts: exists ? current.drafts.map(merged) : [...current.drafts, entry] };
+    });
+  }, []);
+
+  const updateResearchReview = useCallback((recordId: string, status: ReviewStatus, note: string | null) => {
+    setBundle((current) => {
+      if (!current) return current;
+      const nextResearch = current.research.map((entry) => {
+        if (entry.record.record_id !== recordId) return entry;
+        return {
+          ...entry,
+          review: {
+            project_id: current.projectId,
+            record_id: recordId,
+            status,
+            note,
+            reviewed_at: new Date().toISOString(),
+            reviewed_by: entry.review?.reviewed_by ?? 'user',
+          },
+        };
+      });
+      const nextSummary = summarizeResearch(nextResearch);
+      return { ...current, research: nextResearch, summary: nextSummary };
     });
   }, []);
 
@@ -325,6 +374,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       reload,
       refreshProjects,
       updateDraft,
+      updateResearchReview,
       setSettings,
       researchRun,
       startResearch,
@@ -339,7 +389,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       openResearch: (targetId?: string) => setResearchDialog({ open: true, targetId }),
       closeResearch: () => setResearchDialog({ open: false }),
     }),
-    [projects, projectsLoaded, projectsError, activeId, setActiveId, bundle, bundleError, reload, refreshProjects, updateDraft, setSettings, researchRun, startResearch, stopResearch, dismissResearchRun, globalSearch, newProjectOpen, researchDialog],
+    [projects, projectsLoaded, projectsError, activeId, setActiveId, bundle, bundleError, reload, refreshProjects, updateDraft, updateResearchReview, setSettings, researchRun, startResearch, stopResearch, dismissResearchRun, globalSearch, newProjectOpen, researchDialog],
   );
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;

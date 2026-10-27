@@ -766,6 +766,26 @@ export default function PersonalizationPanel({
               }}
               className="w-full rounded-xl border border-white/[0.08] bg-[#0c0c12] p-4 text-xs font-mono leading-relaxed text-white/85 outline-none focus:border-cyan-400/50"
             />
+
+            {copy.alternative_opening && (
+              <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/[0.04] p-3 space-y-1.5">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-300">
+                    Alternative Opening Angle
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => copyToClipboard(copy.alternative_opening ?? '', 'alt-opening')}
+                    className="text-[11px] text-cyan-300 hover:text-cyan-200 font-medium"
+                  >
+                    {copiedKey === 'alt-opening' ? '✓ Copied Opening' : '📋 Copy Opening'}
+                  </button>
+                </div>
+                <p className="text-xs text-white/85 italic leading-relaxed">
+                  &ldquo;{copy.alternative_opening}&rdquo;
+                </p>
+              </div>
+            )}
           </div>
         );
 
@@ -1003,14 +1023,14 @@ export default function PersonalizationPanel({
                 <span className="text-[10px] font-semibold uppercase tracking-wider text-white/40">Inquiry Topic / Subject</span>
                 <button
                   type="button"
-                  onClick={() => copyToClipboard(selectedSubjectText || `Maya Book Awards 2026 - ${prospectName}`, 'form-subject')}
+                  onClick={() => copyToClipboard(selectedSubjectText || `${strategy?.campaign_objective || 'Outreach Inquiry'} - ${prospectName}`, 'form-subject')}
                   className="text-[10px] text-cyan-300 hover:underline"
                 >
                   {copiedKey === 'form-subject' ? '✓ Copied' : 'Copy'}
                 </button>
               </div>
               <p className="font-mono text-xs text-white/85 bg-black/40 border border-white/[0.06] rounded-lg p-2.5">
-                {selectedSubjectText || `Maya Book Awards 2026 - ${prospectName}`}
+                {selectedSubjectText || `${strategy?.campaign_objective || 'Outreach Inquiry'} - ${prospectName}`}
               </p>
             </div>
 
@@ -1202,10 +1222,29 @@ export default function PersonalizationPanel({
             )}
           </div>
 
-          <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 space-y-2">
-            <h4 className="text-[10px] font-bold uppercase tracking-wider text-cyan-300/80">Relevance Thesis</h4>
-            <p className="text-xs text-white/80 leading-relaxed">{strategy.relevance_thesis}</p>
-          </div>
+            <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <h4 className="text-[10px] font-bold uppercase tracking-wider text-cyan-300/80">Relevance Thesis & Personalization Angle</h4>
+                {strategy.confidence && (
+                  <span
+                    className={`rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase border ${
+                      strategy.confidence === 'high'
+                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                        : strategy.confidence === 'medium'
+                        ? 'bg-cyan-500/20 text-cyan-200 border-cyan-500/30'
+                        : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                    }`}
+                  >
+                    Confidence: {strategy.confidence}
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-white/80 leading-relaxed">{strategy.relevance_thesis}</p>
+              <p className="text-xs text-cyan-200/90"><span className="font-semibold text-white/90">Personalization Angle:</span> {strategy.angle}</p>
+              {strategy.recipient_incentive && (
+                <p className="text-xs text-emerald-200/90"><span className="font-semibold text-emerald-300">Recipient Incentive:</span> {strategy.recipient_incentive}</p>
+              )}
+            </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">

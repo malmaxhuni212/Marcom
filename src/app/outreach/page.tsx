@@ -1,10 +1,10 @@
 import AppShell from '@/components/workspace/AppShell';
-import OutreachView from '@/components/workspace/views/OutreachView';
+import ProspectsView from '@/components/workspace/views/ProspectsView';
 
 export default function OutreachPage() {
   return (
     <AppShell>
-      <OutreachView />
+      <ProspectsView initialTab="shortlisted" />
     </AppShell>
   );
 }

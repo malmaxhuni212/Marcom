@@ -672,7 +672,7 @@ export async function saveResearch(
       await transaction.insert(evidenceItems).values(evidenceRows).onConflictDoNothing();
     }
 
-    const contactRows = entry.record.public_contact.flatMap((contact) => {
+    const contactRows: Array<typeof contactPoints.$inferInsert> = entry.record.public_contact.flatMap((contact) => {
       const source = sourceById.get(contact.source_ids[0]);
       const channel = contact.kind === 'agent_or_representative' ? 'other' : contact.kind;
       const normalizedValue = contact.value.trim().toLowerCase();
@@ -692,6 +692,36 @@ export async function saveResearch(
         updatedAt: now,
       }];
     });
+    // Named people inside an organisation keep their identity next to each route they can be reached by.
+    for (const person of entry.record.key_contacts ?? []) {
+      const source = sourceById.get(person.source_ids[0]);
+      const routes: Array<{ channel: 'email' | 'phone' | 'linkedin'; value: string | null }> = [
+        { channel: 'email', value: person.email },
+        { channel: 'linkedin', value: person.linkedin_url },
+        { channel: 'phone', value: person.phone },
+      ];
+      for (const route of routes) {
+        if (!route.value) continue;
+        const normalizedValue = route.channel === 'linkedin' ? normalizeIdentifier(route.value) : route.value.trim().toLowerCase();
+        contactRows.push({
+          id: randomUUID(),
+          workspaceId: actor.workspaceId,
+          prospectId: prospect.id,
+          channel: route.channel,
+          value: route.value,
+          normalizedValue,
+          valueHash: contactHash(actor, route.channel, normalizedValue),
+          isPublic: true,
+          sourceUrl: source?.url ?? null,
+          retrievedAt: source?.retrieved_at ? new Date(source.retrieved_at) : new Date(entry.record.researched_at),
+          verificationStatus: person.confidence === 'verified' ? 'source_verified' as const : 'unverified' as const,
+          contactName: person.name.slice(0, 240),
+          contactRole: [person.role, person.department].filter(Boolean).join(' · ').slice(0, 240) || null,
+          createdAt: now,
+          updatedAt: now,
+        });
+      }
+    }
     if (contactRows.length) {
       await transaction.insert(contactPoints).values(contactRows).onConflictDoNothing();
     }

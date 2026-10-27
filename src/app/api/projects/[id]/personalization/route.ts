@@ -69,9 +69,31 @@ export async function GET(req: Request, { params }: RouteCtx) {
 
   const enrichEntry = (e: PersonalizationEntry): PersonalizationEntry => {
     const rec = researchMap.get(e.record_id);
-    const emails = (rec?.public_contact?.filter((c) => c.kind === 'email').map((c) => c.value) || []).filter(Boolean);
-    const phones = (rec?.public_contact?.filter((c) => c.kind === 'phone').map((c) => c.value) || []).filter(Boolean);
-    const linkedin_urls = (rec?.social_profiles?.filter((s) => s.platform === 'linkedin').map((s) => s.profile_url).filter(Boolean) || []);
+    const keyPeople = rec?.key_contacts ?? [];
+    const emails = [
+      ...new Set(
+        [
+          ...(rec?.public_contact?.filter((c) => c.kind === 'email').map((c) => c.value) || []),
+          ...keyPeople.map((p) => p.email ?? ''),
+        ].filter(Boolean),
+      ),
+    ];
+    const phones = [
+      ...new Set(
+        [
+          ...(rec?.public_contact?.filter((c) => c.kind === 'phone').map((c) => c.value) || []),
+          ...keyPeople.map((p) => p.phone ?? ''),
+        ].filter(Boolean),
+      ),
+    ];
+    const linkedin_urls = [
+      ...new Set(
+        [
+          ...(rec?.social_profiles?.filter((s) => s.platform === 'linkedin').map((s) => s.profile_url) || []),
+          ...keyPeople.map((p) => p.linkedin_url ?? ''),
+        ].filter(Boolean),
+      ),
+    ];
     const websites = (rec?.websites?.map((w) => w.url).filter(Boolean) || []);
 
     const candidate_contacts = {

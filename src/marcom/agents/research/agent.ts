@@ -17,7 +17,7 @@ import { planResearch } from './planner';
 import { loadResearchEvidencePrompt } from '../prompt-loader';
 import { extractJson } from '../../llm/provider';
 import type { LLMProvider } from '../../llm/provider';
-import type { SearchCandidate, SearchProvider, SeenSource } from '../../search/provider';
+import type { SearchCandidate, SearchProvider, SearchResponse, SeenSource } from '../../search/provider';
 import { canonicalUrl, normalizeAndQA, normalizeName } from './qa';
 
 export type ResearchStage = 'resolving' | 'researching' | 'validating' | 'saving' | 'complete';
@@ -56,6 +56,7 @@ function buildUserPrompt(
   seed: ProspectSeed,
   memoryNote: string | null,
   evidenceBundle: string,
+  contactRoles: string[] | null,
 ): string {
   const t = plan.target;
   const researchFields = brief.database.fields.filter((f) => f.expected_source === 'research').map((f) => f.name);
@@ -76,6 +77,9 @@ function buildUserPrompt(
     plan.preferred_source_types.length ? `PREFERRED SOURCES: ${plan.preferred_source_types.slice(0, 6).join('; ')}` : '',
     plan.verification_requirements.length ? `VERIFICATION RULES:\n${list(plan.verification_requirements, 4)}` : '',
     plan.human_rules.length ? `HUMAN RULES (override everything):\n${list(plan.human_rules, 4)}` : '',
+    contactRoles?.length
+      ? `KEY CONTACTS: This prospect is an organisation. Generic inboxes are often missing, so also list up to 6 named people from the evidence who work at THIS organisation and would plausibly handle this campaign's request. Most relevant roles: ${contactRoles.join('; ')}. For each, copy their role, email, phone and personal LinkedIn URL exactly as shown in a supplied source (null when absent) and explain the relevance in one short sentence. Only include people the source clearly ties to this organisation.`
+      : '',
     memoryNote ? `MEMORY: ${memoryNote}` : '',
     `PROSPECT SEED (may be incomplete — verify, do not trust blindly):\n${seedLines}`,
     `SUPPLIED SEARCH EVIDENCE:\n${evidenceBundle}`,
@@ -100,45 +104,128 @@ function buildSearchQuery(brief: StructuredBrief, plan: ReturnType<typeof planRe
     .slice(0, 500);
 }
 
-function buildEvidence(candidates: SearchCandidate[]): {
+/** True when the prospect is an organisation, so named staff should be searched as contact routes. */
+export function isOrganisationProspect(seed: ProspectSeed, target: Target): boolean {
+  if (seed.entity_kind === 'organisation') return true;
+  if (seed.entity_kind === 'person') return false;
+  return target.entity_kind === 'organisation';
+}
+
+const DEFAULT_CONTACT_ROLES = [
+  'partnerships manager',
+  'outreach coordinator',
+  'communications manager',
+  'marketing manager',
+  'programme manager',
+  'director',
+];
+
+/** Role suggestions are derived once per campaign target and reused for every prospect in the run. */
+const contactRoleCache = new Map<string, Promise<string[]>>();
+
+export function contactRolesCacheKey(brief: StructuredBrief, target: Target): string {
+  return [brief.project.name ?? '', brief.project.primary_objective, target.id, target.target_type].join('|');
+}
+
+async function suggestContactRoles(brief: StructuredBrief, target: Target, llmProvider: LLMProvider): Promise<string[]> {
+  const key = contactRolesCacheKey(brief, target);
+  const cached = contactRoleCache.get(key);
+  if (cached) return cached;
+  const pending = (async () => {
+    try {
+      const raw = await llmProvider.complete({
+        system:
+          'You map a campaign to the job titles inside a target organisation that would handle or decide on the request. Return JSON only: {"roles":["..."]}. Use short generic job titles or departments, no names.',
+        user: JSON.stringify({
+          campaign: brief.project.name,
+          objective: clip(brief.project.primary_objective || brief.project.description, 400),
+          outreach_objectives: brief.outreach.objectives.slice(0, 4),
+          target_organisation_type: target.target_type,
+          target_description: clip(target.description ?? '', 250),
+          instruction: 'List the 4-6 most relevant roles to contact at this kind of organisation for this request.',
+        }),
+        maxTokens: 300,
+      });
+      const parsed = extractJson(raw) as { roles?: unknown };
+      const roles = (Array.isArray(parsed?.roles) ? parsed.roles : [])
+        .map((role) => String(role ?? '').trim())
+        .filter((role) => role.length > 1 && role.length <= 60)
+        .slice(0, 6);
+      return roles.length ? roles : DEFAULT_CONTACT_ROLES;
+    } catch {
+      contactRoleCache.delete(key);
+      return DEFAULT_CONTACT_ROLES;
+    }
+  })();
+  contactRoleCache.set(key, pending);
+  return pending;
+}
+
+function domainOf(url: string | undefined): string | null {
+  if (!url) return null;
+  try {
+    return new URL(url.startsWith('http') ? url : `https://${url}`).hostname.replace(/^www\./, '');
+  } catch {
+    return null;
+  }
+}
+
+/** Queries that surface named staff (team pages and LinkedIn profiles) for an organisation prospect. */
+export function buildContactQueries(seed: ProspectSeed, roles: string[]): { team: string; people: string } {
+  const organisation = seed.organisation?.trim() || seed.name;
+  const topRoles = roles.slice(0, 4);
+  return {
+    team: [organisation, 'team staff contacts', topRoles.join(' '), 'email'].filter(Boolean).join(' ').slice(0, 400),
+    people: `${topRoles.slice(0, 3).join(', ')} at ${organisation}`.slice(0, 400),
+  };
+}
+
+interface EvidenceGroup {
+  candidates: SearchCandidate[];
+  maximumCharacters: number;
+}
+
+function buildEvidence(groups: EvidenceGroup[]): {
   bundle: string;
   seen: SeenSource[];
   pages: { url: string; text: string }[];
   toolText: string;
 } {
-  const unique = new Map<string, SearchCandidate>();
-  for (const candidate of candidates) {
-    const key = canonicalUrl(candidate.url);
-    if (!unique.has(key)) unique.set(key, candidate);
-  }
-  let usedCharacters = 0;
-  const maximumCharacters = 8_000;
+  const used = new Set<string>();
   const seen: SeenSource[] = [];
   const pages: { url: string; text: string }[] = [];
   const sections: string[] = [];
+  let sourceNumber = 0;
 
-  for (const [index, candidate] of [...unique.values()].entries()) {
-    if (usedCharacters >= maximumCharacters) break;
-    const text = [candidate.highlights.join('\n'), candidate.text].filter(Boolean).join('\n').slice(0, 2_200);
-    const source = [
-      `SOURCE ID: S${index + 1}`,
-      `URL: ${candidate.url}`,
-      `TITLE: ${candidate.title}`,
-      `CONTENT: ${text || '(No page text returned. Use only the title and URL.)'}`,
-    ].join('\n');
-    const remaining = maximumCharacters - usedCharacters;
-    const clipped = source.slice(0, remaining);
-    sections.push(clipped);
-    usedCharacters += clipped.length;
-    seen.push({ url: candidate.url, title: candidate.title, via: text ? 'page' : 'search' });
-    pages.push({ url: candidate.url, text });
+  for (const group of groups) {
+    let usedCharacters = 0;
+    for (const candidate of group.candidates) {
+      if (usedCharacters >= group.maximumCharacters) break;
+      const key = canonicalUrl(candidate.url);
+      if (used.has(key)) continue;
+      used.add(key);
+      sourceNumber += 1;
+      const text = [candidate.highlights.join('\n'), candidate.text].filter(Boolean).join('\n').slice(0, 2_200);
+      const source = [
+        `SOURCE ID: S${sourceNumber}`,
+        `URL: ${candidate.url}`,
+        `TITLE: ${candidate.title}`,
+        `CONTENT: ${text || '(No page text returned. Use only the title and URL.)'}`,
+      ].join('\n');
+      const remaining = group.maximumCharacters - usedCharacters;
+      const clipped = source.slice(0, remaining);
+      sections.push(clipped);
+      usedCharacters += clipped.length;
+      seen.push({ url: candidate.url, title: candidate.title, via: text ? 'page' : 'search' });
+      pages.push({ url: candidate.url, text: `${candidate.title}\n${text}` });
+    }
   }
 
   return { bundle: sections.join('\n\n'), seen, pages, toolText: sections.join('\n\n') };
 }
 
 const NORMALIZER_SYSTEM = `Convert the research notes into ONE JSON object with exactly these keys:
-{"name","entity_kind","identity_verified","role","organisation","country","location","websites":[{"url","type","title"}],"social_profiles":[{"platform","profile_url","username","display_name","verified_status","confidence","source_ids"}],"public_contact":[{"kind","value","is_professional","source_ids","confidence"}],"background":["string"],"work_and_projects":["string"],"achievements":["string"],"industry_activity":["string"],"criteria":[{"criterion","status","note","sources"}],"evidence":[{"claim","field","sources","confidence","quote"}],"sources":[{"id","url","title","type"}],"unknowns":[{"field","reason"}],"contradictions","fit_score","fit_rationale","summary","confidence"}
+{"name","entity_kind","identity_verified","role","organisation","country","location","websites":[{"url","type","title"}],"social_profiles":[{"platform","profile_url","username","display_name","verified_status","confidence","source_ids"}],"public_contact":[{"kind","value","is_professional","source_ids","confidence"}],"key_contacts":[{"name","role","department","email","linkedin_url","phone","relevance","source_ids","confidence"}],"background":["string"],"work_and_projects":["string"],"achievements":["string"],"industry_activity":["string"],"criteria":[{"criterion","status","note","sources"}],"evidence":[{"claim","field","sources","confidence","quote"}],"sources":[{"id","url","title","type"}],"unknowns":[{"field","reason"}],"contradictions","fit_score","fit_rationale","summary","confidence"}
 Use ONLY information present in the notes. Never add facts, URLs or contacts. Missing = null or []. Output JSON only.`;
 
 export async function runResearchAgent(input: RunResearchInput): Promise<ResearchEntry> {
@@ -180,9 +267,45 @@ export async function runResearchAgent(input: RunResearchInput): Promise<Researc
     progress('validating', 'Web search returned no sources');
   }
 
-  const evidence = buildEvidence(search.candidates);
+  // ---------- 2b. Key contacts inside organisations ----------
+  // Organisations rarely publish a direct inbox, so also look for the named people who handle this kind of request.
+  let contactRoles: string[] | null = null;
+  const contactSearches: SearchResponse[] = [];
+  const contactWarnings: string[] = [];
+  if (isOrganisationProspect(seed, target)) {
+    contactRoles = await suggestContactRoles(brief, target, llmProvider);
+    progress('researching', `Looking for the right people to contact at ${seed.name}`);
+    const queries = buildContactQueries(seed, contactRoles);
+    const limit = Math.min(8, searchProvider.capabilities().maximumResults);
+    const domain = domainOf(seed.website ?? search.candidates[0]?.url);
+    const settled = await Promise.allSettled([
+      searchProvider.search({
+        query: queries.team,
+        resultLimit: limit,
+        includeDomains: domain && searchProvider.capabilities().supportsDomainFilters ? [domain] : [],
+        excludeDomains: [],
+      }),
+      searchProvider.search({
+        query: queries.people,
+        resultLimit: limit,
+        includeDomains: [],
+        excludeDomains: [],
+        category: searchProvider.capabilities().supportsCategory ? 'people' : undefined,
+      }),
+    ]);
+    for (const result of settled) {
+      if (result.status === 'fulfilled') contactSearches.push(result.value);
+      else contactWarnings.push(`Key contact search failed: ${(result.reason as Error)?.message ?? 'unknown error'}`);
+    }
+  }
+
+  const contactCandidates = contactSearches.flatMap((response) => response.candidates);
+  const evidence = buildEvidence([
+    { candidates: search.candidates, maximumCharacters: contactCandidates.length ? 7_000 : 8_000 },
+    { candidates: contactCandidates, maximumCharacters: 5_000 },
+  ]);
   const system = loadResearchEvidencePrompt();
-  const user = buildUserPrompt(brief, plan, seed, memoryNote, evidence.bundle);
+  const user = buildUserPrompt(brief, plan, seed, memoryNote, evidence.bundle, contactRoles);
 
   // ---------- 3. Normalise + QA ----------
   progress('validating', 'Validating sources and evidence');
@@ -222,15 +345,17 @@ export async function runResearchAgent(input: RunResearchInput): Promise<Researc
     relationship_status: relationship?.status ?? null,
     model: llmProvider.model ?? llmProvider.name,
     ai_provider: llmProvider.name,
-    searches: [search.query],
+    searches: [search.query, ...contactSearches.map((response) => response.query)],
     search_provider: search.providerKey,
-    search_request_ids: search.providerRequestId ? [search.providerRequestId] : [],
+    search_request_ids: [search, ...contactSearches]
+      .map((response) => response.providerRequestId)
+      .filter((id): id is string => Boolean(id)),
     search_usage: {
-      requests: search.usage.requests,
-      estimated_cost_usd: search.usage.estimatedCostUsd ?? 0,
-      latency_ms: search.latencyMs,
+      requests: [search, ...contactSearches].reduce((total, response) => total + response.usage.requests, 0),
+      estimated_cost_usd: [search, ...contactSearches].reduce((total, response) => total + (response.usage.estimatedCostUsd ?? 0), 0),
+      latency_ms: search.latencyMs + Math.max(0, ...contactSearches.map((response) => response.latencyMs)),
     },
-    search_warnings: search.warnings,
+    search_warnings: [...search.warnings, ...contactSearches.flatMap((response) => response.warnings), ...contactWarnings],
   };
 }
 

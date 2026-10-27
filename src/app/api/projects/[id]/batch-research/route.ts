@@ -147,6 +147,7 @@ export async function POST(request: Request, { params }: RouteContext) {
         const searchProvider = resolveSearchProvider(searchConfig, llmProvider);
 
         let consecutiveEmpty = 0;
+        let iteration = 0;
         while (task.completed < count && !task.cancelled) {
           const remaining = count - task.completed;
           task.message = `Searching for ${remaining} more prospect candidate(s)...`;
@@ -159,14 +160,16 @@ export async function POST(request: Request, { params }: RouteContext) {
             llmProvider,
             existingNames: existing.flatMap((e) => [e.seed.name, e.record.identity.name ?? '']),
             existingUrls: existing.flatMap((e) => [e.seed.website ?? '', e.record.websites?.[0]?.url ?? '']),
+            iteration,
           });
+          iteration++;
 
           task.discovered += discovery.seeds.length;
           task.duplicatesSkipped += discovery.duplicateCount;
 
           if (!discovery.seeds.length) {
             consecutiveEmpty++;
-            if (consecutiveEmpty >= 2) {
+            if (consecutiveEmpty >= 3) {
               task.status = task.completed > 0 ? 'completed' : 'completed_with_errors';
               task.message = `Search exhausted. Saved ${task.completed} of ${count} prospects.`;
               return;

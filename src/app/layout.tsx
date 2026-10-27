@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { Inter, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import { requirePageAccess } from "@/auth/page-access";
+import { WorkspaceProvider } from "@/components/workspace/WorkspaceContext";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -32,7 +33,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col bg-[#08080c]" suppressHydrationWarning>
-        {children}
+        <WorkspaceProvider>{children}</WorkspaceProvider>
       </body>
     </html>
   );

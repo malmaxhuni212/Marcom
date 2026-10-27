@@ -2,7 +2,7 @@
  * Presentation helpers for the MARCOM workspace UI.
  * Pure functions only: they read research / personalization records and never invent data.
  */
-import type { ResearchEntry, ReviewStatus } from '@/marcom/schemas/research-record';
+import type { KeyContact, ResearchEntry, ReviewStatus } from '@/marcom/schemas/research-record';
 import type { PersonalizationEntry } from '@/marcom/schemas/personalization';
 import type { StructuredBrief, Target } from '@/marcom/schemas/structured-brief';
 import { reviewStatus } from '@/marcom/research/review';
@@ -67,7 +67,7 @@ export const plural = (count: number, word: string, pluralWord = `${word}s`) =>
 
 export const STATUS_META: Record<ReviewStatus, { label: string; bg: string; fg: string }> = {
   needs_review: { label: 'To review', bg: '#3A2F17', fg: '#F2C36B' },
-  shortlisted: { label: 'Approved', bg: '#10261B', fg: '#8EE6B6' },
+  shortlisted: { label: 'Personalized', bg: '#10261B', fg: '#8EE6B6' },
   enrichment_requested: { label: 'More research', bg: '#12313A', fg: '#9BE6EE' },
   rejected: { label: 'Rejected', bg: '#2A1715', fg: '#F7B1AA' },
 };
@@ -80,21 +80,43 @@ export { reviewStatus };
 
 export interface ProspectContacts {
   email: string | null;
+  emailOwner: string | null;
   phone: string | null;
   contactForm: string | null;
   linkedin: string | null;
+  linkedinOwner: string | null;
   website: string | null;
+  keyContacts: KeyContact[];
+}
+
+function formatPersonLabel(person: KeyContact): string {
+  const role = [person.role, person.department].filter(Boolean).join(', ');
+  return role ? `${person.name} (${role})` : person.name;
 }
 
 export function contactsOf(entry: ResearchEntry): ProspectContacts {
   const record = entry.record;
+  const keyContacts = record.key_contacts ?? [];
   const contact = (kind: string) => record.public_contact?.find((item) => item.kind === kind)?.value ?? null;
+
+  const directEmail = contact('email');
+  const personWithEmail = !directEmail ? keyContacts.find((person) => Boolean(person.email)) : undefined;
+
+  const orgLinkedin = record.social_profiles?.find((profile) => profile.platform === 'linkedin')?.profile_url ?? null;
+  const personWithLinkedin = !orgLinkedin ? keyContacts.find((person) => Boolean(person.linkedin_url)) : undefined;
+
+  const directPhone = contact('phone');
+  const personWithPhone = !directPhone ? keyContacts.find((person) => Boolean(person.phone)) : undefined;
+
   return {
-    email: contact('email'),
-    phone: contact('phone'),
+    email: directEmail ?? personWithEmail?.email ?? null,
+    emailOwner: personWithEmail ? formatPersonLabel(personWithEmail) : null,
+    phone: directPhone ?? personWithPhone?.phone ?? null,
     contactForm: contact('contact_form'),
-    linkedin: record.social_profiles?.find((profile) => profile.platform === 'linkedin')?.profile_url ?? null,
+    linkedin: orgLinkedin ?? personWithLinkedin?.linkedin_url ?? null,
+    linkedinOwner: personWithLinkedin ? formatPersonLabel(personWithLinkedin) : null,
     website: record.websites?.[0]?.url ?? null,
+    keyContacts,
   };
 }
 
@@ -179,7 +201,7 @@ export function prospectGoal(brief: StructuredBrief | null | undefined): number 
 /* Personalization helpers                                             */
 /* ------------------------------------------------------------------ */
 
-export type DraftChannel = 'email' | 'linkedin' | 'follow_up';
+export type DraftChannel = 'email' | 'linkedin' | 'whatsapp' | 'website_form' | 'follow_up';
 
 export interface DraftTargets {
   email: string | null;
@@ -188,44 +210,64 @@ export interface DraftTargets {
   phone: string | null;
 }
 
-export function draftTargets(entry: PersonalizationEntry): DraftTargets {
+export function draftTargets(entry: PersonalizationEntry, researchEntry?: ResearchEntry | null): DraftTargets {
   const audit = entry.strategy?.contact_audit;
   const candidates = entry.candidate_contacts;
   const best = audit?.best_contact_target ?? '';
+  const fallbackContacts = researchEntry ? contactsOf(researchEntry) : null;
   return {
-    email: best.includes('@') ? best : candidates?.emails?.[0] ?? (audit?.backup_route?.includes('@') ? audit.backup_route : null),
-    linkedin: best.includes('linkedin.com') ? best : candidates?.linkedin_urls?.[0] ?? null,
-    website: candidates?.websites?.[0] ?? (best.startsWith('http') && !best.includes('linkedin.com') ? best : null),
-    phone: candidates?.phones?.[0] ?? null,
+    email:
+      (best.includes('@') ? best : null) ??
+      candidates?.emails?.[0] ??
+      (audit?.backup_route?.includes('@') ? audit.backup_route : null) ??
+      fallbackContacts?.email ??
+      null,
+    linkedin:
+      (best.includes('linkedin.com') ? best : null) ??
+      candidates?.linkedin_urls?.[0] ??
+      fallbackContacts?.linkedin ??
+      null,
+    website:
+      candidates?.websites?.[0] ??
+      (best.startsWith('http') && !best.includes('linkedin.com') ? best : null) ??
+      fallbackContacts?.contactForm ??
+      fallbackContacts?.website ??
+      null,
+    phone: candidates?.phones?.[0] ?? fallbackContacts?.phone ?? null,
   };
 }
 
 /** The primary channel MARCOM recommends for this draft, limited to channels we actually wrote copy for. */
-export function primaryChannel(entry: PersonalizationEntry): DraftChannel {
-  const targets = draftTargets(entry);
+export function primaryChannel(entry: PersonalizationEntry, researchEntry?: ResearchEntry | null): DraftChannel {
+  const targets = draftTargets(entry, researchEntry);
   const recommended = (entry.strategy?.contact_audit?.best_channel || entry.strategy?.recommended_channel || '').toLowerCase();
   if (recommended.includes('linkedin') && targets.linkedin) return 'linkedin';
+  if ((recommended.includes('form') || recommended.includes('website')) && targets.website) return 'website_form';
+  if (recommended.includes('phone') && targets.phone) return 'whatsapp';
   if (targets.email) return 'email';
   if (targets.linkedin) return 'linkedin';
+  if (targets.website) return 'website_form';
   return 'email';
 }
 
 export const CHANNEL_LABEL: Record<DraftChannel, string> = {
   email: 'Email',
   linkedin: 'LinkedIn',
-  follow_up: 'Follow-up email',
+  whatsapp: 'WhatsApp',
+  website_form: 'Website form',
+  follow_up: 'Message',
 };
 
-export function hasContactFor(entry: PersonalizationEntry): boolean {
-  const targets = draftTargets(entry);
-  return Boolean(targets.email || targets.linkedin);
+export function hasContactFor(entry: PersonalizationEntry, researchEntry?: ResearchEntry | null): boolean {
+  const targets = draftTargets(entry, researchEntry);
+  return Boolean(targets.email || targets.linkedin || targets.website || targets.phone);
 }
 
 /** The full text placed on the clipboard for a channel. */
 export function messageFor(entry: PersonalizationEntry, channel: DraftChannel): string {
   const copy = entry.copy;
   if (!copy) return '';
-  if (channel === 'linkedin') return copy.linkedin_message;
+  if (channel === 'linkedin' || channel === 'whatsapp') return copy.linkedin_message;
   if (channel === 'follow_up') return copy.follow_up_body;
   return copy.email_body;
 }

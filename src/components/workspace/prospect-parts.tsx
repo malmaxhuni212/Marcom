@@ -138,42 +138,138 @@ export function SourcesList({ entry }: { entry: ResearchEntry }) {
   );
 }
 
+export function KeyContactsList({ entry }: { entry: ResearchEntry }) {
+  const keyContacts = entry.record.key_contacts ?? [];
+  const { copied, copy } = useClipboard();
+  if (!keyContacts.length) return null;
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[#8A909C]">
+        Relevant people at this organisation · {keyContacts.length}
+      </div>
+      <div className="flex flex-col overflow-hidden rounded-[14px] border border-[#2A2F39] bg-[#171A20]">
+        {keyContacts.map((person, index) => {
+          const roleLine = [person.role, person.department].filter(Boolean).join(' · ');
+          const copyEmailKey = `kc-email-${index}`;
+          const copyLiKey = `kc-li-${index}`;
+          return (
+            <div key={`${person.name}-${index}`} className="flex flex-col gap-1.5 border-b border-[#22262E] px-3.5 py-3 last:border-b-0">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="text-sm font-semibold text-[#F1F2F4]">{person.name}</div>
+                  {roleLine && <div className="text-xs text-[#A7ADB8]">{roleLine}</div>}
+                </div>
+                <span className="shrink-0 rounded-md bg-[#1F232B] px-2 py-0.5 text-[11px] capitalize text-[#9BE6EE]">
+                  {person.confidence}
+                </span>
+              </div>
+              {person.relevance && <div className="text-xs leading-snug text-[#8A909C]">{person.relevance}</div>}
+              <div className="mt-1 flex flex-wrap items-center gap-2">
+                {person.email && (
+                  <span className="inline-flex items-center gap-1 rounded-lg border border-[#2A2F39] bg-[#12151A] px-2.5 py-1 text-xs">
+                    <a href={`mailto:${person.email}`} className="text-[#5ED3DF] no-underline hover:underline">
+                      {person.email}
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => void copy(person.email!, copyEmailKey)}
+                      aria-label={`Copy ${person.name} email`}
+                      className="ml-1 text-[#A7ADB8] hover:text-[#F1F2F4]"
+                    >
+                      {copied === copyEmailKey ? '✓' : <Icon name="copy" size={12} />}
+                    </button>
+                  </span>
+                )}
+                {person.linkedin_url && (
+                  <span className="inline-flex items-center gap-1 rounded-lg border border-[#2A2F39] bg-[#12151A] px-2.5 py-1 text-xs">
+                    <a href={person.linkedin_url} target="_blank" rel="noreferrer" className="text-[#5ED3DF] no-underline hover:underline">
+                      LinkedIn profile ↗
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => void copy(person.linkedin_url!, copyLiKey)}
+                      aria-label={`Copy ${person.name} LinkedIn`}
+                      className="ml-1 text-[#A7ADB8] hover:text-[#F1F2F4]"
+                    >
+                      {copied === copyLiKey ? '✓' : <Icon name="copy" size={12} />}
+                    </button>
+                  </span>
+                )}
+                {person.phone && (
+                  <span className="inline-flex items-center gap-1 rounded-lg border border-[#2A2F39] bg-[#12151A] px-2.5 py-1 text-xs text-[#C9CDD4]">
+                    {person.phone}
+                  </span>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export function ContactRows({ entry, compact = false }: { entry: ResearchEntry; compact?: boolean }) {
   const contacts = contactsOf(entry);
   const { copied, copy } = useClipboard();
   const rows = [
-    { key: 'email', abbr: '@', label: 'Email', value: contacts.email, href: contacts.email ? `mailto:${contacts.email}` : null, missing: 'Email not found' },
-    { key: 'linkedin', abbr: 'in', label: 'LinkedIn', value: contacts.linkedin, href: contacts.linkedin, missing: 'LinkedIn not found' },
-    { key: 'website', abbr: 'www', label: contacts.contactForm ? 'Website · contact form found' : 'Website', value: contacts.contactForm || contacts.website, href: contacts.contactForm || contacts.website, missing: 'Website not found' },
+    {
+      key: 'email',
+      abbr: '@',
+      label: contacts.emailOwner ? `Email · ${contacts.emailOwner}` : 'Email',
+      value: contacts.email,
+      href: contacts.email ? `mailto:${contacts.email}` : null,
+      missing: 'Email not found',
+    },
+    {
+      key: 'linkedin',
+      abbr: 'in',
+      label: contacts.linkedinOwner ? `LinkedIn · ${contacts.linkedinOwner}` : 'LinkedIn',
+      value: contacts.linkedin,
+      href: contacts.linkedin,
+      missing: 'LinkedIn not found',
+    },
+    {
+      key: 'website',
+      abbr: 'www',
+      label: contacts.contactForm ? 'Website · contact form found' : 'Website',
+      value: contacts.contactForm || contacts.website,
+      href: contacts.contactForm || contacts.website,
+      missing: 'Website not found',
+    },
     { key: 'phone', abbr: 'tel', label: 'Phone', value: contacts.phone, href: null, missing: 'Phone not found' },
   ];
   return (
-    <ul className="m-0 flex list-none flex-col overflow-hidden rounded-2xl border border-[#2A2F39] bg-[#12151A] p-0">
-      {rows.map((row) => (
-        <li key={row.key} className="flex items-center gap-3 border-b border-[#22262E] px-4 last:border-b-0">
-          {!compact && <span aria-hidden="true" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[9px] bg-[#1F232B] text-[11px] font-bold text-[#A7ADB8]">{row.abbr}</span>}
-          <span className="flex min-w-0 flex-1 flex-col gap-px py-2.5">
-            {row.value ? (
-              row.href ? (
-                <a href={row.href} target={row.href.startsWith('mailto:') ? undefined : '_blank'} rel="noreferrer" className="truncate text-sm text-[#5ED3DF] no-underline hover:underline">
-                  {row.key === 'email' ? row.value : hostOf(row.value)}
-                </a>
+    <div className="flex flex-col gap-3">
+      <ul className="m-0 flex list-none flex-col overflow-hidden rounded-2xl border border-[#2A2F39] bg-[#12151A] p-0">
+        {rows.map((row) => (
+          <li key={row.key} className="flex items-center gap-3 border-b border-[#22262E] px-4 last:border-b-0">
+            {!compact && <span aria-hidden="true" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[9px] bg-[#1F232B] text-[11px] font-bold text-[#A7ADB8]">{row.abbr}</span>}
+            <span className="flex min-w-0 flex-1 flex-col gap-px py-2.5">
+              {row.value ? (
+                row.href ? (
+                  <a href={row.href} target={row.href.startsWith('mailto:') ? undefined : '_blank'} rel="noreferrer" className="truncate text-sm text-[#5ED3DF] no-underline hover:underline">
+                    {row.key === 'email' ? row.value : hostOf(row.value)}
+                  </a>
+                ) : (
+                  <span className="truncate text-sm text-[#5ED3DF]">{row.value}</span>
+                )
               ) : (
-                <span className="truncate text-sm text-[#5ED3DF]">{row.value}</span>
-              )
-            ) : (
-              <span className="text-sm text-[#A7ADB8]">{row.missing}</span>
+                <span className="text-sm text-[#A7ADB8]">{row.missing}</span>
+              )}
+              <span className={`text-xs ${row.value ? 'text-[#8A909C]' : 'text-[#F2C36B]'}`}>{row.value ? row.label : 'Not found by research'}</span>
+            </span>
+            {row.value && (
+              <button type="button" onClick={() => void copy(row.value!, row.key)} aria-label={`Copy ${row.label}`} className="rounded-lg px-2 py-1 text-xs font-semibold text-[#A7ADB8] hover:bg-[#1F232B] hover:text-[#F1F2F4]">
+                {copied === row.key ? '✓ Copied' : <Icon name="copy" size={14} />}
+              </button>
             )}
-            <span className={`text-xs ${row.value ? 'text-[#8A909C]' : 'text-[#F2C36B]'}`}>{row.value ? row.label : 'Not found by research'}</span>
-          </span>
-          {row.value && (
-            <button type="button" onClick={() => void copy(row.value!, row.key)} aria-label={`Copy ${row.label}`} className="rounded-lg px-2 py-1 text-xs font-semibold text-[#A7ADB8] hover:bg-[#1F232B] hover:text-[#F1F2F4]">
-              {copied === row.key ? '✓ Copied' : <Icon name="copy" size={14} />}
-            </button>
-          )}
-        </li>
-      ))}
-    </ul>
+          </li>
+        ))}
+      </ul>
+      <KeyContactsList entry={entry} />
+    </div>
   );
 }
 

@@ -74,7 +74,13 @@ function composeEntry(
 ): PersonalizationEntry {
   const stored = readEntry(payload);
   if (!draft) return stored;
-  const copy = OutreachCopySchema.parse(draft.copyPayload);
+  const rawCopyPayload = (draft.copyPayload && typeof draft.copyPayload === 'object')
+    ? (draft.copyPayload as Record<string, unknown>)
+    : {};
+  const copy = OutreachCopySchema.parse({
+    ...rawCopyPayload,
+    alternative_opening: rawCopyPayload.alternative_opening ?? draft.alternativeOpening ?? null,
+  });
   return {
     ...stored,
     copy,
@@ -169,6 +175,7 @@ export async function savePersonalization(
           channel: 'multi_channel',
           subject: copy.subject_lines[0]?.text ?? null,
           content: copy.email_body,
+          alternativeOpening: copy.alternative_opening ?? null,
           copyPayload: asJsonObject(copy),
           status: messageStatus(entry.status),
           parentDraftId: currentMessageDraftId,
@@ -189,6 +196,10 @@ export async function savePersonalization(
     const now = new Date();
     const payload = asJsonObject(entry);
     const profileId = existing?.id ?? randomUUID();
+    const personalizationAngle = entry.strategy?.angle ?? null;
+    const recipientIncentive = entry.strategy?.recipient_incentive ?? null;
+    const recommendedChannel = entry.strategy?.recommended_channel ?? null;
+    const confidence = entry.strategy?.confidence ?? null;
     await transaction
       .insert(personalizationProfiles)
       .values({
@@ -199,13 +210,26 @@ export async function savePersonalization(
         recordId: entry.record_id,
         currentMessageDraftId,
         status: entry.status,
+        personalizationAngle,
+        recipientIncentive,
+        recommendedChannel,
+        confidence,
         payload,
         createdAt: existing?.createdAt ?? now,
         updatedAt: now,
       })
       .onConflictDoUpdate({
         target: [personalizationProfiles.campaignId, personalizationProfiles.recordId],
-        set: { currentMessageDraftId, status: entry.status, payload, updatedAt: now },
+        set: {
+          currentMessageDraftId,
+          status: entry.status,
+          personalizationAngle,
+          recipientIncentive,
+          recommendedChannel,
+          confidence,
+          payload,
+          updatedAt: now,
+        },
       });
     await transaction.insert(auditEvents).values({
       id: randomUUID(),
@@ -260,6 +284,7 @@ export async function updatePersonalizationCopy(
         channel: 'multi_channel',
         subject: copy.subject_lines[0]?.text ?? null,
         content: copy.email_body,
+        alternativeOpening: copy.alternative_opening ?? null,
         copyPayload: asJsonObject(copy),
         status: 'draft',
         parentDraftId: currentDraft.id,

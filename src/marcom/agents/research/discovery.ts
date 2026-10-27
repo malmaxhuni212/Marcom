@@ -30,6 +30,76 @@ export interface DiscoveryResult {
   warnings: string[];
 }
 
+export function buildDiscoveryQuery(input: {
+  brief: StructuredBrief;
+  target: Target;
+  iteration?: number;
+}): { query: string; category?: 'people' | 'company' } {
+  const iteration = Math.max(0, input.iteration ?? 0);
+  const { brief, target } = input;
+
+  const validGeographies = (target.geography ?? []).filter(Boolean);
+  const geographyAll = validGeographies.slice(0, 4).join(' ');
+  const geographySpecific =
+    validGeographies.length > 0 ? validGeographies[iteration % validGeographies.length] : '';
+
+  const activeQuals = (target.qualification_criteria ?? [])
+    .filter((c) => !c.needs_operational_definition)
+    .map((c) => c.text.trim())
+    .filter(Boolean);
+
+  const keywords = (brief.research?.search_settings?.keywords ?? []).map((k) => k.trim()).filter(Boolean);
+
+  const defaultCategory =
+    target.entity_kind === 'person'
+      ? ('people' as const)
+      : target.entity_kind === 'organisation'
+      ? ('company' as const)
+      : undefined;
+
+  const strategy = iteration % 5;
+  let queryParts: string[];
+  let category: 'people' | 'company' | undefined = defaultCategory;
+
+  switch (strategy) {
+    case 0: {
+      // Core direct query: target type + primary geography + top qualification
+      queryParts = [target.target_type, geographyAll, activeQuals[0] ?? ''];
+      break;
+    }
+    case 1: {
+      // Directory / Roster search: relaxes category so listicles and directories are returned
+      category = undefined;
+      queryParts = ['list of', target.target_type, 'directory roster', geographySpecific || geographyAll];
+      break;
+    }
+    case 2: {
+      // Search keywords from brief settings:
+      const kw = keywords.slice(0, 3).join(' ');
+      queryParts = [target.target_type, kw || activeQuals[1] || 'portfolio', geographySpecific || geographyAll];
+      break;
+    }
+    case 3: {
+      // Secondary qualification criteria or target description:
+      const secondaryQuals = activeQuals.slice(1, 3).join(' ');
+      const descSnippet = target.description ? target.description.split('.')[0] : '';
+      queryParts = [target.target_type, secondaryQuals || descSnippet || 'independent', geographySpecific || geographyAll];
+      break;
+    }
+    case 4:
+    default: {
+      // Industry ecosystem / top entity search:
+      const roleWord =
+        target.entity_kind === 'person' ? 'leaders practitioners founders' : 'studios agencies companies firms';
+      queryParts = ['top', target.target_type, roleWord, geographySpecific || geographyAll];
+      break;
+    }
+  }
+
+  const query = queryParts.filter(Boolean).join(' ').trim().slice(0, 400);
+  return { query, category };
+}
+
 export async function discoverProspectSeeds(input: {
   brief: StructuredBrief;
   target: Target;
@@ -38,25 +108,22 @@ export async function discoverProspectSeeds(input: {
   llmProvider: LLMProvider;
   existingNames?: string[];
   existingUrls?: string[];
+  iteration?: number;
 }): Promise<DiscoveryResult> {
-  const { brief, target, searchProvider, llmProvider } = input;
-  const resultLimit = Math.min(searchProvider.capabilities().maximumResults, Math.max(3, (input.existingUrls?.length ?? 0) + input.desiredCount * 2));
-  const geography = target.geography.slice(0, 4).join(' ');
-  const qualifications = target.qualification_criteria
-    .filter((criterion) => !criterion.needs_operational_definition)
-    .slice(0, 4)
-    .map((criterion) => criterion.text)
-    .join(' ');
-  const query = [target.target_type, geography, qualifications, brief.project.primary_objective]
-    .filter(Boolean)
-    .join(' ')
-    .slice(0, 500);
+  const { brief, target, searchProvider, llmProvider, iteration = 0 } = input;
+  const { query, category } = buildDiscoveryQuery({ brief, target, iteration });
+
+  const resultLimit = Math.min(
+    searchProvider.capabilities().maximumResults,
+    Math.max(30, Math.min(80, input.desiredCount * 3))
+  );
+
   const response = await searchProvider.search({
     query,
     resultLimit,
     includeDomains: [],
     excludeDomains: [],
-    category: target.entity_kind === 'person' ? 'people' : target.entity_kind === 'organisation' ? 'company' : undefined,
+    category,
   });
 
   const existingUrlsSet = new Set((input.existingUrls ?? []).map(canonicalUrl));
@@ -81,7 +148,8 @@ export async function discoverProspectSeeds(input: {
     };
   }
 
-  const sourcePayload = uniqueCandidates.slice(0, Math.min(input.desiredCount + 5, 60)).map((candidate, index) => ({
+  const maxToExtract = Math.min(uniqueCandidates.length, Math.max(input.desiredCount * 2 + 10, 50));
+  const sourcePayload = uniqueCandidates.slice(0, maxToExtract).map((candidate, index) => ({
     id: `R${index + 1}`,
     url: candidate.url,
     title: candidate.title,

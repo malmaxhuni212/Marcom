@@ -1,10 +1,10 @@
 import AppShell from '@/components/workspace/AppShell';
-import ReviewView from '@/components/workspace/views/ReviewView';
+import ProspectsView from '@/components/workspace/views/ProspectsView';
 
 export default function ReviewPage() {
   return (
     <AppShell>
-      <ReviewView />
+      <ProspectsView initialTab="needs_review" />
     </AppShell>
   );
 }

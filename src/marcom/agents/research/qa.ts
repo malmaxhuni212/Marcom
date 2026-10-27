@@ -18,6 +18,7 @@ import {
   type ClaimConfidence,
   type Evidence,
   type FitAssessment,
+  type KeyContact,
   type ProspectSeed,
   type PublicContact,
   type ResearchQA,
@@ -73,6 +74,13 @@ export function canonicalUrl(u: string): string {
 const hostOf = (u: string) => canonicalUrl(u).split('/')[0];
 
 const OUTREACH_PATTERN = /\b(dear\s+\w+|i hope (this|you)|we('d| would) love to|reach(ing)? out to you|looking forward to (hearing|working)|best regards|kind regards)\b/i;
+
+/** Words too generic to prove that a page is about one specific organisation. */
+const GENERIC_ORGANISATION_WORDS = new Set([
+  'university', 'college', 'school', 'academy', 'institute', 'institution', 'group', 'limited', 'company',
+  'foundation', 'association', 'society', 'trust', 'centre', 'center', 'council', 'agency', 'studio', 'studios',
+  'international', 'national', 'global', 'services', 'solutions', 'partners', 'network', 'organisation', 'organization',
+]);
 
 export function fitBand(score: number): FitAssessment['band'] {
   if (score <= 20) return 'irrelevant';
@@ -185,7 +193,6 @@ export function normalizeAndQA(raw: unknown, ctx: NormalizeContext): { record: R
     }
     contacts.push({ kind, value, is_professional: c?.is_professional !== false, source_ids: ids, confidence: conf(c?.confidence) });
   }
-  if (!contacts.length) addUnknown('contact', 'No legitimate public contact route was verified.');
 
   // ---------- websites and socials ----------
   const checkUrl = (field: string, v: unknown): string | null => {
@@ -212,6 +219,89 @@ export function normalizeAndQA(raw: unknown, ctx: NormalizeContext): { record: R
       source_ids: keepIds(s?.source_ids)
     }))
     .filter(s => s.profile_url);
+
+  // ---------- key contacts (people inside an organisation who handle this kind of request) ----------
+  const key_contacts: KeyContact[] = [];
+  const seenContactNames = new Set<string>();
+  const prospectNameKey = normalizeName(str(d.name) ?? ctx.seed.name);
+  const organisationTokens = prospectNameKey.split(' ').filter((word) => word.length > 3 && !GENERIC_ORGANISATION_WORDS.has(word));
+  const rawKeyContacts = Array.isArray(d.key_contacts) ? d.key_contacts : Array.isArray(d.people) ? d.people : [];
+  for (const k of rawKeyContacts) {
+    if (key_contacts.length >= 6) break;
+    const personName = str(k?.name);
+    if (!personName || personName.length > 120) continue;
+    const nameKey = normalizeName(personName);
+    if (!nameKey || nameKey === prospectNameKey || seenContactNames.has(nameKey)) continue;
+    // The person must actually be named in the returned evidence.
+    if (!toolTextLower.includes(personName.toLowerCase())) {
+      issue('warning', 'unverified_key_contact', `Removed key contact "${personName}" — name not found verbatim in any searched page.`);
+      continue;
+    }
+
+    let email = str(k?.email);
+    if (email && (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !toolTextLower.includes(email.toLowerCase()))) {
+      issue('warning', 'unverified_contact', `Removed email "${email}" for ${personName} — not found verbatim in any searched page.`);
+      email = null;
+    }
+    let linkedinUrl = str(k?.linkedin_url ?? k?.linkedin);
+    if (linkedinUrl && (!/linkedin\.com\//i.test(linkedinUrl) || !wasSeen(linkedinUrl))) {
+      issue('warning', 'unverified_url', `Removed LinkedIn "${linkedinUrl}" for ${personName} — not returned by web search.`);
+      linkedinUrl = null;
+    }
+    let phone = str(k?.phone);
+    if (phone) {
+      const digits = phone.replace(/\D/g, '');
+      if (digits.length < 6 || !toolDigits.includes(digits)) {
+        issue('warning', 'unverified_contact', `Removed phone "${phone}" for ${personName} — not found verbatim in any searched page.`);
+        phone = null;
+      }
+    }
+    const role = str(k?.role);
+    if (!email && !linkedinUrl && !phone && !role) continue;
+
+    let ids = keepIds(k?.source_ids ?? k?.sources);
+    if (!ids.length) {
+      const needle = personName.toLowerCase();
+      const page = ctx.pages.find((p) => p.text.toLowerCase().includes(needle))
+        ?? (linkedinUrl ? ctx.pages.find((p) => canonicalUrl(p.url) === canonicalUrl(linkedinUrl!)) : undefined);
+      if (!page) continue;
+      let src = sources.find((s) => canonicalUrl(s.url) === canonicalUrl(page.url));
+      if (!src) {
+        src = { id: `S${sources.length + 1}-auto`, url: page.url, title: null, source_type: 'other', retrieved_at: now };
+        sources.push(src);
+        keptIds.add(src.id);
+        sourceTypeById.set(src.id, 'other');
+      }
+      ids = [src.id];
+    }
+
+    seenContactNames.add(nameKey);
+    // The citing page should mention the organisation; otherwise the affiliation is unproven.
+    let confidence = conf(k?.confidence);
+    const citedTexts = ids
+      .map((id) => sources.find((s) => s.id === id))
+      .filter((s): s is Source => Boolean(s))
+      .map((s) => `${normalizeName(s.url)} ${normalizeName(ctx.pages.find((p) => canonicalUrl(p.url) === canonicalUrl(s.url))?.text ?? '')}`);
+    const affiliated = !organisationTokens.length || citedTexts.some((text) => organisationTokens.some((token) => text.includes(token)));
+    if (!affiliated) {
+      confidence = 'uncertain';
+      issue('warning', 'key_contact_affiliation', `Key contact "${personName}" — the cited source does not clearly mention the organisation. Confirm before contacting.`);
+    }
+    key_contacts.push({
+      name: personName,
+      role,
+      department: str(k?.department),
+      email,
+      linkedin_url: linkedinUrl,
+      phone,
+      relevance: str(k?.relevance),
+      source_ids: ids,
+      confidence,
+    });
+  }
+  if (!contacts.length && !key_contacts.some((k) => k.email || k.phone || k.linkedin_url)) {
+    addUnknown('contact', 'No legitimate public contact route was verified.');
+  }
 
   // ---------- qualification criteria ----------
   const criteria = (Array.isArray(d.criteria) ? d.criteria : [])
@@ -296,6 +386,7 @@ export function normalizeAndQA(raw: unknown, ctx: NormalizeContext): { record: R
     websites: websites as any,
     social_profiles: social_profiles as any,
     public_contact: contacts,
+    key_contacts,
     background: Array.isArray(d.background) ? d.background.map(String) : [],
     work_and_projects: Array.isArray(d.work_and_projects) ? d.work_and_projects.map(String) : [],
     achievements: Array.isArray(d.achievements) ? d.achievements.map(String) : [],

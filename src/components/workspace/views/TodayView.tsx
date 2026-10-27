@@ -49,7 +49,7 @@ function buildActivity(bundle: ProjectBundle): Activity[] {
       time: batch.latest,
       title: `Research run finished · ${shortDate(batch.latest)}`,
       body: batch.toReview > 0 ? `${plural(batch.toReview, 'new prospect')} to review` : `${plural(batch.count, 'prospect')} found`,
-      href: batch.toReview > 0 ? '/review' : '/prospects',
+      href: batch.toReview > 0 ? '/prospects?tab=review' : '/prospects',
       tone: 'teal',
       icon: 'search',
     });
@@ -60,9 +60,9 @@ function buildActivity(bundle: ProjectBundle): Activity[] {
       items.push({
         id: `approved-${entry.record.record_id}`,
         time: entry.review.reviewed_at,
-        title: `${prospectName(entry)} approved`,
-        body: verification.sourceCount ? `Saved with ${plural(verification.sourceCount, 'supporting source')}` : 'Approved for personalisation',
-        href: `/prospects?prospect=${encodeURIComponent(entry.record.record_id)}`,
+        title: `${prospectName(entry)} personalized`,
+        body: verification.sourceCount ? `Saved with ${plural(verification.sourceCount, 'supporting source')}` : 'Personalized for outreach',
+        href: `/prospects?tab=personalized&id=${encodeURIComponent(entry.record.record_id)}`,
         tone: 'purple',
         icon: 'shield',
       });
@@ -74,8 +74,8 @@ function buildActivity(bundle: ProjectBundle): Activity[] {
       id: `draft-${draft.record_id}`,
       time: draft.generated_at,
       title: `Drafts written for ${draft.prospect_name}`,
-      body: 'Email, LinkedIn and follow-up ready to copy in Outreach',
-      href: '/outreach',
+      body: 'Email, LinkedIn, WhatsApp, Website form and Message ready in Prospects',
+      href: `/prospects?id=${encodeURIComponent(draft.record_id)}`,
       tone: 'neutral',
       icon: 'sparkle',
     });
@@ -126,7 +126,7 @@ function TodayContent({ bundle }: { bundle: ProjectBundle }) {
       title: `${plural(toReview.length, 'prospect is', 'prospects are')} waiting for your review`,
       body: `Found across ${plural(batchCount, 'research run')}. Approve, reject or send back for more research.`,
       step: 3,
-      action: <Link href="/review" className={`${btnPrimary} h-[50px] self-start px-6 text-[15px] no-underline`}>Start review <Icon name="arrowRight" size={18} /></Link>,
+      action: <Link href="/prospects?tab=review" className={`${btnPrimary} h-[50px] self-start px-6 text-[15px] no-underline`}>Start review <Icon name="arrowRight" size={18} /></Link>,
       aside: 'queue',
     };
   } else if (research.length === 0) {
@@ -134,7 +134,7 @@ function TodayContent({ bundle }: { bundle: ProjectBundle }) {
       eyebrow: 'Your next step',
       title: running ? 'Your first prospects are on the way' : 'Find your first prospects',
       body: running
-        ? 'The Research agent is searching with your campaign configuration. New prospects will appear in Review.'
+        ? 'The Research agent is searching with your campaign configuration. New prospects will appear in Prospects.'
         : 'Your campaign configuration is saved. Run research to find people and organisations that match your target audiences.',
       step: 2,
       action: (
@@ -148,7 +148,7 @@ function TodayContent({ bundle }: { bundle: ProjectBundle }) {
     next = {
       eyebrow: 'Your next step',
       title: `${plural(approvedWithoutDrafts, 'approved prospect is', 'approved prospects are')} ready to personalise`,
-      body: 'Personalising writes their drafts from verified facts and moves them to Outreach, where you view and copy each message.',
+      body: 'Personalising writes their drafts across all 5 channels from verified facts so you can review, edit and copy each message.',
       step: 4,
       action: <Link href="/prospects?tab=approved" className={`${btnPrimary} h-[50px] self-start px-6 text-[15px] no-underline`}><Icon name="sparkle" size={18} /> Personalise approved</Link>,
       aside: 'targets',
@@ -157,9 +157,9 @@ function TodayContent({ bundle }: { bundle: ProjectBundle }) {
     next = {
       eyebrow: 'Your next step',
       title: `${plural(draftsReady, 'draft is', 'drafts are')} ready to copy`,
-      body: 'Check each message in Outreach and copy it when you are ready to reach out. Nothing is sent from MARCOM.',
+      body: 'Check each message in Prospects and copy it when you are ready to reach out.',
       step: 4,
-      action: <Link href="/outreach" className={`${btnPrimary} h-[50px] self-start px-6 text-[15px] no-underline`}>Go to Outreach <Icon name="arrowRight" size={18} /></Link>,
+      action: <Link href="/prospects?tab=approved" className={`${btnPrimary} h-[50px] self-start px-6 text-[15px] no-underline`}>View drafts <Icon name="arrowRight" size={18} /></Link>,
       aside: 'targets',
     };
   } else {
@@ -215,7 +215,7 @@ function TodayContent({ bundle }: { bundle: ProjectBundle }) {
               <ul className="m-0 flex list-none flex-col overflow-hidden rounded-2xl border border-[#2A2F39] bg-[#0E1014] p-0">
                 {toReview.slice(0, 4).map((entry) => (
                   <li key={entry.record.record_id} className="border-b border-[#1C1F26] last:border-b-0">
-                    <Link href={`/review?prospect=${encodeURIComponent(entry.record.record_id)}`} className="flex items-center gap-3 px-3.5 py-3 text-[#F1F2F4] no-underline hover:bg-[#15181D]">
+                    <Link href={`/prospects?tab=review&id=${encodeURIComponent(entry.record.record_id)}`} className="flex items-center gap-3 px-3.5 py-3 text-[#F1F2F4] no-underline hover:bg-[#15181D]">
                       <Initials text={initials(prospectName(entry))} size={34} />
                       <span className="flex min-w-0 flex-1 flex-col gap-px">
                         <span className="truncate text-sm font-semibold">{prospectName(entry)}</span>
@@ -251,21 +251,21 @@ function TodayContent({ bundle }: { bundle: ProjectBundle }) {
         <Link href="/prospects" className={`${card} flex flex-col gap-1 rounded-2xl p-[18px] text-[#F1F2F4] no-underline hover:border-[#3A3F4A]`}>
           <span className="text-[28px] font-semibold">{summary.total}</span><span className="text-[13px] text-[#A7ADB8]">Prospects found</span>
         </Link>
-        <Link href="/review" className={`${card} flex flex-col gap-1 rounded-2xl p-[18px] text-[#F1F2F4] no-underline hover:border-[#3A3F4A]`}>
+        <Link href="/prospects?tab=review" className={`${card} flex flex-col gap-1 rounded-2xl p-[18px] text-[#F1F2F4] no-underline hover:border-[#3A3F4A]`}>
           <span className="text-[28px] font-semibold text-[#F2C36B]">{summary.needs_review}</span><span className="text-[13px] text-[#A7ADB8]">To review</span>
         </Link>
-        <Link href="/outreach" className={`${card} flex flex-col gap-1 rounded-2xl p-[18px] text-[#F1F2F4] no-underline hover:border-[#3A3F4A]`}>
+        <Link href="/prospects?tab=approved" className={`${card} flex flex-col gap-1 rounded-2xl p-[18px] text-[#F1F2F4] no-underline hover:border-[#3A3F4A]`}>
           <span className="text-[28px] font-semibold text-[#B1A6FF]">{draftsReady}</span><span className="text-[13px] text-[#A7ADB8]">Drafts ready</span>
         </Link>
         {goal ? (
           <Link href="/overview" className={`${card} flex flex-col gap-2 rounded-2xl p-[18px] text-[#F1F2F4] no-underline hover:border-[#3A3F4A]`}>
             <span className="text-[28px] font-semibold">{summary.shortlisted} <span className="text-[15px] font-medium text-[#8A909C]">/ {goal.toLocaleString('en-GB')}</span></span>
             <span aria-hidden="true" className="h-1 overflow-hidden rounded-sm bg-[#2A2F39]"><span className="block h-1 min-w-1 bg-[#5ED3DF]" style={{ width: `${Math.min(100, (summary.shortlisted / goal) * 100)}%` }} /></span>
-            <span className="text-[13px] text-[#A7ADB8]">Approved toward goal</span>
+            <span className="text-[13px] text-[#A7ADB8]">Personalized toward goal</span>
           </Link>
         ) : (
-          <Link href="/prospects?tab=approved" className={`${card} flex flex-col gap-1 rounded-2xl p-[18px] text-[#F1F2F4] no-underline hover:border-[#3A3F4A]`}>
-            <span className="text-[28px] font-semibold text-[#5BD69A]">{summary.shortlisted}</span><span className="text-[13px] text-[#A7ADB8]">Approved</span>
+          <Link href="/prospects?tab=personalized" className={`${card} flex flex-col gap-1 rounded-2xl p-[18px] text-[#F1F2F4] no-underline hover:border-[#3A3F4A]`}>
+            <span className="text-[28px] font-semibold text-[#5BD69A]">{summary.shortlisted}</span><span className="text-[13px] text-[#A7ADB8]">Personalized</span>
           </Link>
         )}
       </section>

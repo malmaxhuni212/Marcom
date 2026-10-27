@@ -23,11 +23,14 @@ const TONE_MAP: Record<NotificationItem['type'], { bg: string; border: string; d
   info: { bg: '#171A20', border: '#2A2F39', dot: '#B1A6FF' },
 };
 
+let cachedNotifications: NotificationItem[] | null = null;
+let cachedNotificationsAt = 0;
+
 export default function NotificationBell() {
   const [isOpen, setIsOpen] = useState(false);
-  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [notifications, setNotifications] = useState<NotificationItem[]>(() => cachedNotifications ?? []);
   const [readIds, setReadIds] = useState<Set<string>>(new Set());
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => cachedNotifications === null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -39,12 +42,20 @@ export default function NotificationBell() {
     }
   }, []);
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = async (force = false) => {
+    if (!force && cachedNotifications && Date.now() - cachedNotificationsAt < 25000) {
+      setNotifications(cachedNotifications);
+      setLoading(false);
+      return;
+    }
     try {
       const res = await authenticatedFetch('/api/notifications');
       if (res.ok) {
         const data = await res.json();
-        setNotifications(Array.isArray(data) ? data : []);
+        const items = Array.isArray(data) ? data : [];
+        cachedNotifications = items;
+        cachedNotificationsAt = Date.now();
+        setNotifications(items);
       }
     } catch {
       // ignore background polling error
@@ -54,8 +65,8 @@ export default function NotificationBell() {
   };
 
   useEffect(() => {
-    void fetchNotifications();
-    const interval = setInterval(() => void fetchNotifications(), 30000);
+    void fetchNotifications(false);
+    const interval = setInterval(() => void fetchNotifications(true), 30000);
     return () => clearInterval(interval);
   }, []);
 

@@ -108,6 +108,7 @@ export async function runQueuedResearchJob(jobId: string): Promise<ResearchJobRu
     if (await checkpoint('Preparing the approved research plan...')) return { status: 'cancelled' };
 
     let consecutiveEmptyDiscoveries = 0;
+    let iteration = 0;
     while (completed < claimed.payload.requestedCount) {
       if (failed >= maximumCandidateFailures) {
         const message = `Research stopped after ${failed} candidate failures. Saved ${completed} of ${claimed.payload.requestedCount} prospects.`;
@@ -127,13 +128,15 @@ export async function runQueuedResearchJob(jobId: string): Promise<ResearchJobRu
         llmProvider,
         existingNames: existing.flatMap((entry) => [entry.seed.name, entry.record.identity.name ?? '']),
         existingUrls: existing.flatMap((entry) => [entry.seed.website ?? '', entry.record.websites?.[0]?.url ?? '']),
+        iteration,
       });
+      iteration += 1;
 
       discovered += discovery.seeds.length;
       duplicatesSkipped += discovery.duplicateCount;
       if (!discovery.seeds.length) {
         consecutiveEmptyDiscoveries += 1;
-        if (consecutiveEmptyDiscoveries >= 2) {
+        if (consecutiveEmptyDiscoveries >= 3) {
           const message = `Search exhausted. Saved ${completed} of ${claimed.payload.requestedCount} prospects.`;
           const status = await finishResearchJob(claimed, failed, message);
           return { status };

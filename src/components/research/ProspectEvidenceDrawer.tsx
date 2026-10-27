@@ -163,10 +163,34 @@ export default function ProspectEvidenceDrawer({
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-75"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/><path d="M2 12h20"/></svg> Website
                   </a>
                 )}
-                {!(record.public_contact?.find(c => c.kind === "email") || record.public_contact?.find(c => c.kind === "phone") || record.social_profiles?.find(p => p.platform === "linkedin") || record.websites?.[0]?.url) && (
+                {!(record.public_contact?.find(c => c.kind === "email") || record.public_contact?.find(c => c.kind === "phone") || record.social_profiles?.find(p => p.platform === "linkedin") || record.websites?.[0]?.url || (record.key_contacts && record.key_contacts.length > 0)) && (
                   <span className="text-sm text-white/30 italic">No contact information available.</span>
                 )}
               </div>
+              {record.key_contacts && record.key_contacts.length > 0 && (
+                <div className="mt-2 border-t border-white/[0.06] pt-3 flex flex-col gap-2">
+                  <h4 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">Relevant People ({record.key_contacts.length})</h4>
+                  <div className="space-y-2">
+                    {record.key_contacts.map((person, idx) => (
+                      <div key={`${person.name}-${idx}`} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 text-xs">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-semibold text-white/85">{person.name}</span>
+                          <span className="rounded-full bg-white/[0.05] px-2 py-0.5 text-[10px] capitalize text-white/50">{person.confidence}</span>
+                        </div>
+                        {(person.role || person.department) && (
+                          <div className="mt-0.5 text-white/55">{[person.role, person.department].filter(Boolean).join(' · ')}</div>
+                        )}
+                        {person.relevance && <div className="mt-1 text-white/40">{person.relevance}</div>}
+                        <div className="mt-2 flex flex-wrap gap-3">
+                          {person.email && <a href={`mailto:${person.email}`} className="text-blue-400 hover:underline">{person.email}</a>}
+                          {person.linkedin_url && <a href={person.linkedin_url} target="_blank" rel="noreferrer" className="text-cyan-300 hover:underline">LinkedIn ↗</a>}
+                          {person.phone && <span className="text-emerald-400">{person.phone}</span>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </section>
 
             {record.qualification_assessment.length > 0 && (
