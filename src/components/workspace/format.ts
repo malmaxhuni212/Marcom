@@ -263,17 +263,33 @@ export function hasContactFor(entry: PersonalizationEntry, researchEntry?: Resea
   return Boolean(targets.email || targets.linkedin || targets.website || targets.phone);
 }
 
+function sanitizeDisplayCopy(raw: string): string {
+  return raw
+    .replace(/\*+([^*\n]+)\*+/g, '$1')
+    .replace(/\u2011/g, '-')
+    .replace(/\s*\u2014\s*([^\u2014\n.!?;]+?)\s*\u2014\s*/g, ', $1, ')
+    .replace(/\s*[\u2014\u2013]\s*/g, ', ')
+    .replace(/,\s*,/g, ',')
+    .replace(/\.\s*,/g, '.')
+    .replace(/\b(?:including|such as) (?:titles|books|works|projects) like\b/gi, 'especially');
+}
+
 /** The full text placed on the clipboard for a channel. */
 export function messageFor(entry: PersonalizationEntry, channel: DraftChannel): string {
   const copy = entry.copy;
   if (!copy) return '';
-  if (channel === 'linkedin' || channel === 'whatsapp') return copy.linkedin_message;
-  if (channel === 'follow_up') return copy.follow_up_body;
-  return copy.email_body;
+  const raw =
+    channel === 'linkedin' || channel === 'whatsapp'
+      ? copy.linkedin_message
+      : channel === 'follow_up'
+        ? copy.follow_up_body
+        : copy.email_body;
+  return sanitizeDisplayCopy(raw);
 }
 
 export function subjectFor(entry: PersonalizationEntry, subjectIndex = 0): string {
-  return entry.copy?.subject_lines?.[subjectIndex]?.text ?? entry.copy?.subject_lines?.[0]?.text ?? '';
+  const raw = entry.copy?.subject_lines?.[subjectIndex]?.text ?? entry.copy?.subject_lines?.[0]?.text ?? '';
+  return sanitizeDisplayCopy(raw);
 }
 
 export function draftNeedsAttention(entry: PersonalizationEntry): string | null {

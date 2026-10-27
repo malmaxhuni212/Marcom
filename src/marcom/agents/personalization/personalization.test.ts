@@ -219,12 +219,17 @@ function makeBaseStrategy(overrides?: Partial<StrategyDossier>): StrategyDossier
     confidence: 'high',
     prospect_snapshot:
       'Dr. Marcus Thorne is Director of Grid Modernisation at NorthSea Energy Cooperative, leading the Orkney Microgrid Balancing Pilot.',
+    recipient_priorities:
+      'Improving renewable dispatch reliability and evaluating long-duration storage economics for regional microgrids.',
     relevance_thesis:
       'His hands-on work balancing islanded microgrids in Orkney directly matches the municipal utility roundtable topic at Meridian Forum.',
     recipient_incentive:
       'Direct peer exchange with 120 European municipal utilities and industrial grid operators evaluating long-duration storage models.',
+    potential_objections: ['Time commitment to prepare materials for a November session in London'],
     campaign_objective: 'Invite Marcus to contribute a case study to the municipal storage roundtable',
     outreach_goal: 'Share the 1-page roundtable brief and confirm interest in joining the session',
+    narrative_approach:
+      'Connect the Orkney Microgrid Balancing Pilot dispatch reliability findings to the 120 municipal utilities attending in London and offer the 1-page brief as a low-friction next step.',
     hooks: [
       {
         id: 'H1',
@@ -796,3 +801,337 @@ Elena Vance`,
   assert.equal(result.qa?.status, 'passed');
   assert.equal(result.qa?.score, 100);
 });
+
+// ============================================================================
+// SCENARIO 11: Generic message despite containing accurate research (biographical recap)
+// ============================================================================
+test('Scenario 11: QA catches messages that insert accurate research into a generic biographical template, and self-corrects into a natural connection', async () => {
+  const brief = makeBrief();
+  const settings = makeSettings();
+  const entry = makeResearchEntry();
+  const strategy = makeBaseStrategy({
+    recipient_priorities: 'Validating islanded microgrid balancing data and long-duration thermal storage economics.',
+    potential_objections: ['Time commitment required to prepare a presentation', 'Unclear whether attendees are technical peers or sales vendors'],
+    narrative_approach: 'Lead directly with the 120-utility technical peer exchange in London and connect it to the Orkney dispatch reliability findings, addressing time friction upfront.',
+  });
+
+  // Attempt 1: Contains the exact researched fact ("Orkney Microgrid Balancing Pilot") but recites the bio back to them in a generic AI template
+  const bioRecapCopy: OutreachCopy = {
+    subject_lines: [
+      { text: 'Orkney Microgrid Balancing Pilot', style: 'direct' },
+      { text: 'Meridian Forum invitation', style: 'value' },
+      { text: 'Connecting with NorthSea Energy Cooperative', style: 'curiosity' },
+    ],
+    email_body: `Hi Marcus,
+
+According to your LinkedIn profile, you have 12 years of experience and lead the Orkney Microgrid Balancing Pilot at NorthSea Energy Cooperative. That is why I am reaching out to you today.
+
+We are hosting the Meridian Forum in London on 14 November 2026 with 120 municipal utilities and industrial grid operators. It is a great opportunity for professionals like you to share insights on long-duration storage models.
+
+Would it be useful if I sent the one-page brief for the November roundtable in London?
+
+Best,
+Elena Vance`,
+    alternative_opening: null,
+    linkedin_message:
+      'Hi Marcus — I saw on your profile that you lead the Orkney Microgrid Balancing Pilot. Open to seeing our 14 Nov London forum brief for 120 municipal utilities?',
+    follow_up_body:
+      'Hi Marcus, following up on the Orkney Microgrid Balancing Pilot invitation for our 14 November London forum with 120 municipal utilities. Shall I send the brief?',
+    hook_usage: 'Inserted H1 into opening',
+  };
+
+  const qa1 = validatePersonalizationCopy(strategy, bioRecapCopy, entry.record, { brief, settings });
+  assert.equal(qa1.status, 'failed');
+  const codes = qa1.issues.map((i) => i.code);
+  assert.ok(codes.includes('biographical_recap_or_superficial_research'), 'Must flag biographical recap ("According to your LinkedIn profile")');
+  assert.ok(codes.includes('superficial_template_filler'), 'Must flag superficial filler ("for professionals like you")');
+  assert.ok(codes.includes('banned_ai_transition'), 'Must flag predictable AI transition ("That is why I am reaching out")');
+
+  // Attempt 2: Leads with the relevant peer exchange and connects the Orkney findings without reciting Marcus's CV back to him
+  const naturalCopy: OutreachCopy = {
+    subject_lines: [
+      { text: '14 Nov utility roundtable / Orkney dispatch data', style: 'direct' },
+      { text: '120 municipal grid operators comparing storage models', style: 'value' },
+      { text: 'Orkney Microgrid Balancing Pilot — London peer session', style: 'curiosity' },
+    ],
+    email_body: `Hi Marcus,
+
+On 14 November 2026 in London, 120 European municipal utilities and industrial grid operators are meeting at Meridian Forum for a closed-door engineering exchange on long-duration storage and islanded balancing.
+
+Because several participating utilities are currently benchmarking microgrid dispatch reliability against your findings from the Orkney Microgrid Balancing Pilot at NorthSea Energy Cooperative, your perspective would add real technical weight to the session — with no slide deck required.
+
+Would it be useful if I sent the one-page roundtable brief so you can see the participating utilities and format?
+
+Best,
+Elena Vance`,
+    alternative_opening:
+      'Several municipal utilities joining us in London on 14 November are evaluating the thermal storage trade-offs you analysed in your 2025 Long-Duration Thermal Storage Whitepaper.',
+    linkedin_message:
+      'Hi Marcus — 120 municipal utilities are meeting in London on 14 Nov to compare storage models, and several are looking at the Orkney Microgrid Balancing Pilot. Open to seeing the 1-page brief?',
+    follow_up_body:
+      'Hi Marcus, following up briefly in case the 14 November engineering exchange with 120 municipal utilities in London is relevant for NorthSea Energy Cooperative. Happy to send the one-page brief?',
+    hook_usage: 'Led with the 120-utility peer exchange (opportunity-led narrative) and connected it to H1 (Orkney Microgrid Balancing Pilot).',
+  };
+
+  const result = await runPersonalizationAgent({
+    projectId: 'proj-1',
+    brief,
+    entry,
+    settings,
+    store: createEmptyStore(),
+    strategistProvider: makeMockProvider(() => strategy),
+    writerProvider: makeMockProvider((_req, callIndex) => (callIndex === 1 ? bioRecapCopy : naturalCopy)),
+  });
+
+  assert.equal(result.auto_revisions, 1);
+  assert.equal(result.qa?.status, 'passed');
+  assert.equal(result.qa?.score, 100);
+});
+
+// ============================================================================
+// SCENARIO 12: Mentions the recipient's work but offers no meaningful incentive
+// ============================================================================
+test('Scenario 12: QA catches messages that mention the recipient but offer no meaningful recipient incentive, and self-corrects to include clear value exchange', async () => {
+  const brief = makeBrief();
+  const settings = makeSettings();
+  const entry = makeResearchEntry();
+  const strategy = makeBaseStrategy();
+
+  // Attempt 1: Mentions the Orkney Microgrid Balancing Pilot accurately, but frames the ask purely around what the sender wants ("we need speakers to fill our agenda") with zero recipient benefit
+  const senderCentricCopy: OutreachCopy = {
+    subject_lines: [
+      { text: 'Orkney Microgrid Balancing Pilot / Meridian Forum', style: 'direct' },
+      { text: 'Speaker request for November', style: 'value' },
+      { text: 'NorthSea Energy Cooperative', style: 'curiosity' },
+    ],
+    email_body: `Hi Marcus,
+
+Your work on the Orkney Microgrid Balancing Pilot at NorthSea Energy Cooperative caught our attention.
+
+We are organising the Meridian Forum in London on 14 November 2026 and we need speakers to fill our afternoon programme so we can hit our target before registration closes. We need your help to complete the panel lineup this month.
+
+Can you confirm if you will speak at our event?
+
+Best,
+Elena Vance`,
+    alternative_opening: null,
+    linkedin_message:
+      'Hi Marcus — we saw your Orkney Microgrid Balancing Pilot work and we need speakers to fill our 14 Nov London agenda. Can you help us?',
+    follow_up_body:
+      'Hi Marcus, following up to see if you can help us fill our speaker slot on 14 November regarding the Orkney Microgrid Balancing Pilot. Can you join?',
+    hook_usage: 'Used H1',
+  };
+
+  const qa1 = validatePersonalizationCopy(strategy, senderCentricCopy, entry.record, { brief, settings });
+  assert.equal(qa1.status, 'failed');
+  assert.ok(
+    qa1.issues.some((i) => i.code === 'missing_recipient_incentive_in_copy'),
+    'Must flag messages that mention the recipient but offer no meaningful recipient incentive',
+  );
+
+  // Attempt 2: Articulates a clear, credible recipient incentive (direct peer exchange with 120 European municipal utilities and industrial grid operators)
+  const recipientValueCopy: OutreachCopy = {
+    subject_lines: [
+      { text: 'Orkney Microgrid Balancing Pilot / 120 municipal utilities', style: 'direct' },
+      { text: 'Peer exchange on long-duration storage in London', style: 'value' },
+      { text: 'NorthSea Energy Cooperative case study on 14 Nov', style: 'curiosity' },
+    ],
+    email_body: `Hi Marcus,
+
+Your work on the Orkney Microgrid Balancing Pilot at NorthSea Energy Cooperative addresses the exact islanded balancing questions that utility engineers in our November cohort are working through.
+
+On 14 November 2026 in London, Meridian Forum brings together 120 European municipal utilities and industrial grid operators evaluating long-duration storage models. Contributing a brief case study from Orkney gives your team a direct peer exchange with municipal procurement and grid integration leads across Europe.
+
+Would it be useful if I sent the one-page brief for the November roundtable in London?
+
+Best,
+Elena Vance`,
+    alternative_opening:
+      'Your 2025 Long-Duration Thermal Storage Whitepaper speaks directly to the storage procurement models that 120 European municipal utilities will be comparing in London on 14 November.',
+    linkedin_message:
+      'Hi Marcus — contributing a short Orkney Microgrid Balancing Pilot case study on 14 Nov in London connects your team with 120 European municipal utilities evaluating storage models. Open to the 1-page brief?',
+    follow_up_body:
+      'Hi Marcus, following up in case connecting with 120 European municipal utilities and industrial grid operators in London on 14 November around the Orkney Microgrid Balancing Pilot is useful for NorthSea Energy Cooperative. Shall I send the one-pager?',
+    hook_usage: 'Connected H1 to the recipient incentive (peer exchange with 120 European municipal utilities).',
+  };
+
+  const result = await runPersonalizationAgent({
+    projectId: 'proj-1',
+    brief,
+    entry,
+    settings,
+    store: createEmptyStore(),
+    strategistProvider: makeMockProvider(() => strategy),
+    writerProvider: makeMockProvider((_req, callIndex) => (callIndex === 1 ? senderCentricCopy : recipientValueCopy)),
+  });
+
+  assert.equal(result.auto_revisions, 1);
+  assert.equal(result.qa?.status, 'passed');
+  assert.equal(result.qa?.score, 100);
+});
+
+// ============================================================================
+// SCENARIO 13: Sponsorship, Partnership, Sales & Recruitment Non-Interchangeable Adaptation
+// ============================================================================
+test('Scenario 13: Produces distinct, non-formulaic strategies and messages across Sponsorship, Partnership, Sales, and Recruitment scenarios', async () => {
+  const scenarios = [
+    {
+      kind: 'sponsorship',
+      brief: makeBrief({
+        name: 'UK Clean Grid Engineering Fellowship',
+        primary_objective: 'Secure corporate fellowship sponsors from regional energy technology providers.',
+        targetType: 'sponsors',
+        outreachObjective: 'Share the fellowship sponsorship prospectus and gauge alignment with their engineering talent pipeline.',
+      }),
+      settings: makeSettings({
+        organisation: 'Clean Grid Foundation',
+        campaign_facts: [
+          'Sponsors are paired directly with 15 final-year power-systems postgraduates for 6-month applied industry placements.',
+        ],
+      }),
+      strategy: makeBaseStrategy({
+        recipient_priorities: 'Recruiting scarce power-systems engineers for microgrid and thermal storage R&D in Scotland.',
+        recipient_incentive: 'Direct placement access to 15 final-year power-systems postgraduates for 6-month applied industry placements.',
+        potential_objections: ['Unclear sponsorship ROI versus direct university recruiting'],
+        narrative_approach: 'Start with the postgraduate engineering placement pipeline and connect it to the technical staffing demands of scaling the Orkney Microgrid Balancing Pilot.',
+        call_to_action: 'Would it be useful to see the two-page fellowship placement overview for 2026?',
+      }),
+      copy: {
+        subject_lines: [
+          { text: 'Power-systems postgraduate placements / NorthSea Energy', style: 'direct' as const },
+          { text: 'Applied engineering fellows for microgrid R&D', style: 'value' as const },
+          { text: 'Orkney Microgrid Balancing Pilot — 2026 fellowship cohort', style: 'curiosity' as const },
+        ],
+        email_body: `Hi Marcus,
+
+Sponsors of the 2026 UK Clean Grid Engineering Fellowship are paired directly with 15 final-year power-systems postgraduates for 6-month applied industry placements.
+
+As NorthSea Energy Cooperative builds on the Orkney Microgrid Balancing Pilot and your 2025 Long-Duration Thermal Storage Whitepaper, hosting an applied fellow offers a practical way to evaluate specialist grid-balancing talent on live project work before making permanent hires.
+
+Would it be useful to see the two-page fellowship placement overview for 2026?
+
+Best,
+Elena Vance`,
+        alternative_opening:
+          'Scaling technical initiatives like the Orkney Microgrid Balancing Pilot often depends on finding power-systems engineers who already understand islanded dispatch constraints.',
+        linkedin_message:
+          'Hi Marcus — our 2026 Fellowship pairs sponsors with 15 power-systems postgraduates for 6-month placements, which could support your Orkney Microgrid Balancing Pilot team. Open to the 2-page overview?',
+        follow_up_body:
+          'Hi Marcus, following up in case hosting a power-systems postgraduate fellow for 6-month applied work alongside the Orkney Microgrid Balancing Pilot is useful for NorthSea Energy Cooperative. Happy to send the overview?',
+        hook_usage: 'Led with the concrete placement benefit (15 power-systems postgraduates) and tied it to H1 (Orkney Microgrid Balancing Pilot).',
+      },
+    },
+    {
+      kind: 'sales',
+      brief: makeBrief({
+        name: 'VoltSim Hardware-in-the-Loop Grid Emulator',
+        primary_objective: 'Introduce modular HIL fault-testing hardware to utility grid modernisation directors.',
+        targetType: 'enterprise_buyers',
+        outreachObjective: 'Offer a technical benchmark comparison showing sub-millisecond inverter fault simulation.',
+      }),
+      settings: makeSettings({
+        organisation: 'VoltSim Labs',
+        campaign_facts: [
+          'VoltSim emulates islanded inverter fault cascades in hardware before field commissioning.',
+        ],
+      }),
+      strategy: makeBaseStrategy({
+        recipient_priorities: 'Maintaining the 99.4% renewable dispatch reliability achieved on the Orkney interconnect as new thermal and battery assets are added.',
+        recipient_incentive: 'Testing islanded inverter fault cascades in hardware before field commissioning on the Orkney interconnect.',
+        potential_objections: ['Integration compatibility with existing SCADA and protection relays'],
+        narrative_approach: 'Open with the engineering challenge of protecting 99.4% dispatch reliability during microgrid expansion and offer a zero-commitment technical benchmark note.',
+        call_to_action: 'Would the four-page technical benchmark on islanded inverter fault emulation be relevant to your engineering team?',
+      }),
+      copy: {
+        subject_lines: [
+          { text: 'Inverter fault emulation for the Orkney interconnect', style: 'direct' as const },
+          { text: 'Hardware-in-the-loop testing before microgrid commissioning', style: 'value' as const },
+          { text: 'Protecting 99.4% dispatch reliability on islanded grids', style: 'curiosity' as const },
+        ],
+        email_body: `Hi Marcus,
+
+Maintaining 99.4% renewable dispatch reliability on the Orkney Microgrid Balancing Pilot gets harder each time new inverter-based storage assets are added to an islanded interconnect.
+
+At VoltSim Labs, we built a hardware emulator that tests islanded inverter fault cascades before field commissioning, plugging directly into standard utility SCADA and relay test benches without custom firmware.
+
+Would the four-page technical benchmark on islanded inverter fault emulation be relevant to your engineering team?
+
+Best,
+Elena Vance`,
+        alternative_opening:
+          'Your 2025 Long-Duration Thermal Storage Whitepaper highlighted the switching transients that occur when hybrid storage assets cycle on constrained regional grids.',
+        linkedin_message:
+          'Hi Marcus — we built a hardware emulator that tests islanded inverter fault cascades before field commissioning, relevant to your Orkney Microgrid Balancing Pilot. Useful if I send the 4-page technical benchmark?',
+        follow_up_body:
+          'Hi Marcus, following up in case our four-page technical benchmark on testing islanded inverter fault cascades before field commissioning is useful for the Orkney Microgrid Balancing Pilot team. Shall I send it over?',
+        hook_usage: 'Opened with the operational challenge of maintaining 99.4% dispatch reliability on the Orkney Microgrid Balancing Pilot (H1).',
+      },
+    },
+    {
+      kind: 'recruitment',
+      brief: makeBrief({
+        name: 'European Grid Resilience Advisory Board Search',
+        primary_objective: 'Recruit three senior utility grid directors to the paid Technical Advisory Board.',
+        targetType: 'advisory_candidates',
+        outreachObjective: 'Share the advisory board charter and time commitment (four quarterly half-day reviews).',
+      }),
+      settings: makeSettings({
+        organisation: 'Continental Grid Resilience Initiative',
+        campaign_facts: [
+          'The Technical Advisory Board meets four times a year (half-day reviews) and shapes European islanded-grid interoperability standards.',
+        ],
+      }),
+      strategy: makeBaseStrategy({
+        recipient_priorities: 'Ensuring islanded and coastal microgrid realities are represented in European grid interoperability standards.',
+        recipient_incentive: 'Direct seat shaping European islanded-grid interoperability standards with a bounded commitment of four half-day reviews per year.',
+        potential_objections: ['Concern that advisory roles demand excessive travel or administrative time away from NorthSea Energy Cooperative'],
+        narrative_approach: 'Directly state the why-you thesis grounded in the Orkney Microgrid Balancing Pilot and immediately clarify the bounded four half-day commitment.',
+        call_to_action: 'Are you open to reviewing the two-page Advisory Board charter to see if the remit interests you?',
+      }),
+      copy: {
+        subject_lines: [
+          { text: 'Technical Advisory Board seat — islanded grid standards', style: 'direct' as const },
+          { text: 'Representing microgrid operators on the 2026 Advisory Board', style: 'value' as const },
+          { text: 'Orkney Microgrid Balancing Pilot / European standards charter', style: 'curiosity' as const },
+        ],
+        email_body: `Hi Marcus,
+
+We are appointing three practicing utility engineering directors to the Continental Grid Resilience Technical Advisory Board to shape European islanded-grid interoperability standards, and your work leading the Orkney Microgrid Balancing Pilot makes you a standout candidate.
+
+The role is structured to fit alongside an active operational remit at NorthSea Energy Cooperative: four half-day reviews a year, giving your team a direct voice in how upcoming islanded and thermal storage standards are drafted.
+
+Are you open to reviewing the two-page Advisory Board charter to see if the remit interests you?
+
+Best,
+Elena Vance`,
+        alternative_opening:
+          'Having authored the 2025 Long-Duration Thermal Storage Whitepaper while running the Orkney Microgrid Balancing Pilot, you bring rare field experience to European storage standard-setting.',
+        linkedin_message:
+          'Hi Marcus — we are inviting three utility directors to our Technical Advisory Board shaping European islanded-grid standards (four half-day reviews/year), and your Orkney Microgrid Balancing Pilot stood out. Open to seeing the charter?',
+        follow_up_body:
+          'Hi Marcus, following up briefly on the Technical Advisory Board charter for shaping European islanded-grid interoperability standards. Given your leadership of the Orkney Microgrid Balancing Pilot, would you be open to taking a look?',
+        hook_usage: 'Used direct why-you recruitment thesis grounded in H1 (Orkney Microgrid Balancing Pilot) and addressed time-commitment friction.',
+      },
+    },
+  ];
+
+  for (const s of scenarios) {
+    const entry = makeResearchEntry();
+    const res = await runPersonalizationAgent({
+      projectId: `proj-${s.kind}`,
+      brief: s.brief,
+      entry,
+      settings: s.settings,
+      store: createEmptyStore(),
+      strategistProvider: makeMockProvider(() => s.strategy),
+      writerProvider: makeMockProvider(() => s.copy),
+    });
+
+    assert.equal(res.qa?.status, 'passed', `${s.kind} scenario should pass QA cleanly`);
+    assert.equal(res.qa?.score, 100, `${s.kind} scenario should achieve a 100 QA score`);
+    assert.ok((res.strategy?.recipient_priorities?.length ?? 0) > 10, `${s.kind} should populate recipient_priorities`);
+    assert.ok((res.strategy?.potential_objections?.length ?? 0) > 0, `${s.kind} should populate potential_objections`);
+    assert.ok((res.strategy?.narrative_approach?.length ?? 0) > 10, `${s.kind} should populate narrative_approach`);
+  }
+});
+

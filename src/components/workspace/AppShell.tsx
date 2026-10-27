@@ -76,7 +76,7 @@ function ProjectSwitcher({ onNavigate }: { onNavigate: () => void }) {
           aria-label="Projects"
           className="absolute left-0 top-[calc(100%+8px)] z-[80] w-[284px] rounded-2xl border border-[#2E333D] bg-[#151820] p-2.5 shadow-[0_24px_60px_rgba(0,0,0,0.75)]"
         >
-          <div className="flex items-center justify-between px-2.5 pb-2 pt-1">
+          <div className="flex items-center justify-between pl-2 pr-0 pb-2.5 pt-1">
             <h2 className="m-0 text-xs font-bold uppercase tracking-[0.1em] text-[#8A909C]">
               Projects · {projects.length}
             </h2>
@@ -87,9 +87,9 @@ function ProjectSwitcher({ onNavigate }: { onNavigate: () => void }) {
                 openNewProject();
                 onNavigate();
               }}
-              className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-[#5ED3DF] hover:bg-[#1C222B]"
+              className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-[#5ED3DF] px-3 text-xs font-bold text-[#0E1014] shadow-[0_2px_10px_rgba(94,211,223,0.25)] transition hover:bg-[#74DEE9] whitespace-nowrap shrink-0"
             >
-              <Icon name="plus" size={12} stroke={2.4} /> New
+              <Icon name="plus" size={13} stroke={2.6} /> New project
             </button>
           </div>
           <ul className="m-0 flex max-h-[340px] list-none flex-col gap-1.5 overflow-y-auto p-0">
@@ -168,25 +168,27 @@ function SidebarNav({ onNavigate }: { onNavigate: () => void }) {
 
   return (
     <nav aria-label="Main" className="flex h-full min-h-full w-[256px] flex-col gap-5 bg-[#0B0D10] px-4 pb-5 pt-6 text-[#F1F2F4]">
-      <div className="flex items-center justify-between px-1.5">
+      <div className="flex items-center px-1">
         <div className="flex items-center gap-2.5">
-          <span className="h-2 w-2 rounded-full bg-[#5ED3DF]" />
+          <span className="h-2.5 w-2.5 rounded-full bg-[#5ED3DF] shadow-[0_0_8px_#5ED3DF]" />
           <span className="text-[13px] font-bold tracking-[0.28em] text-[#F1F2F4]">MARCOM</span>
         </div>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <ProjectSwitcher onNavigate={onNavigate} />
         <button
           type="button"
           onClick={() => {
             openNewProject();
             onNavigate();
           }}
-          title="Create new project"
-          className="inline-flex h-7 items-center gap-1 rounded-lg border border-[#252A34] bg-[#13161C] px-2 text-[11.5px] font-semibold text-[#C9CDD4] transition hover:border-[#3A3F4A] hover:text-[#F1F2F4]"
+          className="flex h-9.5 w-full items-center justify-center gap-2 rounded-xl border border-[#2E6B75] bg-[#12313A] px-3 text-[13px] font-semibold text-[#9BE6EE] transition hover:border-[#5ED3DF] hover:bg-[#173D48] hover:text-[#F1F2F4]"
         >
-          <Icon name="plus" size={12} stroke={2.4} /> New
+          <Icon name="plus" size={14} stroke={2.5} />
+          New project
         </button>
       </div>
-
-      <ProjectSwitcher onNavigate={onNavigate} />
 
       <div className="flex flex-col gap-1">
         <div className="px-2.5 pb-1 text-[10.5px] font-bold uppercase tracking-[0.12em] text-[#68707E]">

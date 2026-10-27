@@ -14,7 +14,7 @@ interface BriefIntakeModalProps {
 }
 
 type Step = 'INPUT' | 'PROCESSING' | 'REVIEW';
-type SectionKey = 'overview' | 'goals' | 'audience' | 'work' | 'constraints' | 'additional';
+type SectionKey = 'overview' | 'goals' | 'work' | 'audience' | 'constraints';
 
 interface BriefSection {
   key: SectionKey;
@@ -25,17 +25,16 @@ interface BriefSection {
   required?: boolean;
 }
 
-/** The six general-purpose brief sections. Titles are used as labels in the text sent to the Brief Analyzer. */
+/** The five general-purpose brief sections. Titles are used as labels in the text sent to the Brief Analyzer. */
 const BRIEF_SECTIONS: BriefSection[] = [
   { key: 'overview', title: 'Project Overview', prompt: 'What is this project about?', helper: 'Describe the company, product, initiative or situation and provide any important background.', placeholder: 'Describe your project here...', required: true },
   { key: 'goals', title: 'Goals and Objectives', prompt: 'What are you trying to achieve?', helper: "Explain the problems you're solving, the goals you're pursuing and the outcomes you want.", placeholder: 'Explain your main goals and desired outcomes...', required: true },
-  { key: 'audience', title: 'Target Audience and Focus', prompt: 'Who or what should MARCOM focus on?', helper: 'Describe relevant people, organisations, industries, locations, communities or other areas of focus.', placeholder: 'Describe your target audience or area of focus...' },
-  { key: 'work', title: 'What Needs to Be Done?', prompt: 'What do you need MARCOM to help with?', helper: 'Describe the work you need, such as research, finding contacts, partnerships, outreach, campaigns, content or other activities.', placeholder: 'Describe the work you want to carry out...' },
+  { key: 'work', title: 'What Needs to Be Done?', prompt: 'What do you need MARCOM to help you with?', helper: 'Describe the work you need, such as research, finding contacts, partnerships, outreach, campaigns, content or other activities.', placeholder: 'Describe the work you want to carry out...', required: true },
+  { key: 'audience', title: 'Target Audience and Focus', prompt: 'Who or what should MARCOM focus on?', helper: 'Describe relevant people, organisations, industries, locations, communities or other areas of focus.', placeholder: 'Describe your target audience or area of focus...', required: true },
   { key: 'constraints', title: 'Important Context and Constraints', prompt: 'What else should MARCOM know?', helper: 'Include existing plans, budget, deadlines, resources, requirements, restrictions or anything MARCOM should avoid.', placeholder: 'Add important instructions or limitations...' },
-  { key: 'additional', title: 'Additional Information', prompt: 'Is there anything else that could be useful?', helper: 'Add any additional context, links or information that may help MARCOM understand the project.', placeholder: 'Add anything else that might be useful...' },
 ];
 
-const EMPTY_SECTIONS: Record<SectionKey, string> = { overview: '', goals: '', audience: '', work: '', constraints: '', additional: '' };
+const EMPTY_SECTIONS: Record<SectionKey, string> = { overview: '', goals: '', work: '', audience: '', constraints: '' };
 
 /** Combines the user's answers and any supporting material into one clearly labelled brief. Answers are preserved verbatim. */
 function composeBrief(
@@ -153,11 +152,21 @@ export default function BriefIntakeModal({ isOpen, onClose, onSuccess }: BriefIn
 
     try {
       const links = linksText.split(/\s+/).map((l) => l.trim()).filter(Boolean);
-      const hasRequiredSections = Boolean(sections.overview.trim() && sections.goals.trim());
+      const hasRequiredSections = Boolean(
+        sections.overview.trim() &&
+        sections.goals.trim() &&
+        sections.work.trim() &&
+        sections.audience.trim()
+      );
       const hasSupportingDocs = files.length > 0 || links.some(isGoogleDoc);
 
       if (!hasRequiredSections && !hasSupportingDocs) {
-        throw new Error('Please complete the required sections (Project Overview and Goals and Objectives) or upload a PDF / Word brief document.');
+        const missing: string[] = [];
+        if (!sections.overview.trim()) missing.push('Project Overview');
+        if (!sections.goals.trim()) missing.push('Goals and Objectives');
+        if (!sections.work.trim()) missing.push('What Needs to Be Done?');
+        if (!sections.audience.trim()) missing.push('Target Audience and Focus');
+        throw new Error(`Please complete the required sections (${missing.join(', ')}) or upload a PDF / Word brief document.`);
       }
 
       setStep('PROCESSING');

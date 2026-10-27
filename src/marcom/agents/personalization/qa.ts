@@ -32,15 +32,9 @@ export interface PersonalizationQAContext {
 
 const BANNED_PATTERNS: { regex: RegExp; code: string; message: string; severity: 'error' | 'warning' }[] = [
   {
-    regex: /\bhope this (?:email|message|note) finds you well\b/i,
-    code: 'banned_cliche_hope_finds_well',
-    message: 'Generic opening cliche: "hope this email finds you well" is forbidden.',
-    severity: 'error',
-  },
-  {
-    regex: /\bhope you(?:'re| are) doing well\b/i,
-    code: 'banned_cliche_hope_doing_well',
-    message: 'Generic opening cliche: "hope you are doing well" is forbidden.',
+    regex: /\b(?:hi|hello|dear)\s+(?:support|info|admin|enquiries|inquiries|general|helpdesk)\s+team\b/i,
+    code: 'awkward_inbox_greeting',
+    message: 'Do not greet a prospect as "Hi support team" or "Hi info team". Use the person\'s first name or "Hi <Organisation> team,". ',
     severity: 'error',
   },
   {
@@ -59,12 +53,6 @@ const BANNED_PATTERNS: { regex: RegExp; code: string; message: string; severity:
     regex: /\bcongratulations on your continued success\b/i,
     code: 'banned_cliche_continued_success',
     message: 'Empty flattery opener: "Congratulations on your continued success".',
-    severity: 'error',
-  },
-  {
-    regex: /\bi wanted to reach out\b/i,
-    code: 'banned_cliche_wanted_to_reach_out',
-    message: 'Self-centered opening: "I wanted to reach out". Open with a relevant connection to their work instead.',
     severity: 'error',
   },
   {
@@ -138,6 +126,24 @@ const BANNED_PATTERNS: { regex: RegExp; code: string; message: string; severity:
     code: 'false_urgency',
     message: 'False urgency or high-pressure sales language detected.',
     severity: 'error',
+  },
+  {
+    regex: /\b(?:according to your (?:linkedin|profile|bio|website)|i see from your (?:bio|profile|linkedin) that you|your (?:linkedin )?profile states that)\b/i,
+    code: 'biographical_recap_or_superficial_research',
+    message: 'Repeating the recipient\'s biography back to them ("According to your profile / I see from your bio"). Connect their work naturally to the opportunity instead.',
+    severity: 'error',
+  },
+  {
+    regex: /\b(?:professionals like you|leaders like yourself|thought leaders like you|organisations like yours across the sector)\b/i,
+    code: 'superficial_template_filler',
+    message: 'Superficial template filler ("professionals like you / leaders like yourself") makes the message feel mass-sent despite research.',
+    severity: 'error',
+  },
+  {
+    regex: /\b(?:that being said,\s+i|with that in mind,\s+i|in light of your impressive|that(?:'s| is) why i(?:'m| am) reaching out)\b/i,
+    code: 'banned_ai_transition',
+    message: 'Predictable AI transition detected. Use a natural human flow instead.',
+    severity: 'warning',
   },
 ];
 
@@ -480,6 +486,9 @@ export function validatePersonalizationCopy(
     { regex: /\b(?:double|triple|quadruple|10x) your (?:sales|revenue|pipeline|leads|audience|reach)\b/i, label: 'unverified multiplier outcome claim' },
     { regex: /\breach (?:millions|hundreds of thousands) of (?:readers|customers|buyers|users)\b/i, label: 'unsupported reach claim' },
     { regex: /\bguaranteed (?:press|media|placement|coverage|shortlist|selection)\b/i, label: 'unsupported media/selection guarantee' },
+    { regex: /\bwill position your (?:brand|organisation|organization|company|work|team) as the (?:#1|top|undisputed|premier|leading)\b/i, label: 'unsupported brand positioning promise' },
+    { regex: /\bwill (?:immediately )?(?:generate|deliver|drive) immediate (?:sales|revenue|pipeline|inbound leads|roi)\b/i, label: 'unsupported immediate revenue promise' },
+    { regex: /\bguaranteed to (?:increase|deliver|bring|drive|secure|boost)\b/i, label: 'unsupported outcome guarantee' },
   ];
   for (const pat of unverifiedOutcomePatterns) {
     const match = allCopyText.match(pat.regex);
@@ -512,13 +521,36 @@ export function validatePersonalizationCopy(
     }
   }
 
-  // 12. Recipient incentive & Low-friction CTA checks (Quality Control #4 & #7)
+  // 12. Recipient incentive & Value Exchange checks (Quality Control #3 & Scenario: mentions recipient but offers no meaningful incentive)
   if (!strategy.recipient_incentive || strategy.recipient_incentive.trim().length < 8) {
     issues.push({
       severity: 'warning',
       code: 'missing_recipient_incentive',
       field: 'strategy',
       message: 'Recipient incentive is missing or too vague in the strategy dossier.',
+    });
+  }
+
+  const senderOnlyAskRegex =
+    /\b(?:we need your help|help us reach our (?:goal|target|budget)|we are looking for sponsors to fund our|we need speakers to fill our|please share our (?:link|campaign|project) with your network so we can|help us get the word out|we are trying to hit our target|support our fundraising target)\b/i;
+  const incentiveTokens = Array.from(
+    new Set(
+      strategy.recipient_incentive
+        .toLowerCase()
+        .replace(/[^a-z0-9\s%£$€]/g, ' ')
+        .split(/\s+/)
+        .filter((w) => w.length > 3 && !['this', 'that', 'with', 'from', 'your', 'their', 'them', 'will', 'would', 'could', 'into', 'have', 'more'].includes(w)),
+    ),
+  );
+  const matchedIncentiveTokens = incentiveTokens.filter((t) => substantiveEmail.includes(t));
+
+  if (senderOnlyAskRegex.test(copy.email_body) || (incentiveTokens.length >= 3 && matchedIncentiveTokens.length === 0)) {
+    issues.push({
+      severity: 'error',
+      code: 'missing_recipient_incentive_in_copy',
+      field: 'email',
+      message:
+        'Message mentions the recipient but offers no meaningful incentive or value exchange — it fails to explain why the opportunity is worthwhile for the recipient.',
     });
   }
 

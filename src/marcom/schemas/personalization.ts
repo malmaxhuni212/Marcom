@@ -140,6 +140,11 @@ export const StrategyDossierSchema = z.strictObject({
   readiness: z.enum(['ready', 'needs_more_research', 'not_recommended']),
   readiness_reason: nonEmpty,
   prospect_snapshot: nonEmpty.describe('1–2 sentences: who this person/organisation is, in plain English.'),
+  recipient_priorities: z
+    .string()
+    .trim()
+    .default('')
+    .describe('What this recipient cares about professionally based on verified evidence, distinct from unverified assumptions.'),
   relevance_thesis: nonEmpty.describe('Why THIS prospect matters to THIS campaign — the genuine intersection.'),
   campaign_objective: nonEmpty.describe('Which campaign objective this outreach serves.'),
   outreach_goal: nonEmpty.describe('The single concrete thing we want from them (submit, share, partner, sponsor...).'),
@@ -147,7 +152,16 @@ export const StrategyDossierSchema = z.strictObject({
     .string()
     .trim()
     .default('')
-    .describe('The main truthful benefit or opportunity for this specific recipient — what they stand to gain and why it is worth considering.'),
+    .describe('The main truthful benefit or value exchange for this specific recipient — what they stand to gain and why it is worth considering.'),
+  potential_objections: z
+    .array(z.string().trim())
+    .default([])
+    .describe('Practical considerations, uncertainties, or objections that might prevent this recipient from responding.'),
+  narrative_approach: z
+    .string()
+    .trim()
+    .default('')
+    .describe('The natural flow and opening style chosen specifically for this prospect, objective, and channel — never a universal template.'),
   hooks: z.array(HookSchema).max(4),
   primary_hook_id: z.string().nullable(),
   angle: nonEmpty.describe('One sentence: the verified connection used and why it matters to the recipient.'),
