@@ -69,7 +69,7 @@ async function main(): Promise<void> {
       const campaign = await createCampaign(actor, {
         structuredBrief: parsedBrief.data,
         originalBrief: original.original_text,
-        sourceType: original.source_type,
+        sourceType: original.source_type === 'UPLOAD' ? 'PASTE' : original.source_type,
         sourceName: original.source_name,
         idempotencyKey: `legacy-json-import:${legacy.project_id}`,
       });

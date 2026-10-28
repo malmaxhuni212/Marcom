@@ -60,6 +60,7 @@ export const messageDrafts = pgTable(
     channel: varchar('channel', { length: 24 }).notNull(),
     subject: text('subject'),
     content: text('content').notNull(),
+    alternativeOpening: text('alternative_opening'),
     copyPayload: jsonb('copy_payload').$type<JsonObject>().notNull(),
     status: varchar('status', { length: 24 }).notNull().default('draft'),
     parentDraftId: uuid('parent_draft_id'),
@@ -112,6 +113,10 @@ export const personalizationProfiles = pgTable(
     recordId: varchar('record_id', { length: 255 }).notNull(),
     currentMessageDraftId: uuid('current_message_draft_id'),
     status: varchar('status', { length: 32 }).notNull(),
+    personalizationAngle: text('personalization_angle'),
+    recipientIncentive: text('recipient_incentive'),
+    recommendedChannel: varchar('recommended_channel', { length: 32 }),
+    confidence: varchar('confidence', { length: 16 }),
     payload: jsonb('payload').$type<JsonObject>().notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
@@ -145,6 +150,10 @@ export const personalizationProfiles = pgTable(
     check(
       'personalization_profiles_status_check',
       sql`${table.status} in ('draft', 'approved', 'rejected', 'needs_more_research', 'failed')`,
+    ),
+    check(
+      'personalization_profiles_confidence_check',
+      sql`${table.confidence} is null or ${table.confidence} in ('high', 'medium', 'low')`,
     ),
   ],
 );

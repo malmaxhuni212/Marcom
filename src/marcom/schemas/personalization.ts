@@ -125,16 +125,46 @@ export const RecommendedChannelSchema = z
     return 'other' as const;
   });
 
+export const PersonalizationConfidenceSchema = z
+  .string()
+  .trim()
+  .transform((val) => {
+    const s = val.toLowerCase();
+    if (s.includes('high')) return 'high' as const;
+    if (s.includes('low')) return 'low' as const;
+    return 'medium' as const;
+  });
+export type PersonalizationConfidence = z.infer<typeof PersonalizationConfidenceSchema>;
+
 export const StrategyDossierSchema = z.strictObject({
   readiness: z.enum(['ready', 'needs_more_research', 'not_recommended']),
   readiness_reason: nonEmpty,
   prospect_snapshot: nonEmpty.describe('1–2 sentences: who this person/organisation is, in plain English.'),
+  recipient_priorities: z
+    .string()
+    .trim()
+    .default('')
+    .describe('What this recipient cares about professionally based on verified evidence, distinct from unverified assumptions.'),
   relevance_thesis: nonEmpty.describe('Why THIS prospect matters to THIS campaign — the genuine intersection.'),
   campaign_objective: nonEmpty.describe('Which campaign objective this outreach serves.'),
   outreach_goal: nonEmpty.describe('The single concrete thing we want from them (submit, share, partner, sponsor...).'),
+  recipient_incentive: z
+    .string()
+    .trim()
+    .default('')
+    .describe('The main truthful benefit or value exchange for this specific recipient — what they stand to gain and why it is worth considering.'),
+  potential_objections: z
+    .array(z.string().trim())
+    .default([])
+    .describe('Practical considerations, uncertainties, or objections that might prevent this recipient from responding.'),
+  narrative_approach: z
+    .string()
+    .trim()
+    .default('')
+    .describe('The natural flow and opening style chosen specifically for this prospect, objective, and channel — never a universal template.'),
   hooks: z.array(HookSchema).max(4),
   primary_hook_id: z.string().nullable(),
-  angle: nonEmpty.describe('One sentence: how we connect their work to the opportunity.'),
+  angle: nonEmpty.describe('One sentence: the verified connection used and why it matters to the recipient.'),
   tone: z.strictObject({
     register: ToneRegisterSchema,
     guidance: nonEmpty,
@@ -143,9 +173,12 @@ export const StrategyDossierSchema = z.strictObject({
   channel_reason: nonEmpty,
   /** Deep audit of all available contact routes, deliverability, and real vs fake checks */
   contact_audit: ContactAuditSchema.nullable().default(null),
-  call_to_action: z.string().trim().default('Would you be interested in learning more?'),
+  call_to_action: z.string().trim().default('Would you like me to share a short overview?'),
   avoid: z.array(z.string().trim()).default([]),
   human_checks: z.array(z.string().trim()).default([]),
+  confidence: PersonalizationConfidenceSchema.default('medium').describe(
+    'High, medium or low, reflecting the quality of the supporting research and the strength of the personalisation.',
+  ),
 });
 export type Hook = z.infer<typeof HookSchema>;
 export type StrategyDossier = z.infer<typeof StrategyDossierSchema>;
@@ -171,6 +204,12 @@ export const SubjectLineSchema = z.strictObject({
 export const OutreachCopySchema = z.strictObject({
   subject_lines: z.array(SubjectLineSchema).min(1).max(3),
   email_body: nonEmpty.describe('Full email body starting with the greeting and ending with the sign-off.'),
+  alternative_opening: z
+    .string()
+    .trim()
+    .nullable()
+    .default(null)
+    .describe('One meaningfully different opening (1–2 sentences) based on another valid angle when enough evidence exists, or null when only one honest angle is supported.'),
   linkedin_message: nonEmpty.describe('Short direct message / connection note, max 300 characters.'),
   follow_up_body: nonEmpty.describe('Short polite follow-up email to send 4–6 days later if no reply.'),
   hook_usage: nonEmpty.describe('One sentence explaining which hook was used and where.'),

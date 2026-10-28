@@ -3,6 +3,9 @@ import { listResearch } from '@/db/repositories/research-repository';
 import { listPersonalizations } from '@/marcom/memory/personalization-store';
 import { listCampaigns } from '@/db/repositories/campaign-repository';
 import { authorizeApiRequest } from '@/auth/access';
+import { isDatabaseConfigured } from '@/db/env';
+import { JsonFileMemoryStore } from '@/marcom/memory/store';
+import { listResearch as listFileResearch } from '@/marcom/memory/research-store';
 
 export interface NotificationItem {
   id: string;
@@ -37,12 +40,13 @@ export async function GET(req: Request) {
   const access = await authorizeApiRequest(req);
   if (!access.ok) return access.response;
   const actor = access.actor;
-  const projects = await listCampaigns(actor);
+  const isDb = isDatabaseConfigured();
+  const projects = isDb ? await listCampaigns(actor) : new JsonFileMemoryStore().projects();
   const notifications: NotificationItem[] = [];
   let totalPersonalizationsCount = 0;
 
   for (const p of projects) {
-    const research = await listResearch(actor, p.project_id);
+    const research = isDb ? await listResearch(actor, p.project_id) : listFileResearch(p.project_id);
 
     // 1. Batches Completed
     const batchMap = new Map<number, { count: number; lastTime: number; batchId: string }>();

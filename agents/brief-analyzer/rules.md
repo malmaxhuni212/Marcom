@@ -23,3 +23,10 @@ These extend `agents/shared/global-rules.md`. Rules marked **[enforced]** are ch
 13. Industry shorthand that could be interpreted in several ways (e.g. "big five", "tier one") should be confirmed via an unknown.
 14. When the brief is too thin to act on, it is correct to return mostly unknowns with `blocking: true`. A sparse honest brief beats a rich invented one.
 15. Do not resolve conflicts. Report them.
+
+## Structured brief input
+The brief may arrive as a structured form with labelled sections (Project Overview, Goals and Objectives, Target Audience and Focus, What Needs to Be Done, Important Context and Constraints, Additional Information), optionally followed by a SUPPORTING MATERIAL block.
+16. Interpret all sections together as one brief. Do not map a section to a single output field; information relevant to targets, exclusions, personalisation or outreach can appear in any section.
+17. Sections marked `(not provided)` or answered with phrases such as "Not decided yet", "TBD" or "unknown" carry no information on their own. Never fill missing details with outside assumptions; use SUPPORTING MATERIAL if provided, or record an unknown only if the missing information is still needed for research.
+18. Any non-empty section answer written by the user is authoritative. SUPPORTING MATERIAL may add detail or fill sections marked `(not provided)`, but must never override a user's explicit section answer. If supporting material contradicts a user answer, report it in `conflicts` with verbatim quotes from both.
+19. If the project name is marked as not provided, set `project.name` to a short, neutral name derived only from the brief's content.

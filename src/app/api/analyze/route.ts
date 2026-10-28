@@ -32,6 +32,57 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'LLM provider not configured. Check API Keys.' }, { status: 500 });
     }
 
+    if (body.mode === 'prefill') {
+      const system = `You are MARCOM's expert Brief Synthesis Assistant.
+Your task is to analyze the provided human project brief or uploaded document, and extract clear, professional, comprehensive answers to these 4 core intake questions, plus a suggested project name and optional constraints.
+
+You must return a valid JSON object matching this exact schema:
+{
+  "project_name": "Short, clear project name (e.g. 'Maya Book Awards 2026', 'FlowPilot Automation')",
+  "overview": "Detailed answer for 'What is this project about?': Describe the company, product, initiative or situation and important background.",
+  "goals": "Detailed answer for 'What are you trying to achieve?': Explain the problems being solved, the goals being pursued, and desired outcomes.",
+  "work": "Detailed answer for 'What do you need MARCOM to help you with?': Describe the work to carry out, such as research, finding contacts, partnerships, outreach, or campaigns.",
+  "audience": "Detailed answer for 'Who or what should MARCOM focus on?': Describe the target audience, people, organisations, industries, locations, or communities to focus on.",
+  "constraints": "Important instructions, budget, deadlines, requirements, restrictions or limitations mentioned (or empty string if none mentioned)."
+}
+
+Write natural, direct, specific answers derived directly from the brief. Return ONLY valid JSON.`;
+
+      const user = `Here is the project brief:\n\n<<<BRIEF\n${briefText}\nBRIEF>>>\n\nAnalyze this brief and output ONLY the JSON object with the answers to the 4 questions, project name, and constraints.`;
+
+      const raw = await provider.complete({
+        system,
+        user,
+        responseSchema: {
+          type: 'object',
+          properties: {
+            project_name: { type: 'string' },
+            overview: { type: 'string' },
+            goals: { type: 'string' },
+            work: { type: 'string' },
+            audience: { type: 'string' },
+            constraints: { type: 'string' },
+          },
+          required: ['project_name', 'overview', 'goals', 'work', 'audience', 'constraints'],
+        },
+      });
+
+      const { extractJson } = await import('@/marcom/llm/provider');
+      const data = extractJson(raw) as Record<string, string>;
+
+      return NextResponse.json({
+        success: true,
+        project_name: typeof data.project_name === 'string' ? data.project_name.trim() : '',
+        sections: {
+          overview: typeof data.overview === 'string' ? data.overview.trim() : '',
+          goals: typeof data.goals === 'string' ? data.goals.trim() : '',
+          work: typeof data.work === 'string' ? data.work.trim() : '',
+          audience: typeof data.audience === 'string' ? data.audience.trim() : '',
+          constraints: typeof data.constraints === 'string' ? data.constraints.trim() : '',
+        },
+      });
+    }
+
     console.log('Analyzing brief...');
     const result = await analyzeBrief(briefText, provider, {
       memory: memoryContext,

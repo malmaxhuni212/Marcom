@@ -98,7 +98,7 @@ function readStructuredBrief(config: ConfigurationRow | null): StructuredBrief |
   const candidate = config.approvedFacts.structuredBrief;
   const parsed = StructuredBriefSchema.safeParse(candidate);
   if (!parsed.success) {
-    throw new Error(`Campaign configuration ${config.id} does not contain a valid structured brief.`);
+    return null;
   }
   return parsed.data;
 }
@@ -141,16 +141,25 @@ export async function listCampaigns(
   return rows.map(({ campaign, config }) => toProjectMemory(campaign, config));
 }
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function getCampaign(
   actor: ActorContext,
   campaignId: string,
   database: MarcomDatabase = getDatabase(),
 ): Promise<ProjectMemory | null> {
+  if (!UUID_REGEX.test(campaignId)) return null;
   const [row] = await database
     .select({ campaign: campaigns, config: campaignConfigVersions })
     .from(campaigns)
     .leftJoin(campaignConfigVersions, eq(campaignConfigVersions.id, campaigns.activeConfigVersionId))
-    .where(and(eq(campaigns.workspaceId, actor.workspaceId), eq(campaigns.id, campaignId)))
+    .where(
+      and(
+        eq(campaigns.workspaceId, actor.workspaceId),
+        eq(campaigns.id, campaignId),
+        ne(campaigns.status, 'archived'),
+      ),
+    )
     .limit(1);
 
   return row ? toProjectMemory(row.campaign, row.config) : null;
@@ -449,6 +458,7 @@ export async function archiveCampaign(
   campaignId: string,
   database: MarcomDatabase = getDatabase(),
 ): Promise<boolean> {
+  if (!UUID_REGEX.test(campaignId)) return false;
   return database.transaction(async (transaction) => {
     const now = new Date();
     const [archived] = await transaction

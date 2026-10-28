@@ -112,6 +112,10 @@ export const contactPoints = pgTable(
     sourceUrl: text('source_url'),
     retrievedAt: timestamp('retrieved_at', { withTimezone: true }),
     verificationStatus: varchar('verification_status', { length: 32 }).notNull().default('unverified'),
+    /** Named person reached through this route when it belongs to someone inside an organisation prospect. */
+    contactName: varchar('contact_name', { length: 240 }),
+    /** That person's role or department, copied from the cited source. */
+    contactRole: varchar('contact_role', { length: 240 }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

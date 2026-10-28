@@ -409,5 +409,336 @@
     ],
     "configuration_revision": 1,
     "configuration_updated_at": "2026-10-08T12:55:15.518Z"
+  },
+  {
+    "project_id": "proj-1793188708062",
+    "name": "FlowPilot AI Business Process Automation Prospecting",
+    "aliases": [],
+    "summary": "Identify potential UK business clients that could benefit from AI-powered automation and build a researched list of relevant companies and decision-makers for human review.",
+    "status": "READY_FOR_RESEARCH",
+    "structured_brief": {
+      "structured_brief_version": "1.0",
+      "project": {
+        "name": "FlowPilot AI Business Process Automation Prospecting",
+        "description": "Identify potential UK business clients that could benefit from AI-powered automation and build a researched list of relevant companies and decision-makers for human review.",
+        "primary_objective": "Identify potential business clients that could benefit from AI-powered automation and build a researched list of relevant companies and decision-makers for human review.",
+        "secondary_objectives": [],
+        "success_metrics": [
+          "Reliable, evidence-based list of potential UK business clients with identified decision-makers"
+        ]
+      },
+      "targets": [
+        {
+          "id": "target-1",
+          "target_type": "Small and medium-sized businesses with repetitive administrative workloads",
+          "entity_kind": "organisation",
+          "description": "UK small and medium-sized businesses that handle repetitive administrative tasks and could benefit from AI automation.",
+          "geography_mode": "specified",
+          "geography": [
+            "United Kingdom"
+          ],
+          "qualification_criteria": [
+            {
+              "text": "Small or medium-sized business",
+              "origin": "explicit",
+              "needs_operational_definition": true
+            },
+            {
+              "text": "Repetitive administrative workloads",
+              "origin": "explicit",
+              "needs_operational_definition": false
+            }
+          ],
+          "exclusion_criteria": [],
+          "priority": "unspecified"
+        },
+        {
+          "id": "target-2",
+          "target_type": "Professional services firms handling large amounts of paperwork or client information",
+          "entity_kind": "organisation",
+          "description": "UK professional services firms that manage large volumes of paperwork or client information and could benefit from AI automation.",
+          "geography_mode": "specified",
+          "geography": [
+            "United Kingdom"
+          ],
+          "qualification_criteria": [
+            {
+              "text": "Professional services firm",
+              "origin": "explicit",
+              "needs_operational_definition": true
+            },
+            {
+              "text": "Large amounts of paperwork or client information",
+              "origin": "explicit",
+              "needs_operational_definition": true
+            }
+          ],
+          "exclusion_criteria": [],
+          "priority": "unspecified"
+        },
+        {
+          "id": "target-3",
+          "target_type": "E-commerce and retail companies managing orders, customer enquiries and inventory",
+          "entity_kind": "organisation",
+          "description": "UK e-commerce and retail companies that manage orders, customer enquiries and inventory and could benefit from AI automation.",
+          "geography_mode": "specified",
+          "geography": [
+            "United Kingdom"
+          ],
+          "qualification_criteria": [
+            {
+              "text": "E-commerce or retail company",
+              "origin": "explicit",
+              "needs_operational_definition": true
+            },
+            {
+              "text": "Managing orders, customer enquiries and inventory",
+              "origin": "explicit",
+              "needs_operational_definition": true
+            }
+          ],
+          "exclusion_criteria": [],
+          "priority": "unspecified"
+        },
+        {
+          "id": "target-4",
+          "target_type": "Marketing and digital agencies handling repetitive reporting, data entry and campaign tasks",
+          "entity_kind": "organisation",
+          "description": "UK marketing and digital agencies that handle repetitive reporting, data entry and campaign tasks and could benefit from AI automation.",
+          "geography_mode": "specified",
+          "geography": [
+            "United Kingdom"
+          ],
+          "qualification_criteria": [
+            {
+              "text": "Marketing or digital agency",
+              "origin": "explicit",
+              "needs_operational_definition": true
+            },
+            {
+              "text": "Repetitive reporting, data entry and campaign tasks",
+              "origin": "explicit",
+              "needs_operational_definition": true
+            }
+          ],
+          "exclusion_criteria": [],
+          "priority": "unspecified"
+        },
+        {
+          "id": "target-5",
+          "target_type": "Operations, finance, HR and customer service teams that rely heavily on manual processes",
+          "entity_kind": "organisation",
+          "description": "UK organisations with operations, finance, HR or customer service teams that rely heavily on manual processes and could benefit from AI automation.",
+          "geography_mode": "specified",
+          "geography": [
+            "United Kingdom"
+          ],
+          "qualification_criteria": [
+            {
+              "text": "Operations, finance, HR or customer service team",
+              "origin": "explicit",
+              "needs_operational_definition": true
+            },
+            {
+              "text": "Heavy reliance on manual processes",
+              "origin": "explicit",
+              "needs_operational_definition": true
+            }
+          ],
+          "exclusion_criteria": [],
+          "priority": "unspecified"
+        }
+      ],
+      "research": {
+        "required_fields": [
+          "Company Name",
+          "Website",
+          "Industry",
+          "Location",
+          "Company Size",
+          "Decision-Maker Name",
+          "Decision-Maker Role",
+          "Decision-Maker LinkedIn URL"
+        ],
+        "preferred_source_types": [
+          "Official company websites",
+          "LinkedIn",
+          "Credible publications",
+          "Other reliable public sources"
+        ],
+        "evidence_requirements": [
+          "Source links for factual claims"
+        ],
+        "verification_requirements": [
+          "Verify company size and decision-maker identity with at least two matching attributes"
+        ],
+        "unknown_handling": "Mark missing information as unknown and flag contradictory sources",
+        "search_settings": {
+          "keywords": [
+            "Small and medium-sized businesses with repetitive administrative workloads",
+            "Professional services firms handling large amounts of paperwork or client information",
+            "E-commerce and retail companies managing orders, customer enquiries and inventory",
+            "Marketing and digital agencies handling repetitive reporting, data entry and campaign tasks",
+            "Operations, finance, HR and customer service teams that rely heavily on manual processes",
+            "Small or medium-sized business",
+            "Repetitive administrative workloads",
+            "Professional services firm",
+            "Large amounts of paperwork or client information",
+            "E-commerce or retail company",
+            "Managing orders, customer enquiries and inventory",
+            "Marketing or digital agency"
+          ],
+          "excluded_keywords": [],
+          "preferred_domains": [],
+          "excluded_domains": [],
+          "default_result_limit": 10
+        }
+      },
+      "personalization": {
+        "allowed": [
+          "Decision-maker role",
+          "Company industry",
+          "Potential automation opportunities"
+        ],
+        "preferred_details": [
+          "Decision-maker name",
+          "LinkedIn profile"
+        ],
+        "tone": [
+          "Professional"
+        ],
+        "avoid": [
+          "Generic contact info",
+          "Assumptions about problems"
+        ]
+      },
+      "outreach": {
+        "objectives": [
+          "Identify potential clients for future outreach"
+        ],
+        "channels": [
+          "Email",
+          "LinkedIn"
+        ],
+        "tone": [
+          "Professional"
+        ],
+        "approval_required": true
+      },
+      "database": {
+        "fields": [
+          {
+            "name": "Company Name",
+            "required": true,
+            "purpose": "Identify potential clients",
+            "expected_source": "research"
+          },
+          {
+            "name": "Website",
+            "required": true,
+            "purpose": "Identify potential clients",
+            "expected_source": "research"
+          },
+          {
+            "name": "Industry",
+            "required": true,
+            "purpose": "Identify potential clients",
+            "expected_source": "research"
+          },
+          {
+            "name": "Location",
+            "required": true,
+            "purpose": "Identify potential clients",
+            "expected_source": "research"
+          },
+          {
+            "name": "Company Size",
+            "required": true,
+            "purpose": "Identify potential clients",
+            "expected_source": "research"
+          },
+          {
+            "name": "Decision-Maker Name",
+            "required": true,
+            "purpose": "Identify potential clients",
+            "expected_source": "research"
+          },
+          {
+            "name": "Decision-Maker Role",
+            "required": true,
+            "purpose": "Identify potential clients",
+            "expected_source": "research"
+          },
+          {
+            "name": "Decision-Maker LinkedIn URL",
+            "required": true,
+            "purpose": "Identify potential clients",
+            "expected_source": "research"
+          }
+        ]
+      },
+      "human_review": {
+        "requirements": [
+          "Confirm list of prospects, verify decision-maker identities, ensure no outreach yet"
+        ],
+        "approval_points": [
+          "List of prospects ready for outreach"
+        ]
+      },
+      "constraints": [
+        "No outreach during research phase",
+        "Only publicly available info",
+        "No invented data",
+        "No contact until human review"
+      ],
+      "conflicts": [],
+      "approximations": [],
+      "unknowns_requiring_confirmation": [
+        {
+          "topic": "Company size",
+          "reason": "Not reliably available",
+          "quote": null,
+          "blocking": false
+        },
+        {
+          "topic": "Decision-maker contact info",
+          "reason": "Not reliably available",
+          "quote": null,
+          "blocking": false
+        }
+      ]
+    },
+    "target_definitions": [
+      {
+        "target_type": "Small and medium-sized businesses with repetitive administrative workloads",
+        "definition": "UK small and medium-sized businesses that handle repetitive administrative tasks and could benefit from AI automation.",
+        "aliases": []
+      },
+      {
+        "target_type": "Professional services firms handling large amounts of paperwork or client information",
+        "definition": "UK professional services firms that manage large volumes of paperwork or client information and could benefit from AI automation.",
+        "aliases": []
+      },
+      {
+        "target_type": "E-commerce and retail companies managing orders, customer enquiries and inventory",
+        "definition": "UK e-commerce and retail companies that manage orders, customer enquiries and inventory and could benefit from AI automation.",
+        "aliases": []
+      },
+      {
+        "target_type": "Marketing and digital agencies handling repetitive reporting, data entry and campaign tasks",
+        "definition": "UK marketing and digital agencies that handle repetitive reporting, data entry and campaign tasks and could benefit from AI automation.",
+        "aliases": []
+      },
+      {
+        "target_type": "Operations, finance, HR and customer service teams that rely heavily on manual processes",
+        "definition": "UK organisations with operations, finance, HR or customer service teams that rely heavily on manual processes and could benefit from AI automation.",
+        "aliases": []
+      }
+    ],
+    "notes": [
+      "Original Brief Source: Structured Brief + Project Brief_ FlowPilot AI — Business Process Automation (1).docx"
+    ],
+    "configuration_revision": 1,
+    "configuration_updated_at": "2026-10-28T11:58:28.062Z"
   }
 ]

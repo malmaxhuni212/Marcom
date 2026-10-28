@@ -492,11 +492,19 @@ export default function ProspectReviewTable({ projectId, initialProspectId, init
                     <td className="px-3 py-4 align-top text-xs text-white/60">
   {(() => {
     const emailContact = record.public_contact?.find(c => c.kind === "email");
-    return emailContact?.value ? (
-      <a href={"mailto:" + emailContact.value} className="text-[11px] text-blue-400 hover:underline">{emailContact.value}</a>
-    ) : (
-      <span className="italic text-white/25">Not found</span>
-    );
+    const keyPersonEmail = record.key_contacts?.find(k => Boolean(k.email));
+    if (emailContact?.value) {
+      return <a href={"mailto:" + emailContact.value} className="text-[11px] text-blue-400 hover:underline">{emailContact.value}</a>;
+    }
+    if (keyPersonEmail?.email) {
+      return (
+        <div className="flex flex-col gap-0.5">
+          <a href={"mailto:" + keyPersonEmail.email} className="text-[11px] text-blue-400 hover:underline">{keyPersonEmail.email}</a>
+          <span className="text-[10px] text-white/40">{keyPersonEmail.name}{keyPersonEmail.role ? ` · ${keyPersonEmail.role}` : ''}</span>
+        </div>
+      );
+    }
+    return <span className="italic text-white/25">Not found</span>;
   })()}
 </td>
 <td className="px-3 py-4 align-top">
@@ -504,10 +512,16 @@ export default function ProspectReviewTable({ projectId, initialProspectId, init
     {record.social_profiles?.find(p => p.platform === "linkedin")?.profile_url && (
       <a href={record.social_profiles.find(p => p.platform === "linkedin")?.profile_url} target="_blank" className="text-[11px] text-blue-400 hover:underline flex items-center gap-1.5"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-50"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect width="4" height="12" x="2" y="9"/><circle cx="4" cy="4" r="2"/></svg> LinkedIn</a>
     )}
+    {record.key_contacts?.filter(k => Boolean(k.linkedin_url)).slice(0, 2).map((person, idx) => (
+      <a key={`${person.name}-${idx}`} href={person.linkedin_url!} target="_blank" className="text-[11px] text-cyan-300 hover:underline flex items-center gap-1.5">
+        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-50"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect width="4" height="12" x="2" y="9"/><circle cx="4" cy="4" r="2"/></svg>
+        {person.name}
+      </a>
+    ))}
     {record.websites?.[0]?.url && (
       <a href={record.websites[0]?.url} target="_blank" className="text-[11px] text-blue-400 hover:underline flex items-center gap-1.5"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-50"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/><path d="M2 12h20"/></svg> Website</a>
     )}
-    {!(record.social_profiles?.find(p => p.platform === "linkedin") || record.websites?.[0]?.url) && (
+    {!(record.social_profiles?.find(p => p.platform === "linkedin") || record.key_contacts?.some(k => Boolean(k.linkedin_url)) || record.websites?.[0]?.url) && (
       <span className="italic text-white/25 text-[11px]">Unknown</span>
     )}
   </div>

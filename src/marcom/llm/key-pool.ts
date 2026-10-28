@@ -19,6 +19,7 @@ const POOL_ENV: Record<KeyPoolName, string[]> = {
 };
 
 const POOL_FALLBACK: Partial<Record<KeyPoolName, string[]>> = {
+  research: ['GROQ_API_KEY'],
   personalization: [...POOL_ENV.research, 'GROQ_API_KEY'],
 };
 

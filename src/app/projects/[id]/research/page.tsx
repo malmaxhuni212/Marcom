@@ -1,12 +1,25 @@
-import ProspectReviewTable from '@/components/research/ProspectReviewTable';
+'use client';
 
-export default async function CampaignResearchPage({
-  params,
-  searchParams,
-}: {
-  params: Promise<{ id: string }>;
-  searchParams: Promise<{ prospect?: string; batch?: string }>;
-}) {
-  const [{ id }, query] = await Promise.all([params, searchParams]);
-  return <ProspectReviewTable projectId={id} initialProspectId={query.prospect} initialBatch={query.batch} />;
+import { use, useEffect } from 'react';
+import AppShell from '@/components/workspace/AppShell';
+import { useWorkspace } from '@/components/workspace/WorkspaceContext';
+import ProspectsView from '@/components/workspace/views/ProspectsView';
+
+function SyncAndRenderProspects({ projectId }: { projectId: string }) {
+  const { activeId, setActiveId } = useWorkspace();
+  useEffect(() => {
+    if (projectId && activeId !== projectId) {
+      setActiveId(projectId);
+    }
+  }, [projectId, activeId, setActiveId]);
+  return <ProspectsView />;
+}
+
+export default function ProjectResearchPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
+  return (
+    <AppShell>
+      <SyncAndRenderProspects projectId={id} />
+    </AppShell>
+  );
 }
