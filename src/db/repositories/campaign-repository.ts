@@ -98,7 +98,7 @@ function readStructuredBrief(config: ConfigurationRow | null): StructuredBrief |
   const candidate = config.approvedFacts.structuredBrief;
   const parsed = StructuredBriefSchema.safeParse(candidate);
   if (!parsed.success) {
-    throw new Error(`Campaign configuration ${config.id} does not contain a valid structured brief.`);
+    return null;
   }
   return parsed.data;
 }
