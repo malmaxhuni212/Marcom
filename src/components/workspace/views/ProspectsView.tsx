@@ -849,9 +849,9 @@ function ProspectsBody({ initialTab }: { initialTab?: TabId }) {
   const activeDrawerResearch = drawerState ? researchByRecordId.get(drawerState.recordId) ?? null : null;
 
   return (
-    <div className="relative flex min-w-0 flex-1 flex-wrap">
-      <div className="min-w-0 flex-[1_1_520px]">
-        <PageFrame className="max-w-[1160px] gap-5">
+    <div className="relative flex min-w-0 flex-1">
+      <div className="min-w-0 flex-1">
+        <PageFrame className="max-w-[1400px] gap-5">
           <header className="flex flex-wrap items-center gap-3">
             <div className="flex min-w-0 flex-[1_1_300px] flex-col gap-1">
               <h1 className={`${serif} m-0 text-[32px]`}>Prospects</h1>
@@ -1808,11 +1808,29 @@ function ProspectDetailPanel({
     purple: { badgeBg: '#26224A', badgeFg: '#CFC8FF', border: 'border-[#3B3577]' },
   };
 
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
   return (
-    <aside
-      aria-label={name}
-      className="flex min-h-[calc(100vh-72px)] w-full max-w-full flex-[0_1_560px] flex-col border-l border-[#22262E] bg-[#12151A] xl:flex-[0_1_600px]"
-    >
+    <div className="fixed inset-0 z-[55] flex justify-end">
+      {/* Backdrop: click outside to close */}
+      <button
+        type="button"
+        aria-label="Close details"
+        onClick={onClose}
+        className="fixed inset-0 h-full w-full cursor-default bg-[rgba(4,5,7,0.55)] backdrop-blur-[2px] transition-opacity"
+      />
+
+      {/* Slide-over panel */}
+      <aside
+        aria-label={name}
+        className="relative z-10 flex h-full w-[620px] max-w-[calc(100vw-24px)] flex-col border-l border-[#2A2F39] bg-[#12151A] shadow-[-24px_0_60px_rgba(0,0,0,0.65)]"
+      >
       {/* Top navigation bar */}
       <div className="flex items-center justify-between px-6 pb-2 pt-5">
         <span className="text-xs font-semibold tracking-[0.14em] text-[#5ED3DF]">
@@ -2440,6 +2458,7 @@ function ProspectDetailPanel({
         />
       )}
     </aside>
+  </div>
   );
 }
 

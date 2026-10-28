@@ -24,7 +24,7 @@ type IconName =
   | 'home' | 'review' | 'list' | 'send' | 'chart' | 'plug' | 'settings' | 'search' | 'plus' | 'chevronDown'
   | 'chevronRight' | 'chevronLeft' | 'arrowRight' | 'arrowLeft' | 'check' | 'x' | 'close' | 'shield' | 'pin' | 'bell'
   | 'copy' | 'refresh' | 'edit' | 'sparkle' | 'warning' | 'info' | 'link' | 'filter' | 'updown' | 'menu' | 'spinner'
-  | 'external' | 'message' | 'mail';
+  | 'external' | 'message' | 'mail' | 'trash';
 
 const PATHS: Record<IconName, ReactNode> = {
   home: <path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" />,
@@ -61,6 +61,7 @@ const PATHS: Record<IconName, ReactNode> = {
   external: <><path d="M14 4h6v6" /><path d="M20 4 10 14" /><path d="M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5" /></>,
   message: <path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z" />,
   mail: <><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m3 7 9 6 9-6" /></>,
+  trash: <><path d="M3 6h18" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><line x1="10" y1="11" x2="10" y2="17" /><line x1="14" y1="11" x2="14" y2="17" /></>,
 };
 
 export function Icon({ name, size = 16, stroke = 2, className = '' }: { name: IconName; size?: number; stroke?: number; className?: string }) {

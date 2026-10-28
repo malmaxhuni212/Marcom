@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { authenticatedFetch } from '@/auth/client';
+import type { Project } from '@/types';
 import BriefIntakeModal from '@/components/ui/BriefIntakeModal';
 import NotificationBell from '@/components/layout/NotificationBell';
 import ResearchDialog from './ResearchDialog';
@@ -23,8 +24,11 @@ const SECONDARY_NAV = [
 ];
 
 function ProjectSwitcher({ onNavigate }: { onNavigate: () => void }) {
-  const { projects, activeProject, bundle, setActiveId, openNewProject } = useWorkspace();
+  const { projects, activeProject, bundle, setActiveId, openNewProject, deleteProject } = useWorkspace();
   const [open, setOpen] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -36,8 +40,8 @@ function ProjectSwitcher({ onNavigate }: { onNavigate: () => void }) {
     return () => document.removeEventListener('mousedown', close);
   }, [open]);
 
-  const totalCount = bundle?.summary?.total ?? activeProject?.prospectsCurrent ?? 0;
   const reviewCount = bundle?.summary?.needs_review ?? activeProject?.reviewCount ?? 0;
+  const personalizedCount = bundle?.drafts?.length ?? activeProject?.qualifiedCount ?? 0;
 
   return (
     <div ref={ref} className="relative">
@@ -62,7 +66,7 @@ function ProjectSwitcher({ onNavigate }: { onNavigate: () => void }) {
             {activeProject?.name ?? 'No project yet'}
           </span>
           <span className="truncate text-[11.5px] text-[#9BA1AE]">
-            {activeProject ? `${totalCount} found · ${reviewCount} to review` : 'Create one to begin'}
+            {activeProject ? `${reviewCount} to review · ${personalizedCount} personalized` : 'Create one to begin'}
           </span>
         </span>
         <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-[#1C2029] text-[#A7ADB8]">
@@ -93,56 +97,150 @@ function ProjectSwitcher({ onNavigate }: { onNavigate: () => void }) {
             </button>
           </div>
           <ul className="m-0 flex max-h-[340px] list-none flex-col gap-1.5 overflow-y-auto p-0">
-            {projects.map((project) => {
-              const current = project.id === activeProject?.id;
-              const stage = project.reviewCount > 0 ? 4 : project.prospectsCurrent > 0 ? 3 : 2;
-              return (
-                <li key={project.id}>
-                  <button
-                    type="button"
-                    aria-current={current}
-                    onClick={() => {
-                      setActiveId(project.id);
-                      setOpen(false);
-                      onNavigate();
-                    }}
-                    className={`flex w-full items-start gap-2.5 rounded-xl border p-2.5 text-left transition ${
-                      current
-                        ? 'border-[#2E6B75] bg-[#112A32]'
-                        : 'border-transparent bg-[#111318] hover:border-[#2A2F39] hover:bg-[#1A1E26]'
-                    }`}
-                  >
-                    <ProjectArt seed={project.id} size={36} radius={10} />
-                    <span className="flex min-w-0 flex-1 flex-col gap-1.5">
-                      <span className="flex items-center justify-between gap-1.5">
-                        <span className="truncate text-[13.5px] font-semibold text-[#F1F2F4]">
-                          {project.name}
+            {projects.length === 0 ? (
+              <li className="p-4 text-center text-xs text-[#8A909C]">No campaigns found</li>
+            ) : (
+              projects.map((project) => {
+                const current = project.id === activeProject?.id;
+                const stage = project.reviewCount > 0 ? 4 : project.prospectsCurrent > 0 ? 3 : 2;
+                return (
+                  <li key={project.id} className="group relative">
+                    <button
+                      type="button"
+                      aria-current={current}
+                      onClick={() => {
+                        setActiveId(project.id);
+                        setOpen(false);
+                        onNavigate();
+                      }}
+                      className={`flex w-full items-start gap-2.5 rounded-xl border p-2.5 pr-9 text-left transition ${
+                        current
+                          ? 'border-[#2E6B75] bg-[#112A32]'
+                          : 'border-transparent bg-[#111318] hover:border-[#2A2F39] hover:bg-[#1A1E26]'
+                      }`}
+                    >
+                      <ProjectArt seed={project.id} size={36} radius={10} />
+                      <span className="flex min-w-0 flex-1 flex-col gap-1.5">
+                        <span className="flex items-center justify-between gap-1.5">
+                          <span className="truncate text-[13.5px] font-semibold text-[#F1F2F4]">
+                            {project.name}
+                          </span>
+                          {current && <Icon name="check" size={15} stroke={2.5} className="shrink-0 text-[#5ED3DF]" />}
                         </span>
-                        {current && <Icon name="check" size={15} stroke={2.5} className="shrink-0 text-[#5ED3DF]" />}
+                        <span className="grid grid-cols-4 gap-1">
+                          {[0, 1, 2, 3].map((step) => (
+                            <span
+                              key={step}
+                              className="h-[3px] rounded-sm"
+                              style={{ background: step < stage ? '#5ED3DF' : current ? '#23434B' : '#252A34' }}
+                            />
+                          ))}
+                        </span>
+                        <span className={`flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11.5px] ${current ? 'text-[#B5D9DE]' : 'text-[#9BA1AE]'}`}>
+                          <span className="font-semibold text-[#F2C36B]">{project.reviewCount} to review</span>
+                          <span>·</span>
+                          <span>{project.qualifiedCount} personalized</span>
+                        </span>
                       </span>
-                      <span className="grid grid-cols-4 gap-1">
-                        {[0, 1, 2, 3].map((step) => (
-                          <span
-                            key={step}
-                            className="h-[3px] rounded-sm"
-                            style={{ background: step < stage ? '#5ED3DF' : current ? '#23434B' : '#252A34' }}
-                          />
-                        ))}
-                      </span>
-                      <span className={`flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11.5px] ${current ? 'text-[#B5D9DE]' : 'text-[#9BA1AE]'}`}>
-                        <span className="font-semibold text-[#F2C36B]">{project.reviewCount} to review</span>
-                        <span>·</span>
-                        <span>{project.qualifiedCount} personalized</span>
-                        <span>·</span>
-                        <span>{project.prospectsCurrent} found</span>
-                      </span>
-                    </span>
-                  </button>
-                </li>
-              );
-            })}
+                    </button>
+
+                    <button
+                      type="button"
+                      title={`Delete "${project.name}"`}
+                      aria-label={`Delete "${project.name}"`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        setDeleteError(null);
+                        setProjectToDelete(project);
+                      }}
+                      className="absolute right-1.5 top-1/2 -translate-y-1/2 flex h-7 w-7 items-center justify-center rounded-lg text-[#8A909C] transition-all hover:bg-red-500/15 hover:text-[#F28B82] focus:bg-red-500/15 focus:text-[#F28B82]"
+                    >
+                      <Icon name="trash" size={14} stroke={2} />
+                    </button>
+                  </li>
+                );
+              })
+            )}
           </ul>
         </section>
+      )}
+
+      {projectToDelete && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="delete-project-title"
+          className="fixed inset-0 z-[120] flex items-center justify-center bg-[rgba(4,5,7,0.75)] p-4 backdrop-blur-sm"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !isDeleting) {
+              setProjectToDelete(null);
+              setDeleteError(null);
+            }
+          }}
+        >
+          <div className="relative w-full max-w-[420px] rounded-2xl border border-[#3A2226] bg-[#151820] p-6 shadow-[0_24px_60px_rgba(0,0,0,0.85)]">
+            <div className="flex items-start gap-4">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-red-500/25 bg-red-500/10 text-[#F28B82]">
+                <Icon name="trash" size={20} stroke={2} />
+              </div>
+              <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                <h3 id="delete-project-title" className="m-0 text-base font-semibold text-[#F1F2F4]">
+                  Delete campaign?
+                </h3>
+                <p className="m-0 text-xs text-[#A7ADB8] leading-relaxed">
+                  Are you sure you want to delete <span className="font-semibold text-[#F1F2F4]">&ldquo;{projectToDelete.name}&rdquo;</span>? This will permanently remove all associated prospects, personalized drafts, and campaign settings.
+                </p>
+                {deleteError && (
+                  <p className="m-0 mt-2 text-xs text-red-400 font-medium">
+                    {deleteError}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="mt-6 flex items-center justify-end gap-2.5">
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={() => {
+                  setProjectToDelete(null);
+                  setDeleteError(null);
+                }}
+                className={`${btnSecondary} !h-9 !px-4 text-xs`}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={async () => {
+                  setIsDeleting(true);
+                  setDeleteError(null);
+                  try {
+                    await deleteProject(projectToDelete.id);
+                    setProjectToDelete(null);
+                  } catch (err) {
+                    setDeleteError(err instanceof Error ? err.message : 'Failed to delete campaign');
+                  } finally {
+                    setIsDeleting(false);
+                  }
+                }}
+                className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-red-500/40 bg-red-600/25 px-4 text-xs font-semibold text-red-300 transition hover:bg-red-600/40 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isDeleting ? (
+                  <>
+                    <Icon name="spinner" size={13} /> Deleting…
+                  </>
+                ) : (
+                  <>
+                    <Icon name="trash" size={13} /> Delete campaign
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

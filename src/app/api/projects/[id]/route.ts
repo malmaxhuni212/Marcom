@@ -11,6 +11,7 @@ import { authorizeApiRequest } from '@/auth/access';
 import {
   CampaignNotFoundError,
   CampaignVersionConflictError,
+  archiveCampaign,
   getCampaign,
   updateCampaignConfiguration,
 } from '@/db/repositories/campaign-repository';
@@ -132,4 +133,61 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
   return NextResponse.json({ success: true, project: updated });
 }
+
+export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const access = await authorizeApiRequest(req);
+  if (!access.ok) return access.response;
+  try {
+    const { id } = await params;
+    if (!id) {
+      return NextResponse.json({ error: 'Project ID is required' }, { status: 400 });
+    }
+
+    let deletedFromDb = false;
+
+    if (isDatabaseConfigured()) {
+      try {
+        deletedFromDb = await archiveCampaign(access.actor, id);
+      } catch (e) {
+        if (!access.allowFileFallback) throw e;
+        console.warn(`Database error in DELETE /api/projects/${id}, attempting JSON memory delete.`);
+      }
+    }
+
+    let deletedFromFile = false;
+    try {
+      const fs = await import('node:fs');
+      const path = await import('node:path');
+
+      const memoryDir = path.join(process.cwd(), 'memory');
+      const projectsFile = path.join(memoryDir, 'projects.json');
+
+      if (fs.existsSync(projectsFile)) {
+        const projects = JSON.parse(fs.readFileSync(projectsFile, 'utf8')) as Array<{ project_id?: string }>;
+        const filtered = projects.filter((project) => project.project_id !== id);
+        if (filtered.length !== projects.length) {
+          fs.writeFileSync(projectsFile, JSON.stringify(filtered, null, 2), 'utf8');
+          deletedFromFile = true;
+        }
+      }
+
+      const origFile = path.join(memoryDir, `${id}-original.json`);
+      if (fs.existsSync(origFile)) {
+        fs.unlinkSync(origFile);
+      }
+    } catch {
+      // Ignored if local file does not exist
+    }
+
+    if (!deletedFromDb && !deletedFromFile) {
+      return NextResponse.json({ error: 'Project not found' }, { status: 404 });
+    }
+
+    return NextResponse.json({ success: true, message: 'Project deleted successfully' });
+  } catch (error) {
+    console.error(`Error deleting project ${params}:`, error);
+    return NextResponse.json({ error: 'Failed to delete project' }, { status: 500 });
+  }
+}
+
 

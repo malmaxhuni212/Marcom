@@ -48,6 +48,7 @@ interface WorkspaceValue {
   activeId: string | null;
   activeProject: Project | null;
   setActiveId: (id: string) => void;
+  deleteProject: (id: string) => Promise<boolean>;
   bundle: ProjectBundle | null;
   bundleError: string | null;
   loading: boolean;
@@ -236,6 +237,41 @@ function WorkspaceProviderRoot({ children }: { children: ReactNode }) {
     setBundle((current) => (current ? { ...current, settings } : current));
   }, []);
 
+  const deleteProject = useCallback(
+    async (id: string): Promise<boolean> => {
+      const response = await authenticatedFetch(`/api/projects?id=${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error((data && data.error) || `Failed to delete project (${response.status}).`);
+      }
+
+      setProjects((currentProjects) => {
+        const remaining = currentProjects.filter((p) => p.id !== id);
+        if (activeIdRef.current === id) {
+          const next = remaining[0] ?? null;
+          if (next) {
+            setActiveId(next.id);
+          } else {
+            activeIdRef.current = null;
+            setActiveIdState(null);
+            setBundle(null);
+            bundleRef.current = null;
+            try {
+              window.localStorage.removeItem(ACTIVE_PROJECT_KEY);
+            } catch {}
+          }
+        }
+        return remaining;
+      });
+
+      void refreshProjects();
+      return true;
+    },
+    [setActiveId, refreshProjects],
+  );
+
   /* ---------------------------- research runs ---------------------------- */
 
   const clearPoll = () => {
@@ -368,6 +404,7 @@ function WorkspaceProviderRoot({ children }: { children: ReactNode }) {
       activeId,
       activeProject: projects.find((project) => project.id === activeId) ?? null,
       setActiveId,
+      deleteProject,
       bundle: bundle && bundle.projectId === activeId ? bundle : null,
       bundleError,
       loading: Boolean(activeId) && (!bundle || bundle.projectId !== activeId) && !bundleError,
@@ -389,7 +426,7 @@ function WorkspaceProviderRoot({ children }: { children: ReactNode }) {
       openResearch: (targetId?: string) => setResearchDialog({ open: true, targetId }),
       closeResearch: () => setResearchDialog({ open: false }),
     }),
-    [projects, projectsLoaded, projectsError, activeId, setActiveId, bundle, bundleError, reload, refreshProjects, updateDraft, updateResearchReview, setSettings, researchRun, startResearch, stopResearch, dismissResearchRun, globalSearch, newProjectOpen, researchDialog],
+    [projects, projectsLoaded, projectsError, activeId, setActiveId, deleteProject, bundle, bundleError, reload, refreshProjects, updateDraft, updateResearchReview, setSettings, researchRun, startResearch, stopResearch, dismissResearchRun, globalSearch, newProjectOpen, researchDialog],
   );
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;

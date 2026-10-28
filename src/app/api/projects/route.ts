@@ -95,37 +95,44 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ error: 'Project ID is required' }, { status: 400 });
     }
 
+    let deletedFromDb = false;
+
     if (isDatabaseConfigured()) {
       try {
-        const archived = await archiveCampaign(access.actor, id);
-        if (!archived) return NextResponse.json({ error: 'Project not found' }, { status: 404 });
-        return NextResponse.json({ success: true, message: 'Project archived successfully' });
+        deletedFromDb = await archiveCampaign(access.actor, id);
       } catch (e) {
         if (!access.allowFileFallback) throw e;
         console.warn('Database error in DELETE /api/projects, attempting JSON memory delete.');
       }
     }
 
-    if (!access.allowFileFallback) throw new Error('The authoritative database is unavailable.');
-    const fs = await import('node:fs');
-    const path = await import('node:path');
+    let deletedFromFile = false;
+    try {
+      const fs = await import('node:fs');
+      const path = await import('node:path');
 
-    const memoryDir = path.join(process.cwd(), 'memory');
-    const projectsFile = path.join(memoryDir, 'projects.json');
+      const memoryDir = path.join(process.cwd(), 'memory');
+      const projectsFile = path.join(memoryDir, 'projects.json');
 
-    if (!fs.existsSync(projectsFile)) {
-      return NextResponse.json({ error: 'No projects found' }, { status: 404 });
+      if (fs.existsSync(projectsFile)) {
+        const projects = JSON.parse(fs.readFileSync(projectsFile, 'utf8')) as Array<{ project_id?: string }>;
+        const filtered = projects.filter((project) => project.project_id !== id);
+        if (filtered.length !== projects.length) {
+          fs.writeFileSync(projectsFile, JSON.stringify(filtered, null, 2), 'utf8');
+          deletedFromFile = true;
+        }
+      }
+
+      const origFile = path.join(memoryDir, `${id}-original.json`);
+      if (fs.existsSync(origFile)) {
+        fs.unlinkSync(origFile);
+      }
+    } catch {
+      // Ignored if local file does not exist
     }
 
-    const projects = JSON.parse(fs.readFileSync(projectsFile, 'utf8')) as Array<{ project_id?: string }>;
-    const filtered = projects.filter((project) => project.project_id !== id);
-
-    fs.writeFileSync(projectsFile, JSON.stringify(filtered, null, 2), 'utf8');
-
-    // Also delete original brief file if exists
-    const origFile = path.join(memoryDir, `${id}-original.json`);
-    if (fs.existsSync(origFile)) {
-      fs.unlinkSync(origFile);
+    if (!deletedFromDb && !deletedFromFile) {
+      return NextResponse.json({ error: 'Project not found' }, { status: 404 });
     }
 
     return NextResponse.json({ success: true, message: 'Project deleted successfully' });

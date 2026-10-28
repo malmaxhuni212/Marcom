@@ -96,6 +96,10 @@ export default function BriefIntakeModal({ isOpen, onClose, onSuccess }: BriefIn
   // Create Project state
   const [isCreating, setIsCreating] = useState(false);
 
+  const requiredSections = BRIEF_SECTIONS.filter((s) => s.required);
+  const missingSections = requiredSections.filter((s) => !sections[s.key]?.trim());
+  const allMandatoryAnswered = missingSections.length === 0;
+
   if (!isOpen) return null;
 
   const handleReset = () => {
@@ -150,24 +154,14 @@ export default function BriefIntakeModal({ isOpen, onClose, onSuccess }: BriefIn
   const extractAndAnalyze = async () => {
     setError(null);
 
+    const missing = BRIEF_SECTIONS.filter((s) => s.required && !sections[s.key]?.trim());
+    if (missing.length > 0) {
+      setError(`Please complete all mandatory questions before proceeding: ${missing.map((s) => `"${s.prompt}"`).join(', ')}.`);
+      return;
+    }
+
     try {
       const links = linksText.split(/\s+/).map((l) => l.trim()).filter(Boolean);
-      const hasRequiredSections = Boolean(
-        sections.overview.trim() &&
-        sections.goals.trim() &&
-        sections.work.trim() &&
-        sections.audience.trim()
-      );
-      const hasSupportingDocs = files.length > 0 || links.some(isGoogleDoc);
-
-      if (!hasRequiredSections && !hasSupportingDocs) {
-        const missing: string[] = [];
-        if (!sections.overview.trim()) missing.push('Project Overview');
-        if (!sections.goals.trim()) missing.push('Goals and Objectives');
-        if (!sections.work.trim()) missing.push('What Needs to Be Done?');
-        if (!sections.audience.trim()) missing.push('Target Audience and Focus');
-        throw new Error(`Please complete the required sections (${missing.join(', ')}) or upload a PDF / Word brief document.`);
-      }
 
       setStep('PROCESSING');
       setProcessingStage(files.length || links.some(isGoogleDoc) ? 'EXTRACTING' : 'ANALYZING');
@@ -282,7 +276,7 @@ export default function BriefIntakeModal({ isOpen, onClose, onSuccess }: BriefIn
             <p className="text-[13px] text-white/40 mt-1 max-w-2xl">
               {step === 'REVIEW'
                 ? 'Confirm the information MARCOM will use to prepare campaign research.'
-                : "Tell MARCOM what you're working on, what you want to achieve and what it needs to know. Write naturally; you don't need to fill in every section."}
+                : "Tell MARCOM what you're working on, what you want to achieve and what it needs to know. Complete all required sections to start creating your campaign."}
             </p>
           </div>
           <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/[0.05] text-white/40 hover:text-white transition-colors">
@@ -314,24 +308,51 @@ export default function BriefIntakeModal({ isOpen, onClose, onSuccess }: BriefIn
                 />
               </div>
 
-              {BRIEF_SECTIONS.map((s) => (
-                <div key={s.key} className="flex flex-col gap-2 p-5 rounded-2xl bg-white/[0.02] border border-white/[0.06]">
-                  <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <span className="text-[11px] uppercase tracking-wider font-medium text-white/35">{s.title}</span>
-                    <span className={`text-[11px] ${s.required ? 'text-cyan-400/80' : 'text-white/25'}`}>{s.required ? 'Required' : 'Optional'}</span>
+              {BRIEF_SECTIONS.map((s) => {
+                const isFilled = Boolean(sections[s.key]?.trim());
+                return (
+                  <div
+                    key={s.key}
+                    className={`flex flex-col gap-2 p-5 rounded-2xl bg-white/[0.02] border transition-colors ${
+                      s.required && !isFilled
+                        ? 'border-white/[0.08]'
+                        : 'border-white/[0.06]'
+                    }`}
+                  >
+                    <div className="flex flex-wrap items-baseline justify-between gap-2">
+                      <span className="text-[11px] uppercase tracking-wider font-medium text-white/35">{s.title}</span>
+                      {s.required ? (
+                        isFilled ? (
+                          <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-400">
+                            <span>✓</span> Answered
+                          </span>
+                        ) : (
+                          <span className="text-[11px] font-semibold text-cyan-400">
+                            Required
+                          </span>
+                        )
+                      ) : (
+                        <span className="text-[11px] text-white/25">Optional</span>
+                      )}
+                    </div>
+                    <label htmlFor={`brief-${s.key}`} className="text-[15px] font-semibold text-white/90">
+                      {s.prompt}
+                    </label>
+                    <p className="text-[12.5px] text-white/40 leading-relaxed">{s.helper}</p>
+                    <textarea
+                      id={`brief-${s.key}`}
+                      placeholder={s.placeholder}
+                      value={sections[s.key]}
+                      onChange={(e) => {
+                        if (error) setError(null);
+                        setSections(prev => ({ ...prev, [s.key]: e.target.value }));
+                      }}
+                      rows={s.required ? 5 : 3}
+                      className="mt-1 w-full min-h-[88px] bg-white/[0.03] border border-white/[0.08] rounded-xl p-4 text-sm text-white/80 placeholder:text-white/30 focus:outline-none focus:border-accent-blue/50 resize-y"
+                    />
                   </div>
-                  <label htmlFor={`brief-${s.key}`} className="text-[15px] font-semibold text-white/90">{s.prompt}</label>
-                  <p className="text-[12.5px] text-white/40 leading-relaxed">{s.helper}</p>
-                  <textarea
-                    id={`brief-${s.key}`}
-                    placeholder={s.placeholder}
-                    value={sections[s.key]}
-                    onChange={e => setSections(prev => ({ ...prev, [s.key]: e.target.value }))}
-                    rows={s.required ? 5 : 3}
-                    className="mt-1 w-full min-h-[88px] bg-white/[0.03] border border-white/[0.08] rounded-xl p-4 text-sm text-white/80 placeholder:text-white/30 focus:outline-none focus:border-accent-blue/50 resize-y"
-                  />
-                </div>
-              ))}
+                );
+              })}
 
               {/* Secondary: supporting documents and links */}
               <div className="flex flex-col gap-4 p-5 rounded-2xl bg-white/[0.015] border border-white/[0.06]">
@@ -505,14 +526,37 @@ export default function BriefIntakeModal({ isOpen, onClose, onSuccess }: BriefIn
         </div>
 
         {/* Footer */}
-        {step === 'INPUT' && <div className="px-8 py-5 border-t border-white/[0.06] flex items-center justify-end gap-3 shrink-0 bg-white/[0.01]">
-          {step === 'INPUT' && (
-            <>
+        {step === 'INPUT' && (
+          <div className="px-8 py-5 border-t border-white/[0.06] flex flex-wrap items-center justify-between gap-4 shrink-0 bg-white/[0.01]">
+            <div className="text-xs">
+              {!allMandatoryAnswered ? (
+                <span className="text-amber-400/90 flex items-center gap-2 font-medium">
+                  <span className="h-2 w-2 rounded-full bg-amber-400 shrink-0 animate-pulse" />
+                  Answer all mandatory questions to continue ({missingSections.length} remaining)
+                </span>
+              ) : (
+                <span className="text-emerald-400 flex items-center gap-2 font-medium">
+                  <span className="h-2 w-2 rounded-full bg-emerald-400 shrink-0" />
+                  All mandatory questions answered
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-3">
               <SecondaryButton onClick={onClose}>Cancel</SecondaryButton>
-              <PrimaryButton onClick={extractAndAnalyze}>Analyze Brief</PrimaryButton>
-            </>
-          )}
-        </div>}
+              <PrimaryButton
+                onClick={extractAndAnalyze}
+                disabled={!allMandatoryAnswered}
+                title={
+                  !allMandatoryAnswered
+                    ? `Please answer all mandatory questions (${missingSections.length} remaining)`
+                    : 'Analyze brief and configure campaign'
+                }
+              >
+                Analyze Brief
+              </PrimaryButton>
+            </div>
+          </div>
+        )}
 
       </div>
     </div>
