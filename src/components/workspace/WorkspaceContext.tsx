@@ -7,6 +7,7 @@
  *  - background research runs, which keep polling even when their dialog is closed.
  */
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { usePathname } from 'next/navigation';
 import { authenticatedFetch } from '@/auth/client';
 import type { Project } from '@/types';
 import type { ProjectMemory } from '@/marcom/memory/types';
@@ -95,6 +96,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 }
 
 function WorkspaceProviderRoot({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
+  const isPublicAuthRoute = pathname === '/login' || pathname === '/bootstrap';
   const [projects, setProjects] = useState<Project[]>([]);
   const [projectsLoaded, setProjectsLoaded] = useState(false);
   const [projectsError, setProjectsError] = useState<string | null>(null);
@@ -108,6 +111,7 @@ function WorkspaceProviderRoot({ children }: { children: ReactNode }) {
   const activeIdRef = useRef<string | null>(null);
   const bundleRef = useRef<ProjectBundle | null>(null);
   const pollRef = useRef<number | null>(null);
+  const initializedRef = useRef(false);
 
   const refreshProjects = useCallback(async () => {
     try {
@@ -149,6 +153,13 @@ function WorkspaceProviderRoot({ children }: { children: ReactNode }) {
   // Initial project list + active project (URL ?project= wins, then the remembered project, then the first).
   // Fire loadBundle in parallel if a remembered/requested project ID is available to eliminate waterfall latency.
   useEffect(() => {
+    if (isPublicAuthRoute) {
+      initializedRef.current = false;
+      return;
+    }
+    if (initializedRef.current) return;
+    initializedRef.current = true;
+
     const requested = new URLSearchParams(window.location.search).get('project');
     let remembered: string | null = null;
     try {
@@ -157,16 +168,23 @@ function WorkspaceProviderRoot({ children }: { children: ReactNode }) {
       remembered = null;
     }
     const eagerCandidate = requested || remembered;
-    if (eagerCandidate) {
-      activeIdRef.current = eagerCandidate;
-      setActiveIdState(eagerCandidate);
-      void loadBundle(eagerCandidate);
-    }
 
-    void refreshProjects().then((list) => {
+    void (async () => {
+      await Promise.resolve();
+      setProjectsError(null);
+      setBundleError(null);
+      if (eagerCandidate) {
+        activeIdRef.current = eagerCandidate;
+        setActiveIdState(eagerCandidate);
+        void loadBundle(eagerCandidate);
+      }
+
+      const list = await refreshProjects();
       if (!list.length) {
         activeIdRef.current = null;
+        bundleRef.current = null;
         setActiveIdState(null);
+        setBundle(null);
         return;
       }
       const chosen = [requested, remembered].find((id) => id && list.some((project) => project.id === id)) ?? list[0]!.id;
@@ -174,15 +192,15 @@ function WorkspaceProviderRoot({ children }: { children: ReactNode }) {
         activeIdRef.current = chosen;
         setActiveIdState(chosen);
       }
-    });
-  }, [refreshProjects, loadBundle]);
+    })();
+  }, [isPublicAuthRoute, refreshProjects, loadBundle]);
 
   useEffect(() => {
-    if (!activeId) return;
+    if (!activeId || isPublicAuthRoute) return;
     activeIdRef.current = activeId;
     if (bundleRef.current?.projectId === activeId) return;
     void loadBundle(activeId);
-  }, [activeId, loadBundle]);
+  }, [activeId, isPublicAuthRoute, loadBundle]);
 
   const setActiveId = useCallback((id: string) => {
     activeIdRef.current = id;
@@ -314,8 +332,12 @@ function WorkspaceProviderRoot({ children }: { children: ReactNode }) {
           return;
         }
         const taskId = String(data.taskId);
+        let lastCompleted = 0;
+        let pollInFlight = false;
         setResearchRun((current) => (current ? { ...current, taskId, message: 'Searching for matching prospects…' } : current));
         pollRef.current = window.setInterval(async () => {
+          if (pollInFlight) return;
+          pollInFlight = true;
           try {
             const statusResponse = await authenticatedFetch(`/api/projects/${projectId}/batch-research?taskId=${encodeURIComponent(taskId)}`);
             if (statusResponse.status === 404) {
@@ -324,15 +346,28 @@ function WorkspaceProviderRoot({ children }: { children: ReactNode }) {
             }
             if (!statusResponse.ok) return;
             const status = await statusResponse.json();
-            const message = status.message || `Saved ${status.completed ?? 0} of ${status.total ?? count} prospects.`;
-            if (status.status === 'completed' || status.status === 'completed_with_errors') finishRun(projectId, 'completed', message);
-            else if (status.status === 'error') finishRun(projectId, 'failed', message);
-            else if (status.status === 'cancelled') finishRun(projectId, 'cancelled', message);
-            else setResearchRun((current) => (current && current.taskId === taskId ? { ...current, message } : current));
+            const completedNow = typeof status.completed === 'number' ? status.completed : 0;
+            const message = status.message || `Saved ${completedNow} of ${status.total ?? count} prospects.`;
+            if (status.status === 'completed' || status.status === 'completed_with_errors') {
+              finishRun(projectId, 'completed', message);
+            } else if (status.status === 'error') {
+              finishRun(projectId, 'failed', message);
+            } else if (status.status === 'cancelled') {
+              finishRun(projectId, 'cancelled', message);
+            } else {
+              setResearchRun((current) => (current && current.taskId === taskId ? { ...current, message } : current));
+              if (completedNow > lastCompleted) {
+                lastCompleted = completedNow;
+                if (activeIdRef.current === projectId) void loadBundle(projectId);
+                void refreshProjects();
+              }
+            }
           } catch {
             // Transient polling failures are retried on the next tick.
+          } finally {
+            pollInFlight = false;
           }
-        }, 4000);
+        }, 2500);
         return;
       }
 
@@ -382,15 +417,29 @@ function WorkspaceProviderRoot({ children }: { children: ReactNode }) {
         finishRun(projectId, 'failed', (error as Error).message || 'Research failed.');
       }
     },
-    [finishRun],
+    [finishRun, loadBundle, refreshProjects],
   );
 
   const stopResearch = useCallback(async () => {
     const run = researchRun;
     if (!run?.taskId) return;
+    clearPoll();
     setResearchRun({ ...run, message: 'Stopping…' });
-    await authenticatedFetch(`/api/projects/${run.projectId}/batch-research?taskId=${encodeURIComponent(run.taskId)}`, { method: 'DELETE' }).catch(() => undefined);
-  }, [researchRun]);
+    let cancelMessage = 'Research stopped.';
+    try {
+      const response = await authenticatedFetch(
+        `/api/projects/${run.projectId}/batch-research?taskId=${encodeURIComponent(run.taskId)}`,
+        { method: 'DELETE' },
+      );
+      const data = await response.json().catch(() => ({}));
+      if (typeof data.message === 'string' && data.message.trim()) {
+        cancelMessage = data.message;
+      }
+    } catch {
+      // Release UI state and reload any prospects saved before stopping even if network drops.
+    }
+    finishRun(run.projectId, 'cancelled', cancelMessage);
+  }, [researchRun, finishRun]);
 
   const dismissResearchRun = useCallback(() => {
     setResearchRun((current) => (current?.status === 'running' ? current : null));

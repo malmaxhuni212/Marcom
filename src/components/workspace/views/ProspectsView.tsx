@@ -39,7 +39,10 @@ import {
   contactSummary,
   contactsOf,
   entriesForTarget,
+  formatProfileDisplay,
   hostOf,
+  isShortSocialChannel,
+  isSocialProfileChannel,
   locationOf,
   messageFor,
   plural,
@@ -194,7 +197,35 @@ function analyzeLeadInsights(
         audit?.why_best_route ||
         strategy?.channel_reason ||
         `LinkedIn is the most direct verified channel for ${personLabel || name} since no public email address is published on their site.`,
-      backup: contacts.website ? `Official website (${hostOf(contacts.website)})` : null,
+      backup:
+        contacts.extraSocials[0]
+          ? `${contacts.extraSocials[0].label} (${contacts.extraSocials[0].display})`
+          : contacts.website
+            ? `Official website (${hostOf(contacts.website)})`
+            : null,
+    };
+  } else if (contacts.extraSocials.length > 0) {
+    const firstSocial = contacts.extraSocials[0]!;
+    bestContact = {
+      channelLabel: firstSocial.label,
+      draftChannel: firstSocial.platform,
+      badgeLabel: `Verified ${firstSocial.label}`,
+      badgeBg: '#26224A',
+      badgeFg: '#CFC8FF',
+      targetDisplay: firstSocial.display,
+      targetCopy: firstSocial.url,
+      targetHref: firstSocial.url,
+      personLabel: null,
+      why:
+        audit?.why_best_route ||
+        strategy?.channel_reason ||
+        `${firstSocial.label} is the most direct verified public profile found for ${name} since no public email address is published.`,
+      backup:
+        contacts.extraSocials[1]
+          ? `${contacts.extraSocials[1].label} (${contacts.extraSocials[1].display})`
+          : contacts.website
+            ? `Official website (${hostOf(contacts.website)})`
+            : null,
     };
   } else if (contacts.website) {
     bestContact = {
@@ -1644,12 +1675,16 @@ function ProspectDetailPanel({
     [entry, draft],
   );
 
-  const editBucket =
-    activeChannel === 'linkedin' || activeChannel === 'whatsapp'
-      ? 'linkedin'
-      : activeChannel === 'follow_up'
-        ? 'follow_up'
-        : 'email';
+  const editBucket = isShortSocialChannel(activeChannel)
+    ? 'linkedin'
+    : activeChannel === 'follow_up'
+      ? 'follow_up'
+      : 'email';
+
+  const activeProfileUrl =
+    activeChannel === 'linkedin'
+      ? contacts.linkedin
+      : contacts.extraSocials.find((s) => s.platform === activeChannel)?.url ?? null;
 
   const activeMessageText = draft
     ? editingDraft
@@ -1772,13 +1807,22 @@ function ProspectDetailPanel({
     },
     {
       key: 'linkedin',
-      value: contacts.linkedin ? hostOf(contacts.linkedin) : null,
+      value: contacts.linkedin ? formatProfileDisplay(contacts.linkedin) : null,
       rawValue: contacts.linkedin,
       href: contacts.linkedin,
       missingLabel: 'LinkedIn not found',
       sub: contacts.linkedin ? (contacts.linkedinOwner ? `LinkedIn · ${contacts.linkedinOwner}` : 'LinkedIn') : 'Not found by research',
       channel: 'linkedin',
     },
+    ...contacts.extraSocials.map((social, idx) => ({
+      key: `social-${social.platform}-${idx}`,
+      value: social.display,
+      rawValue: social.url,
+      href: social.url,
+      missingLabel: `${social.label} not found`,
+      sub: social.label,
+      channel: social.platform as DraftChannel,
+    })),
     {
       key: 'website',
       value: contacts.contactForm || contacts.website ? hostOf((contacts.contactForm || contacts.website)!) : null,
@@ -1794,10 +1838,17 @@ function ProspectDetailPanel({
     },
   ];
 
+  const uniqueExtraSocialTabs = contacts.extraSocials.filter(
+    (social, idx, arr) => arr.findIndex((item) => item.platform === social.platform) === idx,
+  );
   const channelTabs: Array<{ id: DraftChannel; dot: string }> = [
     { id: 'email', dot: contacts.email ? '#5BD69A' : '#F2C36B' },
     { id: 'linkedin', dot: contacts.linkedin ? '#5BD69A' : '#F2C36B' },
-    { id: 'whatsapp', dot: '#F2C36B' },
+    ...uniqueExtraSocialTabs.map((social) => ({
+      id: social.platform as DraftChannel,
+      dot: '#5BD69A',
+    })),
+    { id: 'whatsapp', dot: contacts.phone ? '#5BD69A' : '#F2C36B' },
     { id: 'website_form', dot: contacts.contactForm || contacts.website ? '#5BD69A' : '#F2C36B' },
     { id: 'follow_up', dot: contacts.email ? '#8A909C' : '#F2C36B' },
   ];
@@ -2008,7 +2059,7 @@ function ProspectDetailPanel({
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex flex-col gap-0.5">
               <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#B1A6FF]">
-                {hasDraft ? '5 DRAFTS WRITTEN' : 'PERSONALIZATION AGENT'}
+                {hasDraft ? `${channelTabs.length} DRAFTS WRITTEN` : 'PERSONALIZATION AGENT'}
               </span>
               <h3 className="m-0 text-base font-semibold text-[#F1F2F4]">
                 {hasDraft ? 'Outreach message' : 'Generate outreach drafts'}
@@ -2064,6 +2115,51 @@ function ProspectDetailPanel({
                   );
                 })}
               </div>
+
+              {/* Profile Link Card (for LinkedIn & Extra Social Tabs) */}
+              {isSocialProfileChannel(activeChannel) && (
+                <div className="flex items-center justify-between gap-2.5 rounded-xl border border-[#252A34] bg-[#111419] px-3.5 py-2.5">
+                  <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-[#8A909C]">
+                      {CHANNEL_LABEL[activeChannel]} profile
+                    </span>
+                    {activeProfileUrl ? (
+                      <a
+                        href={activeProfileUrl.startsWith('http') ? activeProfileUrl : `https://${activeProfileUrl}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="truncate text-sm font-medium text-[#5ED3DF] no-underline hover:underline"
+                      >
+                        {formatProfileDisplay(activeProfileUrl)}
+                      </a>
+                    ) : (
+                      <span className="text-xs text-[#F2C36B]">
+                        No {CHANNEL_LABEL[activeChannel]} profile link found · you can still copy the short message below
+                      </span>
+                    )}
+                  </div>
+                  {activeProfileUrl && (
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => void copy(activeProfileUrl, `inline-profile-${activeChannel}`)}
+                        className="inline-flex h-7 items-center gap-1 whitespace-nowrap rounded-lg border border-[#2A2F39] bg-[#171A20] px-2.5 text-xs font-semibold text-[#5ED3DF] hover:bg-[#1F232B]"
+                      >
+                        <Icon name={copied === `inline-profile-${activeChannel}` ? 'check' : 'copy'} size={12} />
+                        {copied === `inline-profile-${activeChannel}` ? 'Copied' : 'Copy link'}
+                      </button>
+                      <a
+                        href={activeProfileUrl.startsWith('http') ? activeProfileUrl : `https://${activeProfileUrl}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex h-7 items-center gap-1 whitespace-nowrap rounded-lg border border-[#2E6B75] bg-[#12313A] px-2.5 text-xs font-semibold text-[#9BE6EE] no-underline hover:bg-[#193E49]"
+                      >
+                        Open <Icon name="external" size={11} />
+                      </a>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Full Subject Line Card (for Email / Website form / Follow-up) */}
               {(activeChannel === 'email' || activeChannel === 'website_form' || activeChannel === 'follow_up') && (
@@ -2148,7 +2244,7 @@ function ProspectDetailPanel({
                       onChange={(e) =>
                         setDraftEdits((curr) => ({ ...curr, [editBucket]: e.target.value }))
                       }
-                      rows={activeChannel === 'linkedin' || activeChannel === 'whatsapp' ? 5 : 10}
+                      rows={isShortSocialChannel(activeChannel) ? 5 : 10}
                       className="w-full resize-y rounded-lg border border-[#2E6B75] bg-[#12151A] p-3 text-[14px] leading-[1.65] text-[#F1F2F4] outline-none"
                     />
                     <div className="flex justify-end gap-2">
@@ -2289,7 +2385,7 @@ function ProspectDetailPanel({
                 onClick={() => onOpenDrafts(defaultDraftChannel)}
                 className="h-8 border-0 bg-transparent p-0 text-[13px] font-semibold text-[#5ED3DF] hover:underline"
               >
-                All drafts · 5
+                All drafts · {channelTabs.length}
               </button>
             )}
           </div>

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { PersonalizationEntry, OutreachCopy, PersonalizationStatus } from '@/marcom/schemas/personalization';
 import { authenticatedFetch } from '@/auth/client';
 import type { PersonalizationAvailability } from '@/marcom/personalization/presentation';
+import { socialPlatformLabel } from '@/components/workspace/format';
 
 interface PersonalizationPanelProps {
   projectId: string;
@@ -35,6 +36,7 @@ export default function PersonalizationPanel({
 
   // Local draft states for live editing
   const [selectedSubjectIndex, setSelectedSubjectIndex] = useState(0);
+  const [selectedSocialIdx, setSelectedSocialIdx] = useState(0);
   const [emailBody, setEmailBody] = useState(initialEntry?.copy?.email_body || '');
   const [linkedInMessage, setLinkedInMessage] = useState(initialEntry?.copy?.linkedin_message || '');
   const [followUpBody, setFollowUpBody] = useState(initialEntry?.copy?.follow_up_body || '');
@@ -254,6 +256,7 @@ export default function PersonalizationPanel({
   const candidateLinkedIn = entry.candidate_contacts?.linkedin_urls || [];
   const candidateWebsites = entry.candidate_contacts?.websites || [];
   const candidatePhones = entry.candidate_contacts?.phones || [];
+  const candidateSocials = entry.candidate_contacts?.social_profiles || [];
 
   const targetEmail =
     audit?.best_channel === 'email' && audit.best_contact_target?.includes('@')
@@ -265,8 +268,27 @@ export default function PersonalizationPanel({
       ? audit.best_contact_target
       : candidateLinkedIn[0] || null;
 
+  const socialProfileTabs: Array<{ key: string; label: string; url: string | null }> = [
+    ...(targetLinkedIn || candidateSocials.length === 0
+      ? [{ key: 'linkedin', label: 'LinkedIn', url: targetLinkedIn }]
+      : []),
+    ...candidateSocials.map((s, idx) => ({
+      key: `${s.platform}-${idx}`,
+      label: socialPlatformLabel(s.platform),
+      url: s.url,
+    })),
+  ];
+  const activeSocialTab = socialProfileTabs[selectedSocialIdx] ?? socialProfileTabs[0] ?? {
+    key: 'linkedin',
+    label: 'LinkedIn',
+    url: targetLinkedIn,
+  };
+
   const targetWebsite =
-    audit?.best_channel === 'contact_form' || audit?.best_contact_target?.startsWith('http')
+    audit?.best_channel === 'contact_form' ||
+    (audit?.best_contact_target?.startsWith('http') &&
+      !audit.best_contact_target.includes('linkedin') &&
+      !candidateSocials.some((s) => s.url === audit.best_contact_target))
       ? audit.best_contact_target
       : candidateWebsites[0] || audit?.backup_route || null;
 
@@ -277,7 +299,9 @@ export default function PersonalizationPanel({
 
   const primaryChannel = audit?.best_channel || strategy?.recommended_channel || 'email';
   const normChannel = primaryChannel.toLowerCase();
-  const isLinkedInPrimary = normChannel === 'linkedin';
+  const isLinkedInPrimary =
+    normChannel === 'linkedin' ||
+    candidateSocials.some((s) => s.platform.toLowerCase() === normChannel);
   const isPhonePrimary = normChannel === 'phone';
   const isFormPrimary = normChannel === 'contact_form' || normChannel === 'website_contact_form';
   const isEmailPrimary = !isLinkedInPrimary && !isPhonePrimary && !isFormPrimary;
@@ -796,10 +820,16 @@ export default function PersonalizationPanel({
                 <span className="text-lg">💼</span>
                 <div>
                   <h4 className="text-xs font-bold uppercase tracking-wider text-cyan-200">
-                    {isPrimary ? '⭐ #1 Recommended Primary Route: LinkedIn Direct Outreach & Note' : 'Secondary / Backup Route: LinkedIn Connection Note'}
+                    {isPrimary
+                      ? `⭐ #1 Recommended Primary Route: ${activeSocialTab.label} Direct Outreach & Note`
+                      : `Secondary / Backup Route: ${activeSocialTab.label} Direct Message`}
                   </h4>
                   <p className="text-[11px] text-white/45">
-                    {isPrimary ? 'Direct personal 1-to-1 route to their verified profile, bypassing generic inboxes.' : 'Alternative direct route if email bounces or is role-based.'}
+                    {socialProfileTabs.length > 1
+                      ? 'Switch social tabs below to copy each profile link — all social channels share this concise direct message.'
+                      : isPrimary
+                        ? 'Direct personal 1-to-1 route to their verified profile, bypassing generic inboxes.'
+                        : 'Alternative direct route if email bounces or is role-based.'}
                   </p>
                 </div>
               </div>
@@ -812,38 +842,62 @@ export default function PersonalizationPanel({
                   onClick={() => copyToClipboard(linkedInMessage, 'linkedin')}
                   className="flex items-center gap-1 text-xs text-cyan-300 hover:text-cyan-200 transition font-medium"
                 >
-                  {copiedKey === 'linkedin' ? '✓ Copied Note' : '📋 Copy Connection Note'}
+                  {copiedKey === 'linkedin' ? '✓ Copied Note' : '📋 Copy Short Message'}
                 </button>
               </div>
             </div>
 
-            {/* LinkedIn Dispatch Header Bar */}
+            {socialProfileTabs.length > 1 && (
+              <div role="tablist" aria-label="Social profiles" className="flex flex-wrap gap-1.5">
+                {socialProfileTabs.map((tab, idx) => {
+                  const selected = idx === selectedSocialIdx;
+                  return (
+                    <button
+                      key={tab.key}
+                      type="button"
+                      role="tab"
+                      aria-selected={selected}
+                      onClick={() => setSelectedSocialIdx(idx)}
+                      className={`rounded-full border px-3 py-1 text-[11px] font-semibold transition ${
+                        selected
+                          ? 'border-cyan-400 bg-cyan-500/20 text-cyan-200'
+                          : 'border-white/[0.08] bg-white/[0.03] text-white/65 hover:text-white'
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Social Profile Dispatch Header Bar */}
             <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-white/[0.03] border border-white/[0.06] px-3.5 py-2 text-xs">
               <div className="flex items-center gap-2 min-w-0">
-                <span className="text-white/40 text-[11px] font-medium shrink-0">Recipient Profile:</span>
-                {targetLinkedIn ? (
-                  <span className="font-mono text-cyan-200 font-semibold truncate select-all">{targetLinkedIn}</span>
+                <span className="text-white/40 text-[11px] font-medium shrink-0">{activeSocialTab.label} Profile:</span>
+                {activeSocialTab.url ? (
+                  <span className="font-mono text-cyan-200 font-semibold truncate select-all">{activeSocialTab.url}</span>
                 ) : (
-                  <span className="text-white/40 text-[11px] italic">No direct LinkedIn profile saved</span>
+                  <span className="text-white/40 text-[11px] italic">No direct {activeSocialTab.label} profile saved</span>
                 )}
               </div>
               <div className="flex items-center gap-2 shrink-0">
-                {targetLinkedIn && (
+                {activeSocialTab.url && (
                   <>
                     <button
                       type="button"
-                      onClick={() => copyToClipboard(targetLinkedIn, 'target-linkedin')}
+                      onClick={() => copyToClipboard(activeSocialTab.url!, `target-social-${activeSocialTab.key}`)}
                       className="rounded-lg border border-white/[0.08] bg-white/[0.05] px-2.5 py-1 text-[11px] text-cyan-300 hover:bg-white/[0.1] transition font-medium"
                     >
-                      {copiedKey === 'target-linkedin' ? '✓ Link Copied' : '📋 Copy Profile Link'}
+                      {copiedKey === `target-social-${activeSocialTab.key}` ? '✓ Link Copied' : '📋 Copy Profile Link'}
                     </button>
                     <a
-                      href={targetLinkedIn}
+                      href={activeSocialTab.url}
                       target="_blank"
                       rel="noreferrer"
                       className="rounded-lg bg-blue-500/15 border border-blue-500/30 px-3 py-1 text-[11px] font-medium text-blue-200 hover:bg-blue-500/25 transition flex items-center gap-1.5 shadow-sm"
                     >
-                      <span>🔗 Open LinkedIn Profile</span>
+                      <span>🔗 Open {activeSocialTab.label} Profile</span>
                       <span className="text-[10px]">↗</span>
                     </a>
                   </>

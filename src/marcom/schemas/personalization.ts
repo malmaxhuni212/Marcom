@@ -116,12 +116,22 @@ export const RecommendedChannelSchema = z
   .string()
   .trim()
   .transform((val) => {
-    const s = val.toLowerCase().replace(/[\s_-]+/g, '');
+    const raw = val.toLowerCase().trim();
+    const s = raw.replace(/[\s_-]+/g, '');
     if (s.includes('linkedin')) return 'linkedin' as const;
     if (s.includes('phone') || s.includes('call') || s.includes('tel')) return 'phone' as const;
     if (s.includes('email') || s.includes('mail')) return 'email' as const;
     if (s.includes('form') || s.includes('website')) return 'contact_form' as const;
     if (s.includes('instagram') || s.includes('insta')) return 'instagram' as const;
+    if (s.includes('facebook') || s === 'fb') return 'facebook' as const;
+    if (s.includes('twitter') || s === 'x' || /\bx\b/.test(raw) || s.includes('xcom')) return 'x' as const;
+    if (s.includes('tiktok')) return 'tiktok' as const;
+    if (s.includes('youtube')) return 'youtube' as const;
+    if (s.includes('threads')) return 'threads' as const;
+    if (s.includes('bluesky') || s.includes('bsky')) return 'bluesky' as const;
+    if (s.includes('substack')) return 'substack' as const;
+    if (s.includes('medium')) return 'medium' as const;
+    if (s.includes('goodreads')) return 'goodreads' as const;
     return 'other' as const;
   });
 
@@ -276,5 +286,6 @@ export interface PersonalizationEntry {
     linkedin_urls: string[];
     websites: string[];
     phones: string[];
+    social_profiles?: { platform: string; url: string }[];
   };
 }

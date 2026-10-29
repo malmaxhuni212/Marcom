@@ -1,11 +1,22 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { LLMProvider } from '../../llm/provider';
-import type { SearchProvider } from '../../search/provider';
+import type { SearchProvider, SearchRequest } from '../../search/provider';
 import type { StructuredBrief } from '../../schemas/structured-brief';
+import type { PersonalizationEntry } from '../../schemas/personalization';
+import { InMemoryStore } from '../../memory/store';
 import { buildDiscoveryQuery, discoverProspectSeeds } from './discovery';
-import { buildContactQueries, isOrganisationProspect } from './agent';
+import { buildContactQueries, isOrganisationProspect, runResearchAgent } from './agent';
 import { normalizeAndQA } from './qa';
+import { resolveResearchSourcePreferences } from './source-preferences';
+import {
+  contactSummary,
+  contactsOf,
+  draftTargets,
+  messageFor,
+  primaryChannel,
+  targetForChannel,
+} from '../../../components/workspace/format';
 
 const brief: StructuredBrief = {
   structured_brief_version: '1.0',
@@ -259,4 +270,433 @@ test('normalizeAndQA keeps verified key contacts and strips unverified ones for 
   assert.equal(record.unknowns.some((u) => u.field === 'contact'), false);
   // And the invented person triggered an unverified_key_contact warning
   assert.equal(qa.issues.some((i) => i.code === 'unverified_key_contact'), true);
+});
+
+test('resolveResearchSourcePreferences maps social labels and domain filters without duplicating default LinkedIn', () => {
+  const defaultPrefs = resolveResearchSourcePreferences({
+    ...brief,
+    research: {
+      ...brief.research,
+      preferred_source_types: ['Official websites', 'LinkedIn', 'Industry directories'],
+    },
+  });
+  assert.deepEqual(defaultPrefs.extraSourceDomains, []);
+
+  const customPrefs = resolveResearchSourcePreferences({
+    ...brief,
+    research: {
+      ...brief.research,
+      preferred_source_types: ['Facebook', 'Twitter', 'Insta', 'Substack'],
+      search_settings: {
+        keywords: ['creative writers'],
+        excluded_keywords: [],
+        preferred_domains: ['https://www.goodreads.com/author/list'],
+        excluded_domains: ['https://www.spam-directory.example/path'],
+        default_result_limit: 10,
+      },
+    },
+  });
+
+  assert.deepEqual(customPrefs.excludedDomains, ['spam-directory.example']);
+  assert.deepEqual(customPrefs.preferredDomains, ['goodreads.com']);
+  assert.ok(customPrefs.extraSourceDomains.includes('facebook.com'));
+  assert.ok(customPrefs.extraSourceDomains.includes('x.com'));
+  assert.ok(customPrefs.extraSourceDomains.includes('twitter.com'));
+  assert.ok(customPrefs.extraSourceDomains.includes('instagram.com'));
+  assert.ok(customPrefs.extraSourceDomains.includes('substack.com'));
+  assert.ok(customPrefs.extraSourceDomains.includes('goodreads.com'));
+  assert.deepEqual(
+    customPrefs.requestedSocialPlatforms.sort(),
+    ['facebook', 'goodreads', 'instagram', 'substack', 'x'].sort(),
+  );
+});
+
+test('discoverProspectSeeds keeps category=people primary search and adds parallel open-web search for requested socials', async () => {
+  const recordedRequests: SearchRequest[] = [];
+  const briefWithSocials: StructuredBrief = {
+    ...brief,
+    research: {
+      ...brief.research,
+      preferred_source_types: ['LinkedIn', 'Facebook', 'Twitter', 'Instagram'],
+      search_settings: {
+        keywords: ['literary fiction'],
+        excluded_keywords: [],
+        preferred_domains: ['substack.com'],
+        excluded_domains: ['AggregatorSpam.com'],
+        default_result_limit: 10,
+      },
+    },
+  };
+
+  const recordingSearch: SearchProvider = {
+    key: 'recording-search',
+    capabilities: () => ({
+      maximumResults: 25,
+      supportsDomainFilters: true,
+      supportsCategory: true,
+    }),
+    async search(req) {
+      recordedRequests.push(req);
+      // Simulate Exa's strict rule: excludeDomains is forbidden when category is set
+      if (req.category && req.excludeDomains.length > 0) {
+        throw new Error('Exa does not support excludeDomains with the people or company category.');
+      }
+      if (req.category === 'people') {
+        return {
+          providerKey: 'recording-search',
+          providerRequestId: 'req-people',
+          query: req.query,
+          candidates: [
+            {
+              providerResultId: 'p1',
+              url: 'https://www.linkedin.com/in/maya-lin-writer',
+              title: 'Maya Lin - Author',
+              author: null,
+              publishedAt: null,
+              text: 'Maya Lin is a UK fiction writer.',
+              highlights: [],
+              score: 0.92,
+            },
+          ],
+          latencyMs: 12,
+          usage: { requests: 1, estimatedCostUsd: 0.005 },
+          warnings: [],
+        };
+      }
+      return {
+        providerKey: 'recording-search',
+        providerRequestId: 'req-open-web',
+        query: req.query,
+        candidates: [
+          {
+            providerResultId: 's1',
+            url: 'https://www.instagram.com/lena_writes_uk',
+            title: 'Lena Writes (@lena_writes_uk)',
+            author: null,
+            publishedAt: null,
+            text: 'UK novelist and essayist.',
+            highlights: [],
+            score: 0.88,
+          },
+          {
+            providerResultId: 'excluded1',
+            url: 'https://sub.aggregatorspam.com/profile/blocked',
+            title: 'Blocked Directory Entry',
+            author: null,
+            publishedAt: null,
+            text: 'Should be filtered out.',
+            highlights: [],
+            score: 0.5,
+          },
+        ],
+        latencyMs: 18,
+        usage: { requests: 1, estimatedCostUsd: 0.005 },
+        warnings: [],
+      };
+    },
+  };
+
+  let capturedSearchResultsJson = '';
+  const dualExtractorLlm: LLMProvider = {
+    name: 'dual-llm',
+    async complete(params) {
+      capturedSearchResultsJson = params.user;
+      return JSON.stringify({
+        candidates: [
+          {
+            name: 'Maya Lin',
+            organisation: null,
+            website: null,
+            source_url: 'https://www.linkedin.com/in/maya-lin-writer',
+            entity_kind: 'person',
+          },
+          {
+            name: 'Lena Writes',
+            organisation: null,
+            website: 'https://www.instagram.com/lena_writes_uk',
+            source_url: 'https://www.instagram.com/lena_writes_uk',
+            entity_kind: 'person',
+          },
+        ],
+      });
+    },
+  };
+
+  const result = await discoverProspectSeeds({
+    brief: briefWithSocials,
+    target: briefWithSocials.targets[0]!,
+    desiredCount: 5,
+    searchProvider: recordingSearch,
+    llmProvider: dualExtractorLlm,
+    iteration: 0,
+  });
+
+  assert.equal(recordedRequests.length, 2);
+  const peopleCall = recordedRequests.find((r) => r.category === 'people');
+  const openWebCall = recordedRequests.find((r) => r.category === undefined);
+  assert.ok(peopleCall);
+  assert.deepEqual(peopleCall.excludeDomains, []);
+  assert.ok(openWebCall);
+  assert.ok(openWebCall.includeDomains.includes('instagram.com'));
+  assert.ok(openWebCall.includeDomains.includes('facebook.com'));
+  assert.ok(openWebCall.includeDomains.includes('x.com'));
+  assert.ok(openWebCall.includeDomains.includes('substack.com'));
+  assert.deepEqual(openWebCall.excludeDomains, ['aggregatorspam.com']);
+
+  // Excluded domain never reaches the LLM extractor
+  assert.equal(capturedSearchResultsJson.includes('aggregatorspam.com'), false);
+  assert.equal(result.seeds.length, 2);
+  assert.deepEqual(result.requestIds, ['req-people', 'req-open-web']);
+});
+
+test('runResearchAgent searches requested social domains and QA preserves Instagram, X and Facebook links with auto-attributed sources', async () => {
+  const recordedRequests: SearchRequest[] = [];
+  const socialBrief: StructuredBrief = {
+    ...brief,
+    research: {
+      ...brief.research,
+      preferred_source_types: ['Facebook', 'Twitter', 'Instagram'],
+      search_settings: {
+        keywords: ['writers'],
+        excluded_keywords: [],
+        preferred_domains: [],
+        excluded_domains: ['blocked-site.org'],
+        default_result_limit: 10,
+      },
+    },
+  };
+
+  const socialSearchProvider: SearchProvider = {
+    key: 'social-search',
+    capabilities: () => ({
+      maximumResults: 10,
+      supportsDomainFilters: true,
+      supportsCategory: true,
+    }),
+    async search(req) {
+      recordedRequests.push(req);
+      if (req.includeDomains.length > 0) {
+        return {
+          providerKey: 'social-search',
+          providerRequestId: 'req-socials',
+          query: req.query,
+          candidates: [
+            {
+              providerResultId: 'ig-1',
+              url: 'https://www.instagram.com/clara_novelist',
+              title: 'Clara Novelist (@clara_novelist) • Instagram',
+              author: null,
+              publishedAt: null,
+              text: 'Clara Novelist — Literary author based in London.',
+              highlights: [],
+              score: 0.91,
+            },
+            {
+              providerResultId: 'x-1',
+              url: 'https://x.com/clara_novelist',
+              title: 'Clara Novelist (@clara_novelist) / X',
+              author: null,
+              publishedAt: null,
+              text: 'Clara Novelist writes fiction in London.',
+              highlights: [],
+              score: 0.89,
+            },
+            {
+              providerResultId: 'fb-1',
+              url: 'https://www.facebook.com/claranovelistauthor',
+              title: 'Clara Novelist Author | Facebook',
+              author: null,
+              publishedAt: null,
+              text: 'Official author page of Clara Novelist.',
+              highlights: [],
+              score: 0.86,
+            },
+          ],
+          latencyMs: 15,
+          usage: { requests: 1, estimatedCostUsd: 0.005 },
+          warnings: [],
+        };
+      }
+      return {
+        providerKey: 'social-search',
+        providerRequestId: 'req-main',
+        query: req.query,
+        candidates: [
+          {
+            providerResultId: 'web-1',
+            url: 'https://claranovelist.co.uk/about',
+            title: 'About Clara Novelist',
+            author: null,
+            publishedAt: null,
+            text: 'Clara Novelist is a London-based author of three novels.',
+            highlights: [],
+            score: 0.95,
+          },
+        ],
+        latencyMs: 10,
+        usage: { requests: 1, estimatedCostUsd: 0.005 },
+        warnings: [],
+      };
+    },
+  };
+
+  const analystLlm: LLMProvider = {
+    name: 'analyst-llm',
+    async complete() {
+      return JSON.stringify({
+        name: 'Clara Novelist',
+        entity_kind: 'person',
+        identity_verified: true,
+        role: 'Novelist',
+        organisation: null,
+        country: 'United Kingdom',
+        location: 'London',
+        websites: [{ url: 'https://claranovelist.co.uk/about', type: 'author', title: 'About Clara Novelist' }],
+        // Deliberately test platform normalization ('twitter') and missing source_ids + public_contact promotion!
+        social_profiles: [
+          {
+            platform: 'instagram',
+            profile_url: 'https://www.instagram.com/clara_novelist',
+            username: 'clara_novelist',
+            display_name: 'Clara Novelist',
+            verified_status: false,
+            confidence: 'verified',
+            source_ids: [],
+          },
+          {
+            platform: 'twitter',
+            profile_url: 'https://x.com/clara_novelist',
+            username: 'clara_novelist',
+            display_name: 'Clara Novelist',
+            verified_status: false,
+            confidence: 'likely',
+            source_ids: [],
+          },
+        ],
+        public_contact: [
+          {
+            kind: 'social_profile',
+            value: 'https://www.facebook.com/claranovelistauthor',
+            is_professional: true,
+            source_ids: [],
+            confidence: 'likely',
+          },
+        ],
+        key_contacts: [],
+        background: ['London-based author of three novels'],
+        work_and_projects: [],
+        achievements: [],
+        industry_activity: [],
+        criteria: [],
+        evidence: [
+          {
+            claim: 'Clara Novelist is a London-based author of three novels.',
+            field: 'role',
+            sources: ['S1'],
+            confidence: 'verified',
+            quote: 'Clara Novelist is a London-based author of three novels.',
+          },
+        ],
+        sources: [
+          {
+            id: 'S1',
+            url: 'https://claranovelist.co.uk/about',
+            title: 'About Clara Novelist',
+            type: 'official website',
+          },
+        ],
+        unknowns: [],
+        contradictions: [],
+        fit_score: 78,
+        fit_rationale: 'Verified UK novelist with active public social channels.',
+        summary: 'Clara Novelist is a London-based fiction author.',
+        confidence: 'medium',
+      });
+    },
+  };
+
+  const entry = await runResearchAgent({
+    projectId: 'proj-social',
+    brief: socialBrief,
+    seed: { name: 'Clara Novelist', entity_kind: 'person' },
+    store: new InMemoryStore({
+      lunim: [],
+      projects: [],
+      prospects: [],
+      relationships: [],
+      decisions: [],
+      learnings: [],
+    }),
+    searchProvider: socialSearchProvider,
+    llmProvider: analystLlm,
+  });
+
+  // Both main search and requested-sources search executed with excluded_domains applied
+  assert.equal(recordedRequests.length, 2);
+  assert.deepEqual(recordedRequests[0]?.excludeDomains, ['blocked-site.org']);
+  assert.ok(recordedRequests[1]?.includeDomains.includes('instagram.com'));
+  assert.ok(recordedRequests[1]?.includeDomains.includes('x.com'));
+  assert.ok(recordedRequests[1]?.includeDomains.includes('facebook.com'));
+
+  // Schema passed without errors; Instagram, X, and promoted Facebook are all preserved
+  assert.equal(entry.qa.issues.some((i) => i.code === 'schema_invalid'), false);
+  const platforms = entry.record.social_profiles.map((p) => p.platform);
+  assert.deepEqual(platforms, ['instagram', 'x', 'facebook']);
+  assert.equal(entry.record.unknowns.some((u) => u.field === 'contact'), false);
+
+  // Verify UI contact & outreach helpers expose separate tabs sharing one short DM
+  const contacts = contactsOf(entry);
+  assert.equal(contacts.extraSocials.length, 3);
+  assert.equal(contactSummary(entry), 'Instagram · X (Twitter) · Facebook · Website');
+
+  const draft: PersonalizationEntry = {
+    personalization_version: '1.0',
+    record_id: entry.record.record_id,
+    project_id: 'proj-social',
+    prospect_name: 'Clara Novelist',
+    target_type: 'writers',
+    batch_id: null,
+    batch_number: null,
+    status: 'draft',
+    strategy: null,
+    copy: {
+      subject_lines: [{ text: 'Creative writing project', style: 'direct' }],
+      email_body: 'Dear Clara,\n\nFull email pitch here.\n\nBest,\nAlex',
+      alternative_opening: null,
+      linkedin_message: 'Hi Clara, loved your London novels — would you be open to a quick note on our literary project?',
+      follow_up_body: 'Hi Clara, just following up briefly.',
+      hook_usage: 'Referenced London novels.',
+    },
+    ai_copy: null,
+    edited_by_human: false,
+    qa: null,
+    auto_revisions: 0,
+    models: { strategist: 'test', writer: 'test' },
+    timings_ms: { strategist: 1, writer: 1 },
+    generated_at: '2026-01-01T00:00:00.000Z',
+    updated_at: '2026-01-01T00:00:00.000Z',
+    reviewed_at: null,
+    reviewer_note: null,
+    error: null,
+    candidate_contacts: {
+      emails: [],
+      linkedin_urls: [],
+      websites: ['https://claranovelist.co.uk/about'],
+      phones: [],
+      social_profiles: entry.record.social_profiles.map((s) => ({ platform: s.platform, url: s.profile_url })),
+    },
+  };
+
+  const targets = draftTargets(draft, entry);
+  assert.equal(targets.extraSocials.length, 3);
+  assert.equal(primaryChannel(draft, entry), 'instagram');
+  assert.equal(targetForChannel(targets, 'instagram'), 'https://www.instagram.com/clara_novelist');
+  assert.equal(targetForChannel(targets, 'x'), 'https://x.com/clara_novelist');
+  assert.equal(targetForChannel(targets, 'facebook'), 'https://www.facebook.com/claranovelistauthor');
+
+  // Every social tab shares the same concise short message
+  const sharedDm = messageFor(draft, 'linkedin');
+  assert.equal(messageFor(draft, 'instagram'), sharedDm);
+  assert.equal(messageFor(draft, 'x'), sharedDm);
+  assert.equal(messageFor(draft, 'facebook'), sharedDm);
 });

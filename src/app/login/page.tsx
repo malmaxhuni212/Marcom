@@ -26,9 +26,15 @@ export default function LoginPage() {
         body: JSON.stringify({ username, password }),
       });
       if (!response.ok) {
-        setError(response.status === 429
-          ? 'Login is temporarily unavailable. Please wait and try again.'
-          : 'The username or password is incorrect.');
+        if (response.status === 429) {
+          setError('Login is temporarily unavailable. Please wait and try again.');
+        } else if (response.status >= 500) {
+          setError('Sign-in failed due to a server or database error. Please verify database connectivity and try again.');
+        } else if (response.status === 403) {
+          setError('Sign-in request was rejected because the browser origin does not match APP_ORIGIN.');
+        } else {
+          setError('The username or password is incorrect.');
+        }
         return;
       }
       router.replace(safeReturnTo(searchParams.get('returnTo')));

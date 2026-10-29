@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { authenticatedFetch } from '@/auth/client';
 import type { ResearchEntry, ReviewStatus } from '@/marcom/schemas/research-record';
 import { CloseButton, Dialog, Icon, btnPrimary, btnSecondary, serif } from './ui';
-import { contactsOf, hostOf, longDate, plural, sourceUsage, targetFor, verificationOf } from './format';
+import { contactsOf, formatProfileDisplay, hostOf, longDate, plural, sourceUsage, targetFor, verificationOf } from './format';
 import type { StructuredBrief } from '@/marcom/schemas/structured-brief';
 
 /** Saves one human review decision (approve / reject / more research / restore). */
@@ -227,18 +227,29 @@ export function ContactRows({ entry, compact = false }: { entry: ResearchEntry; 
       abbr: 'in',
       label: contacts.linkedinOwner ? `LinkedIn · ${contacts.linkedinOwner}` : 'LinkedIn',
       value: contacts.linkedin,
+      display: contacts.linkedin ? formatProfileDisplay(contacts.linkedin) : null,
       href: contacts.linkedin,
       missing: 'LinkedIn not found',
     },
+    ...contacts.extraSocials.map((social, idx) => ({
+      key: `social-${social.platform}-${idx}`,
+      abbr: social.abbr,
+      label: social.label,
+      value: social.url,
+      display: social.display,
+      href: social.url,
+      missing: `${social.label} not found`,
+    })),
     {
       key: 'website',
       abbr: 'www',
       label: contacts.contactForm ? 'Website · contact form found' : 'Website',
       value: contacts.contactForm || contacts.website,
+      display: contacts.contactForm || contacts.website ? hostOf((contacts.contactForm || contacts.website)!) : null,
       href: contacts.contactForm || contacts.website,
       missing: 'Website not found',
     },
-    { key: 'phone', abbr: 'tel', label: 'Phone', value: contacts.phone, href: null, missing: 'Phone not found' },
+    { key: 'phone', abbr: 'tel', label: 'Phone', value: contacts.phone, display: contacts.phone, href: null, missing: 'Phone not found' },
   ];
   return (
     <div className="flex flex-col gap-3">
@@ -250,7 +261,7 @@ export function ContactRows({ entry, compact = false }: { entry: ResearchEntry; 
               {row.value ? (
                 row.href ? (
                   <a href={row.href} target={row.href.startsWith('mailto:') ? undefined : '_blank'} rel="noreferrer" className="truncate text-sm text-[#5ED3DF] no-underline hover:underline">
-                    {row.key === 'email' ? row.value : hostOf(row.value)}
+                    {row.key === 'email' ? row.value : (row.display ?? hostOf(row.value))}
                   </a>
                 ) : (
                   <span className="truncate text-sm text-[#5ED3DF]">{row.value}</span>

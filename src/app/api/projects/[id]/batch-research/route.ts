@@ -10,11 +10,12 @@ import {
 import {
   getResearchJobStatus,
   markResearchJobDispatchFailed,
+  reconcileStaleResearchJob,
   requestResearchJobCancellation,
 } from '@/db/repositories/research-job-repository';
 import { runQueuedResearchJob } from '@/marcom/research/job-runner';
 import { safeResearchLog } from '@/marcom/research/safe-error';
-import { signResearchJob } from '@/marcom/research/worker-auth';
+import { dispatchNetlifyResearchWorker } from '@/marcom/research/worker-dispatch';
 import { readSearchConfiguration, resolveSearchProvider } from '@/marcom/search/registry';
 import { isDatabaseConfigured } from '@/db/env';
 import { JsonFileMemoryStore } from '@/marcom/memory/store';
@@ -47,30 +48,24 @@ interface LocalBatchTask {
 const localTasks = ((globalThis as unknown as { __marcomLocalBatchTasks?: Map<string, LocalBatchTask> })
   .__marcomLocalBatchTasks ??= new Map<string, LocalBatchTask>());
 
+async function runLocalWorkerLoop(jobId: string): Promise<void> {
+  try {
+    while ((await runQueuedResearchJob(jobId)).status === 'continue') {
+      // Process chained micro-batches sequentially in local dev/server runtime.
+    }
+  } catch (error) {
+    safeResearchLog('research.local_worker.crashed', error);
+  }
+}
+
 async function dispatchResearchJob(request: Request, jobId: string): Promise<void> {
   if (process.env.NETLIFY === 'true') {
-    const endpoint = new URL('/.netlify/functions/research-worker-background', request.url);
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Marcom-Job-Signature': signResearchJob(jobId),
-      },
-      body: JSON.stringify({ jobId }),
-      cache: 'no-store',
-    });
-    if (!response.ok) {
-      throw new Error(`Research worker dispatch failed with status ${response.status}.`);
-    }
+    await dispatchNetlifyResearchWorker(jobId, request.url);
     return;
   }
 
   after(async () => {
-    try {
-      await runQueuedResearchJob(jobId);
-    } catch (error) {
-      safeResearchLog('research.local_worker.crashed', error);
-    }
+    await runLocalWorkerLoop(jobId);
   });
 }
 
@@ -143,7 +138,13 @@ export async function POST(request: Request, { params }: RouteContext) {
           return;
         }
 
-        const llmProvider = new GroqProvider();
+        const llmProvider = new GroqProvider({
+          onWait: (seconds) => {
+            if (!task.cancelled) {
+              task.message = `Waiting ${seconds}s for AI rate-limit window (${task.completed} of ${count} saved)…`;
+            }
+          },
+        });
         const searchProvider = resolveSearchProvider(searchConfig, llmProvider);
 
         let consecutiveEmpty = 0;
@@ -197,13 +198,14 @@ export async function POST(request: Request, { params }: RouteContext) {
                 searchProvider,
                 llmProvider,
               });
+              if (task.cancelled) break;
               saveFileResearch(campaignId, {
                 ...entry,
                 batch_id: batchInfo.batch_id,
                 batch_number: batchInfo.batch_number,
               });
               task.completed++;
-              task.message = `Saved ${task.completed} of ${count} prospects.`;
+              task.message = `Saved ${task.completed} of ${count} prospects (${entry.record.identity.name ?? seed.name}).`;
             } catch (agentError) {
               task.failed++;
               console.error('Candidate research error:', agentError);
@@ -213,7 +215,9 @@ export async function POST(request: Request, { params }: RouteContext) {
 
         if (task.cancelled) {
           task.status = 'cancelled';
-          task.message = 'Research was cancelled.';
+          task.message = task.completed > 0
+            ? `Research stopped. Saved ${task.completed} of ${count} prospects.`
+            : 'Research was cancelled.';
         } else {
           task.status =
             task.failed > 0 && task.completed === 0
@@ -314,6 +318,21 @@ export async function GET(request: Request, { params }: RouteContext) {
   }
 
   try {
+    const recovery = await reconcileStaleResearchJob(access.actor, campaignId, taskId);
+    if (recovery.needsDispatch) {
+      if (process.env.NETLIFY === 'true') {
+        after(async () => {
+          await dispatchNetlifyResearchWorker(taskId, request.url).catch((error) => {
+            safeResearchLog('research.poll_recovery_dispatch.failed', error);
+          });
+        });
+      } else {
+        after(async () => {
+          await runLocalWorkerLoop(taskId);
+        });
+      }
+    }
+
     const task = await getResearchJobStatus(access.actor, campaignId, taskId);
     return task
       ? NextResponse.json(task)
@@ -338,16 +357,25 @@ export async function DELETE(request: Request, { params }: RouteContext) {
     if (task) {
       task.cancelled = true;
       task.status = 'cancelled';
-      return NextResponse.json({ success: true });
+      task.message = task.completed > 0
+        ? `Research stopped. Saved ${task.completed} of ${task.total} prospects.`
+        : 'Research was cancelled.';
+      return NextResponse.json({ success: true, status: 'cancelled', message: task.message });
     }
     return NextResponse.json({ error: 'Task not found' }, { status: 404 });
   }
 
   try {
     const found = await requestResearchJobCancellation(access.actor, campaignId, taskId);
-    return found
-      ? NextResponse.json({ success: true })
-      : NextResponse.json({ error: 'Task not found' }, { status: 404 });
+    if (!found) {
+      return NextResponse.json({ error: 'Task not found' }, { status: 404 });
+    }
+    const status = await getResearchJobStatus(access.actor, campaignId, taskId);
+    return NextResponse.json({
+      success: true,
+      status: status?.status ?? 'cancelled',
+      message: status?.message ?? 'Research was cancelled.',
+    });
   } catch (error) {
     safeResearchLog('research.cancel.failed', error);
     return NextResponse.json({ error: 'Cancellation could not be recorded.' }, { status: 503 });

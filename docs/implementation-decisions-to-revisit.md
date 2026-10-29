@@ -8,22 +8,26 @@ This note records parts of the current prototype that work but need another desi
 
 When automatic discovery is used, the system performs:
 
-1. one broad Exa search to discover possible prospects;
+1. one broad Exa search (plus targeted social-domain search when non-LinkedIn platforms are configured) to discover possible prospects;
 2. Groq selects supported prospects from those search results;
 3. a second, focused Exa search runs for every selected prospect;
 4. Groq converts the focused search evidence into a research record.
 
-For example, requesting ten prospects can produce one discovery search followed by up to ten focused research searches.
+For example, requesting ten prospects can produce one discovery pass followed by up to ten focused research passes.
 
-### What needs to be revisited
+### Progress update (`08d2aa1`)
 
-- Decide whether every selected prospect always requires a second Exa search.
-- Determine when evidence from the discovery search can be reused safely.
+- **Addressed**:
+  - Per-prospect evidence is bounded to `8,000` characters (`TOTAL_EVIDENCE_MAX_CHARS`) and individual Groq HTTP requests enforce a `45s` timeout (`AbortSignal.timeout(45_000)`) with automatic `HTTP 413` prompt shrinking.
+  - Batch execution now runs as server-chained micro-batches (`3` prospects / `90s` per serverless hop) with `pendingSeeds` persisted in PostgreSQL (`jobs.progress`) so batches up to 50 resume without repeating completed discoveries or duplicating prospects.
+  - Partial results are preserved cleanly (`completed_with_errors` / instant `Stop` cancellation) and streamed one-by-one into the UI as each prospect finishes.
+
+### What still needs to be revisited
+
+- Decide whether every selected prospect always requires a second Exa search, or when rich evidence from `discoverProspectSeeds()` can be reused safely.
 - Define the minimum evidence required before focused research can be skipped.
-- Set per-prospect source limits, query limits, timeout behaviour, and cost limits.
-- Decide how partial results should be handled when some prospect searches fail.
-- Confirm how progress, provider usage, and estimated cost should be presented to the user.
-- Ensure batch research remains bounded and can be resumed without duplicating searches or prospects.
+- Surface provider usage and estimated search/LLM cost per batch to the user if required.
+- Benchmark rate-limit/latency improvements (`reasoningEffort: 'low'`, cross-model `429` failover, or Groq Pay-As-You-Go + `2–3×` intra-batch concurrency) against baseline `08d2aa1` QA accuracy.
 
 ### Desired outcome
 

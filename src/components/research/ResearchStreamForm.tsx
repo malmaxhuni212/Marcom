@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import PrimaryButton from '@/components/ui/PrimaryButton';
 import type { Target } from '@/marcom/schemas/structured-brief';
 import type { ResearchEntry } from '@/marcom/schemas/research-record';
@@ -34,6 +34,17 @@ export default function ResearchStreamForm({
   const [progressMsg, setProgressMsg] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const lastCompletedRef = useRef(0);
+
+  const clearPoll = () => {
+    if (pollRef.current !== null) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
+  };
+
+  useEffect(() => () => clearPoll(), []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,12 +70,17 @@ export default function ResearchStreamForm({
         if (!res.ok) throw new Error(data.error);
 
         const taskId = data.taskId;
+        clearPoll();
+        lastCompletedRef.current = 0;
         setActiveTaskId(taskId);
-        const interval = setInterval(async () => {
+        let pollInFlight = false;
+        pollRef.current = setInterval(async () => {
+          if (pollInFlight) return;
+          pollInFlight = true;
           try {
             const statusRes = await authenticatedFetch(`/api/projects/${projectId}/batch-research?taskId=${taskId}`);
             if (statusRes.status === 404) {
-              clearInterval(interval);
+              clearPoll();
               setIsStreaming(false);
               setProgressStage('');
               setActiveTaskId(null);
@@ -74,28 +90,44 @@ export default function ResearchStreamForm({
             }
             if (!statusRes.ok) return;
             const statusData = await statusRes.json();
-            setProgressMsg(statusData.message || `Saved ${statusData.completed} of ${statusData.total} prospects.`);
-          if (['completed', 'completed_with_errors', 'error', 'cancelled'].includes(statusData.status)) {
-            clearInterval(interval);
-            setIsStreaming(false);
-            setProgressStage('');
-            setActiveTaskId(null);
-            setProgressMsg('');
-            if (statusData.status === 'error') {
-              setError(statusData.message || 'Research failed.');
-            } else if (statusData.status === 'cancelled') {
-              setError(statusData.message || 'Research was cancelled.');
-            } else {
+            const completedNow = typeof statusData.completed === 'number' ? statusData.completed : 0;
+            setProgressMsg(statusData.message || `Saved ${completedNow} of ${statusData.total} prospects.`);
+            if (['completed', 'completed_with_errors', 'error', 'cancelled'].includes(statusData.status)) {
+              clearPoll();
+              setIsStreaming(false);
+              setProgressStage('');
+              setActiveTaskId(null);
+              setProgressMsg('');
+              if (statusData.status === 'error') {
+                setError(statusData.message || 'Research failed.');
+              } else if (statusData.status === 'cancelled') {
+                if (completedNow > 0) {
+                  onComplete({
+                    status: 'completed_with_errors',
+                    message: statusData.message || `Research stopped with ${completedNow} saved prospects.`,
+                  });
+                } else {
+                  setError(statusData.message || 'Research was cancelled.');
+                }
+              } else {
+                onComplete({
+                  status: statusData.status,
+                  message: statusData.message || `Research finished with ${completedNow} saved prospects.`,
+                });
+              }
+            } else if (completedNow > lastCompletedRef.current) {
+              lastCompletedRef.current = completedNow;
               onComplete({
-                status: statusData.status,
-                message: statusData.message || `Research finished with ${statusData.completed ?? 0} saved prospects.`,
+                status: 'completed',
+                message: statusData.message || `Saved ${completedNow} of ${statusData.total} prospects.`,
               });
             }
-          }
           } catch (intervalErr) {
             console.error('Polling error', intervalErr);
+          } finally {
+            pollInFlight = false;
           }
-        }, 5000);
+        }, 2500);
       } catch (err) {
         setError((err as Error).message);
         setIsStreaming(false);
@@ -180,11 +212,30 @@ export default function ResearchStreamForm({
 
   const handleStop = async () => {
     if (!activeTaskId) return;
+    const taskId = activeTaskId;
+    clearPoll();
+    setProgressMsg('Stopping...');
     try {
-      await authenticatedFetch(`/api/projects/${projectId}/batch-research?taskId=${activeTaskId}`, { method: 'DELETE' });
-      setProgressMsg('Stopping...');
+      const res = await authenticatedFetch(`/api/projects/${projectId}/batch-research?taskId=${taskId}`, { method: 'DELETE' });
+      const data = await res.json().catch(() => ({}));
+      setIsStreaming(false);
+      setProgressStage('');
+      setActiveTaskId(null);
+      setProgressMsg('');
+      if (lastCompletedRef.current > 0) {
+        onComplete({
+          status: 'completed_with_errors',
+          message: data.message || `Research stopped with ${lastCompletedRef.current} saved prospects.`,
+        });
+      } else {
+        setError(data.message || 'Research was cancelled.');
+      }
     } catch (e) {
       console.error(e);
+      setIsStreaming(false);
+      setProgressStage('');
+      setActiveTaskId(null);
+      setProgressMsg('');
     }
   };
 

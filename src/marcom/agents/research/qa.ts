@@ -24,9 +24,12 @@ import {
   type ResearchQA,
   type ResearchQAIssue,
   type ResearchRecord,
+  type SocialProfile,
   type Source,
+  type Website,
 } from '../../schemas/research-record';
 import type { SeenSource } from '../../search/provider';
+import { inferSocialPlatform, isSocialProfileUrl } from './source-preferences';
 
 export const RESEARCH_AGENT_VERSION = 'research-agent/0.1.0';
 
@@ -82,6 +85,8 @@ const GENERIC_ORGANISATION_WORDS = new Set([
   'international', 'national', 'global', 'services', 'solutions', 'partners', 'network', 'organisation', 'organization',
 ]);
 
+const WEBSITE_TYPES = ['personal', 'company', 'author', 'portfolio', 'project', 'official_profile', 'other'] as const;
+
 export function fitBand(score: number): FitAssessment['band'] {
   if (score <= 20) return 'irrelevant';
   if (score <= 40) return 'weak';
@@ -130,6 +135,35 @@ export function normalizeAndQA(raw: unknown, ctx: NormalizeContext): { record: R
 
   const keepIds = (v: unknown): string[] => strArr(v).filter((id) => keptIds.has(id));
 
+  const ensureSourceForPageUrl = (pageUrl: string, title: string | null = null): Source => {
+    const targetCanon = canonicalUrl(pageUrl);
+    let src = sources.find((s) => canonicalUrl(s.url) === targetCanon);
+    if (!src) {
+      src = { id: `S${sources.length + 1}-auto`, url: pageUrl, title, source_type: 'other', retrieved_at: now };
+      sources.push(src);
+      keptIds.add(src.id);
+      sourceTypeById.set(src.id, 'other');
+    }
+    return src;
+  };
+
+  const attributeUrlToSources = (url: string): string[] => {
+    const targetCanon = canonicalUrl(url);
+    const directSource = sources.find((s) => canonicalUrl(s.url) === targetCanon);
+    if (directSource) return [directSource.id];
+
+    const directPage = ctx.pages.find((p) => canonicalUrl(p.url) === targetCanon);
+    if (directPage) return [ensureSourceForPageUrl(directPage.url).id];
+
+    const seenItem = ctx.seen.find((s) => canonicalUrl(s.url) === targetCanon);
+    if (seenItem) return [ensureSourceForPageUrl(seenItem.url, seenItem.title).id];
+
+    const mentioningPage = ctx.pages.find((p) => p.text.toLowerCase().includes(targetCanon));
+    if (mentioningPage) return [ensureSourceForPageUrl(mentioningPage.url).id];
+
+    return [];
+  };
+
   // ---------- evidence ----------
   const evidence: Evidence[] = [];
   for (const e of Array.isArray(d.evidence) ? d.evidence : []) {
@@ -149,11 +183,33 @@ export function normalizeAndQA(raw: unknown, ctx: NormalizeContext): { record: R
 
   // ---------- contacts (verbatim check) ----------
   const contacts: PublicContact[] = [];
+  const promotedSocialRaw: Record<string, unknown>[] = [];
   const kinds = ['email', 'contact_form', 'phone', 'agent_or_representative', 'other'] as const;
   const rawContacts = Array.isArray(d.public_contact) ? d.public_contact : Array.isArray(d.contacts) ? d.contacts : [];
   for (const c of rawContacts) {
     const value = str(c?.value);
     if (!value) continue;
+    const rawKind = String(c?.kind ?? '').toLowerCase().trim();
+    const isSocialContact =
+      rawKind === 'social_profile' ||
+      (oneOf(c?.kind, kinds, 'other') === 'other' &&
+        (/^https?:\/\//i.test(value) || /\.[a-z]{2,}\//i.test(value)) &&
+        isSocialProfileUrl(value));
+    if (isSocialContact) {
+      const normalizedUrl = /^https?:\/\//i.test(value) ? value : `https://${value}`;
+      if (wasSeen(normalizedUrl)) {
+        promotedSocialRaw.push({
+          platform: str(c?.platform),
+          profile_url: normalizedUrl,
+          confidence: c?.confidence,
+          source_ids: c?.source ? [c.source] : c?.sources ?? c?.source_ids,
+        });
+      } else {
+        issue('warning', 'unverified_url', `Removed social "${value}" - not returned by web search.`);
+      }
+      continue;
+    }
+
     const kind = oneOf(c?.kind, kinds, 'other');
     const ids = keepIds(c?.source ? [c.source] : c?.sources ?? c?.source_ids);
     let verbatim: boolean;
@@ -180,13 +236,7 @@ export function normalizeAndQA(raw: unknown, ctx: NormalizeContext): { record: R
         issue('warning', 'unattributed_contact', `Removed ${kind} "${value}" — could not attribute it to a specific page.`);
         continue;
       }
-      let src = sources.find((s) => canonicalUrl(s.url) === canonicalUrl(page.url));
-      if (!src) {
-        src = { id: `S${sources.length + 1}-auto`, url: page.url, title: null, source_type: 'other', retrieved_at: now };
-        sources.push(src);
-        keptIds.add(src.id);
-        sourceTypeById.set(src.id, 'other');
-      }
+      const src = ensureSourceForPageUrl(page.url);
       issue('info', 'contact_source_fixed', `Contact "${value}" re-attributed to ${page.url}.`);
       contacts.push({ kind, value, is_professional: c?.is_professional !== false, source_ids: [src.id], confidence: 'uncertain' });
       continue;
@@ -199,26 +249,66 @@ export function normalizeAndQA(raw: unknown, ctx: NormalizeContext): { record: R
     const url = str(v);
     if (!url) return null;
     if (wasSeen(url)) return url;
-    issue("warning", "unverified_url", `Removed ${field} "${url}" - not returned by web search.`);
-    addUnknown(field, "URL could not be verified from search results.");
+    issue('warning', 'unverified_url', `Removed ${field} "${url}" - not returned by web search.`);
+    addUnknown(field, 'URL could not be verified from search results.');
     return null;
   };
-  const websites = (Array.isArray(d.websites) ? d.websites : [])
-    .map(w => ({ url: checkUrl("website", w?.url), type: (str(w?.type) || "personal"), title: str(w?.title) }))
-    .filter(w => w.url);
-  if (!websites.length) addUnknown("website", "No official website verified.");
 
-  const social_profiles = (Array.isArray(d.social_profiles) ? d.social_profiles : [])
-    .map(s => ({
-      platform: (str(s?.platform) || "linkedin"),
-      profile_url: checkUrl("social", s?.profile_url),
+  const websites: Website[] = [];
+  for (const w of Array.isArray(d.websites) ? d.websites : []) {
+    const url = checkUrl('website', w?.url);
+    if (!url) continue;
+    websites.push({
+      url,
+      type: oneOf(w?.type, WEBSITE_TYPES, 'personal'),
+      title: str(w?.title),
+    });
+    if (isSocialProfileUrl(url)) {
+      promotedSocialRaw.push({
+        platform: null,
+        profile_url: url,
+        confidence: 'likely',
+        source_ids: w?.source_ids ?? w?.sources,
+      });
+    }
+  }
+  if (!websites.length) addUnknown('website', 'No official website verified.');
+
+  const social_profiles: SocialProfile[] = [];
+  const seenSocialUrls = new Set<string>();
+  const combinedRawSocials = [
+    ...(Array.isArray(d.social_profiles) ? d.social_profiles : []),
+    ...promotedSocialRaw,
+  ];
+  for (const s of combinedRawSocials) {
+    const profileUrl = checkUrl('social', s?.profile_url ?? s?.url);
+    if (!profileUrl) continue;
+    const canon = canonicalUrl(profileUrl);
+    if (seenSocialUrls.has(canon)) continue;
+
+    let ids = keepIds(s?.source_ids ?? s?.sources ?? (s?.source ? [s.source] : []));
+    if (!ids.length) {
+      ids = attributeUrlToSources(profileUrl);
+      if (ids.length) {
+        issue('info', 'social_source_fixed', `Social profile "${profileUrl}" attributed to verified source.`);
+      }
+    }
+    if (!ids.length) {
+      issue('warning', 'unattributed_social', `Removed social profile "${profileUrl}" — could not attribute it to a verified source.`);
+      continue;
+    }
+
+    seenSocialUrls.add(canon);
+    social_profiles.push({
+      platform: inferSocialPlatform(profileUrl, str(s?.platform)),
+      profile_url: profileUrl,
       username: str(s?.username) || null,
       display_name: str(s?.display_name) || null,
-      verified_status: typeof s?.verified_status === "boolean" ? s.verified_status : false,
+      verified_status: typeof s?.verified_status === 'boolean' ? s.verified_status : false,
       confidence: conf(s?.confidence),
-      source_ids: keepIds(s?.source_ids)
-    }))
-    .filter(s => s.profile_url);
+      source_ids: ids,
+    });
+  }
 
   // ---------- key contacts (people inside an organisation who handle this kind of request) ----------
   const key_contacts: KeyContact[] = [];
@@ -265,13 +355,7 @@ export function normalizeAndQA(raw: unknown, ctx: NormalizeContext): { record: R
       const page = ctx.pages.find((p) => p.text.toLowerCase().includes(needle))
         ?? (linkedinUrl ? ctx.pages.find((p) => canonicalUrl(p.url) === canonicalUrl(linkedinUrl!)) : undefined);
       if (!page) continue;
-      let src = sources.find((s) => canonicalUrl(s.url) === canonicalUrl(page.url));
-      if (!src) {
-        src = { id: `S${sources.length + 1}-auto`, url: page.url, title: null, source_type: 'other', retrieved_at: now };
-        sources.push(src);
-        keptIds.add(src.id);
-        sourceTypeById.set(src.id, 'other');
-      }
+      const src = ensureSourceForPageUrl(page.url);
       ids = [src.id];
     }
 
@@ -299,7 +383,7 @@ export function normalizeAndQA(raw: unknown, ctx: NormalizeContext): { record: R
       confidence,
     });
   }
-  if (!contacts.length && !key_contacts.some((k) => k.email || k.phone || k.linkedin_url)) {
+  if (!contacts.length && !social_profiles.length && !key_contacts.some((k) => k.email || k.phone || k.linkedin_url)) {
     addUnknown('contact', 'No legitimate public contact route was verified.');
   }
 
@@ -372,6 +456,9 @@ export function normalizeAndQA(raw: unknown, ctx: NormalizeContext): { record: R
     issue('error', 'no_sources', 'No verifiable sources were found. Nothing in this record is confirmed.');
   }
 
+  const cleanList = (arr: unknown): string[] =>
+    Array.isArray(arr) ? arr.map((x) => String(x ?? '').trim()).filter(Boolean) : [];
+
   const record: ResearchRecord = {
     research_record_version: RESEARCH_RECORD_VERSION,
     record_id: `r-${normalizeName(name).replace(/\s+/g, '-').slice(0, 40) || 'prospect'}-${Date.now().toString(36)}`,
@@ -383,14 +470,14 @@ export function normalizeAndQA(raw: unknown, ctx: NormalizeContext): { record: R
     organisation: str(d.organisation),
     country: str(d.country),
     location: str(d.location),
-    websites: websites as any,
-    social_profiles: social_profiles as any,
+    websites,
+    social_profiles,
     public_contact: contacts,
     key_contacts,
-    background: Array.isArray(d.background) ? d.background.map(String) : [],
-    work_and_projects: Array.isArray(d.work_and_projects) ? d.work_and_projects.map(String) : [],
-    achievements: Array.isArray(d.achievements) ? d.achievements.map(String) : [],
-    industry_activity: Array.isArray(d.industry_activity) ? d.industry_activity.map(String) : [],
+    background: cleanList(d.background),
+    work_and_projects: cleanList(d.work_and_projects),
+    achievements: cleanList(d.achievements),
+    industry_activity: cleanList(d.industry_activity),
     qualification_assessment: criteria,
     reason_for_relevance: rationale,
     fit: { score, band: fitBand(score), rationale },
@@ -420,5 +507,3 @@ export function normalizeAndQA(raw: unknown, ctx: NormalizeContext): { record: R
 }
 
 export { hostOf };
-
-
