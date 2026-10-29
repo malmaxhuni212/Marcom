@@ -206,7 +206,10 @@ export function buildContactQueries(seed: ProspectSeed, roles: string[]): { team
 interface EvidenceGroup {
   candidates: SearchCandidate[];
   maximumCharacters: number;
+  perCandidateCharacters?: number;
 }
+
+const TOTAL_EVIDENCE_MAX_CHARS = 8_000;
 
 function isExcludedDomainUrl(url: string, excludedDomains: string[]): boolean {
   if (!excludedDomains.length) return false;
@@ -218,6 +221,7 @@ function isExcludedDomainUrl(url: string, excludedDomains: string[]): boolean {
 function buildEvidence(
   groups: EvidenceGroup[],
   excludedDomains: string[] = [],
+  maxTotalCharacters: number = TOTAL_EVIDENCE_MAX_CHARS,
 ): {
   bundle: string;
   seen: SeenSource[];
@@ -229,27 +233,34 @@ function buildEvidence(
   const pages: { url: string; text: string }[] = [];
   const sections: string[] = [];
   let sourceNumber = 0;
+  let totalUsedCharacters = 0;
 
   for (const group of groups) {
+    if (totalUsedCharacters >= maxTotalCharacters) break;
     let usedCharacters = 0;
+    const perItemCap = group.perCandidateCharacters ?? 2_200;
     for (const candidate of group.candidates) {
-      if (usedCharacters >= group.maximumCharacters) break;
+      if (usedCharacters >= group.maximumCharacters || totalUsedCharacters >= maxTotalCharacters) break;
       if (isExcludedDomainUrl(candidate.url, excludedDomains)) continue;
       const key = canonicalUrl(candidate.url);
       if (used.has(key)) continue;
       used.add(key);
       sourceNumber += 1;
-      const text = [candidate.highlights.join('\n'), candidate.text].filter(Boolean).join('\n').slice(0, 2_200);
+      const text = [candidate.highlights.join('\n'), candidate.text].filter(Boolean).join('\n').slice(0, perItemCap);
       const source = [
         `SOURCE ID: S${sourceNumber}`,
         `URL: ${candidate.url}`,
         `TITLE: ${candidate.title}`,
         `CONTENT: ${text || '(No page text returned. Use only the title and URL.)'}`,
       ].join('\n');
-      const remaining = group.maximumCharacters - usedCharacters;
+      const remaining = Math.min(
+        group.maximumCharacters - usedCharacters,
+        maxTotalCharacters - totalUsedCharacters,
+      );
       const clipped = source.slice(0, remaining);
       sections.push(clipped);
       usedCharacters += clipped.length;
+      totalUsedCharacters += clipped.length;
       seen.push({ url: candidate.url, title: candidate.title, via: text ? 'page' : 'search' });
       pages.push({ url: candidate.url, text: `${candidate.title}\n${text}` });
     }
@@ -367,14 +378,25 @@ export async function runResearchAgent(input: RunResearchInput): Promise<Researc
 
   const extraSourceCandidates = extraSourceSearches.flatMap((response) => response.candidates);
   const contactCandidates = contactSearches.flatMap((response) => response.candidates);
+  const hasContacts = contactCandidates.length > 0;
+  const hasExtra = extraSourceCandidates.length > 0;
   const evidence = buildEvidence(
     [
       {
         candidates: search.candidates,
-        maximumCharacters: contactCandidates.length ? 6_500 : extraSourceCandidates.length ? 7_000 : 8_000,
+        maximumCharacters: hasContacts && hasExtra ? 4_000 : hasContacts ? 5_200 : hasExtra ? 6_000 : 8_000,
+        perCandidateCharacters: hasContacts || hasExtra ? 1_800 : 2_200,
       },
-      { candidates: extraSourceCandidates, maximumCharacters: 3_500 },
-      { candidates: contactCandidates, maximumCharacters: 5_000 },
+      {
+        candidates: extraSourceCandidates,
+        maximumCharacters: 1_800,
+        perCandidateCharacters: 750,
+      },
+      {
+        candidates: contactCandidates,
+        maximumCharacters: 2_800,
+        perCandidateCharacters: 1_100,
+      },
     ],
     sourcePrefs.excludedDomains,
   );
@@ -394,8 +416,8 @@ export async function runResearchAgent(input: RunResearchInput): Promise<Researc
     progress('validating', 'Repairing the research structure');
     const text = await llmProvider.complete({
       system: NORMALIZER_SYSTEM,
-      user: `INVALID OUTPUT:\n${rawCompletion.slice(0, 10_000)}\n\nSUPPLIED EVIDENCE:\n${evidence.bundle.slice(0, 12_000)}`,
-      maxTokens: 2_500,
+      user: `INVALID OUTPUT:\n${rawCompletion.slice(0, 4_500)}\n\nSUPPLIED EVIDENCE:\n${evidence.bundle.slice(0, 6_000)}`,
+      maxTokens: 2_200,
     });
     draft = extractJson(text);
   }

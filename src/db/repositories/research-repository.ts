@@ -480,8 +480,8 @@ export async function saveResearch(
   researchRunId: string,
   entry: ResearchEntry,
   database: MarcomDatabase = getDatabase(),
-): Promise<void> {
-  await database.transaction(async (transaction) => {
+): Promise<boolean> {
+  return database.transaction(async (transaction) => {
     const campaign = await requireCampaign(actor, campaignId, transaction);
     const [run] = await transaction
       .select({ run: researchRuns, job: jobs })
@@ -490,6 +490,15 @@ export async function saveResearch(
       .where(and(eq(researchRuns.id, researchRunId), eq(researchRuns.campaignId, campaignId), eq(jobs.workspaceId, actor.workspaceId)))
       .limit(1);
     if (!run) throw new Error('Research run not found.');
+    const [lockedJob] = await transaction
+      .select({ status: jobs.status, cancelRequestedAt: jobs.cancelRequestedAt })
+      .from(jobs)
+      .where(eq(jobs.id, run.job.id))
+      .for('update')
+      .limit(1);
+    if (!lockedJob || lockedJob.status === 'cancelled' || lockedJob.cancelRequestedAt) {
+      return false;
+    }
 
     const prospect = await prospectForEntry(actor, entry, transaction);
     const now = new Date();
@@ -774,6 +783,7 @@ export async function saveResearch(
       .update(jobs)
       .set({ progress: sql`jsonb_set(${jobs.progress}, '{completed}', to_jsonb(coalesce((${jobs.progress}->>'completed')::int, 0) + 1))`, updatedAt: now })
       .where(eq(jobs.id, run.job.id));
+    return true;
   });
 }
 

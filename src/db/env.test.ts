@@ -71,6 +71,20 @@ test('uses the branch-aware Netlify runtime connection when deployed', () => {
   assert.equal(result, 'postgresql://runtime.example.test/marcom?sslmode=verify-full');
 });
 
+test('falls back to explicit DATABASE_URL on Netlify when Netlify DB addon is absent', () => {
+  const result = getApplicationDatabaseUrl(
+    {
+      NETLIFY: 'true',
+      DATABASE_URL: 'postgresql://neon.example.test/marcom?sslmode=require',
+    },
+    () => {
+      throw new Error('Netlify database integration is not provisioned.');
+    },
+  );
+
+  assert.equal(result, 'postgresql://neon.example.test/marcom?sslmode=verify-full');
+});
+
 test('does not ask Netlify for a connection outside its runtime', () => {
   const result = getApplicationDatabaseUrl(
     { DATABASE_URL: 'postgresql://local.example.test/marcom' },

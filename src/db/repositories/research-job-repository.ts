@@ -12,6 +12,7 @@ import {
 import {
   readResearchJobProgress,
   ResearchJobPayloadSchema,
+  stripResearchJobCursor,
   toPublicResearchJobStatus,
   type ResearchJobProgress,
 } from '@/marcom/research/job-contract';
@@ -19,6 +20,7 @@ import {
   canRetryResearchJob,
   RESEARCH_JOB_LEASE_MS,
   researchRetryDelayMs,
+  STALE_QUEUED_JOB_RECOVERY_MS,
 } from '@/marcom/research/job-policy';
 import type { SafeResearchFailure } from '@/marcom/research/safe-error';
 import type { ProspectSeed } from '@/marcom/schemas/research-record';
@@ -95,6 +97,76 @@ export async function getResearchJobStatus(
   };
 }
 
+export async function reconcileStaleResearchJob(
+  actor: ActorContext,
+  campaignId: string,
+  jobId: string,
+  database: MarcomDatabase = getDatabase(),
+): Promise<{ needsDispatch: boolean }> {
+  return database.transaction(async (transaction) => {
+    const [row] = await transaction
+      .select({ job: jobs, runId: researchRuns.id })
+      .from(jobs)
+      .innerJoin(researchRuns, eq(researchRuns.jobId, jobs.id))
+      .where(and(
+        eq(jobs.id, jobId),
+        eq(jobs.workspaceId, actor.workspaceId),
+        eq(jobs.campaignId, campaignId),
+        eq(jobs.jobType, RESEARCH_JOB_TYPE),
+      ))
+      .for('update', { skipLocked: true })
+      .limit(1);
+    if (!row || TERMINAL_STATUSES.has(row.job.status)) {
+      return { needsDispatch: false };
+    }
+
+    const now = new Date();
+    if (row.job.cancelRequestedAt) {
+      await markCancelled(transaction, row.job, row.runId, now);
+      return { needsDispatch: false };
+    }
+
+    const expiredRunning = row.job.status === 'running'
+      && (!row.job.leaseExpiresAt || row.job.leaseExpiresAt <= now);
+    const readyRetry = (row.job.status === 'retry_scheduled' || row.job.status === 'waiting_rate_limit')
+      && row.job.runAfter <= now;
+    const staleQueued = row.job.status === 'queued'
+      && row.job.runAfter <= now
+      && (now.getTime() - row.job.updatedAt.getTime() >= STALE_QUEUED_JOB_RECOVERY_MS);
+
+    if (!expiredRunning && !readyRetry && !staleQueued) {
+      return { needsDispatch: false };
+    }
+
+    if ((expiredRunning || readyRetry) && row.job.attemptCount >= row.job.maxAttempts) {
+      await markFailedWithoutLease(transaction, row.job, row.runId, now);
+      return { needsDispatch: false };
+    }
+
+    if (expiredRunning) {
+      const currentProgress = readResearchJobProgress(row.job.progress);
+      await transaction.update(jobs).set({
+        status: 'retry_scheduled',
+        runAfter: now,
+        leaseOwner: null,
+        leaseExpiresAt: null,
+        progress: {
+          ...currentProgress,
+          message: `Resuming interrupted batch (${currentProgress.completed} of ${currentProgress.requested} saved)…`,
+        },
+        updatedAt: now,
+      }).where(eq(jobs.id, jobId));
+    } else {
+      await transaction.update(jobs).set({
+        runAfter: now,
+        updatedAt: now,
+      }).where(eq(jobs.id, jobId));
+    }
+
+    return { needsDispatch: true };
+  });
+}
+
 export async function claimResearchJob(
   jobId: string,
   leaseOwner: string,
@@ -129,12 +201,14 @@ export async function claimResearchJob(
     const readyQueuedJob = CLAIMABLE_STATUSES.has(row.job.status) && row.job.runAfter <= now;
     if (!expiredRunningJob && !readyQueuedJob) return null;
 
-    if (row.job.attemptCount >= row.job.maxAttempts) {
+    const isFailureRecovery = expiredRunningJob || row.job.status === 'retry_scheduled';
+    const shouldIncrementAttempt = isFailureRecovery || row.job.attemptCount === 0;
+    if (shouldIncrementAttempt && row.job.attemptCount >= row.job.maxAttempts) {
       await markFailedWithoutLease(transaction, row.job, row.runId, now);
       return null;
     }
 
-    const attemptCount = row.job.attemptCount + 1;
+    const attemptCount = shouldIncrementAttempt ? row.job.attemptCount + 1 : row.job.attemptCount;
     await transaction
       .update(jobs)
       .set({
@@ -177,10 +251,13 @@ async function markCancelled(
   researchRunId: string,
   now: Date,
 ): Promise<void> {
-  const progress = {
-    ...readResearchJobProgress(job.progress),
-    message: 'Research was cancelled.',
-  };
+  const current = readResearchJobProgress(job.progress);
+  const progress = stripResearchJobCursor({
+    ...current,
+    message: current.completed > 0
+      ? `Research stopped. Saved ${current.completed} of ${current.requested} prospects.`
+      : 'Research was cancelled.',
+  });
   await transaction.update(researchRuns).set({ completedAt: now }).where(eq(researchRuns.id, researchRunId));
   await transaction.update(jobs).set({
     status: 'cancelled',
@@ -199,21 +276,27 @@ async function markFailedWithoutLease(
   researchRunId: string,
   now: Date,
 ): Promise<void> {
-  const progress = {
-    ...readResearchJobProgress(job.progress),
-    message: 'Research stopped after reaching its retry limit.',
-  };
+  const current = readResearchJobProgress(job.progress);
+  const hasSavedProspects = current.completed > 0;
+  const status = hasSavedProspects ? 'completed_with_errors' : 'failed';
+  const message = hasSavedProspects
+    ? `Saved ${current.completed} of ${current.requested} prospects before reaching the retry limit.`
+    : 'Research stopped after reaching its retry limit.';
+  const progress = stripResearchJobCursor({
+    ...current,
+    message,
+  });
   await transaction.update(researchRuns).set({
     failedCount: progress.failed,
     completedAt: now,
   }).where(eq(researchRuns.id, researchRunId));
   await transaction.update(jobs).set({
-    status: 'failed',
+    status,
     completedAt: now,
     leaseOwner: null,
     leaseExpiresAt: null,
     errorCategory: 'RESEARCH_RETRY_LIMIT_REACHED',
-    errorDetail: 'Research stopped after reaching its retry limit.',
+    errorDetail: message,
     progress,
     updatedAt: now,
   }).where(eq(jobs.id, job.id));
@@ -243,6 +326,45 @@ export async function heartbeatResearchJob(
       updatedAt: now,
     }).where(eq(jobs.id, jobId));
     return { cancelRequested: Boolean(job.cancelRequestedAt) };
+  });
+}
+
+export async function yieldResearchJobChunk(
+  claimed: ClaimedResearchJob,
+  progressPatch: Partial<ResearchJobProgress>,
+  database: MarcomDatabase = getDatabase(),
+): Promise<'continue' | 'cancelled'> {
+  return database.transaction(async (transaction) => {
+    const [job] = await transaction
+      .select()
+      .from(jobs)
+      .where(and(eq(jobs.id, claimed.jobId), eq(jobs.jobType, RESEARCH_JOB_TYPE)))
+      .for('update')
+      .limit(1);
+    if (!job || job.status !== 'running' || job.leaseOwner !== claimed.leaseOwner) {
+      throw new ResearchJobLeaseLostError('The research job lease is no longer owned by this worker.');
+    }
+    const now = new Date();
+    if (job.cancelRequestedAt) {
+      await markCancelled(transaction, job, claimed.researchRunId, now);
+      return 'cancelled';
+    }
+
+    const progress = readResearchJobProgress({
+      ...readResearchJobProgress(job.progress),
+      ...progressPatch,
+    });
+    await transaction.update(jobs).set({
+      status: 'queued',
+      attemptCount: 1,
+      runAfter: now,
+      leaseOwner: null,
+      leaseExpiresAt: null,
+      heartbeatAt: now,
+      progress,
+      updatedAt: now,
+    }).where(eq(jobs.id, claimed.jobId));
+    return 'continue';
   });
 }
 
@@ -309,7 +431,11 @@ export async function finishResearchJob(
     }
 
     const status = failedCount > 0 ? 'completed_with_errors' : 'completed';
-    const progress = { ...readResearchJobProgress(job.progress), failed: failedCount, message };
+    const progress = stripResearchJobCursor({
+      ...readResearchJobProgress(job.progress),
+      failed: failedCount,
+      message,
+    });
     await transaction.update(researchRuns).set({ failedCount, completedAt: now }).where(eq(researchRuns.id, claimed.researchRunId));
     await transaction.update(jobs).set({
       status,
@@ -340,7 +466,7 @@ export async function failOrRetryResearchJob(
   failure: SafeResearchFailure,
   failedCount: number,
   database: MarcomDatabase = getDatabase(),
-): Promise<'retry_scheduled' | 'failed' | 'cancelled'> {
+): Promise<'retry_scheduled' | 'completed_with_errors' | 'failed' | 'cancelled'> {
   return database.transaction(async (transaction) => {
     const [job] = await transaction
       .select()
@@ -376,15 +502,20 @@ export async function failOrRetryResearchJob(
       return 'retry_scheduled';
     }
 
+    const hasSavedProspects = progress.completed > 0;
+    const finalStatus = hasSavedProspects ? 'completed_with_errors' : 'failed';
+    const finalMessage = hasSavedProspects
+      ? `Saved ${progress.completed} of ${progress.requested} prospects before stopping: ${failure.message}`
+      : failure.message;
     await transaction.update(researchRuns).set({ failedCount, completedAt: now }).where(eq(researchRuns.id, claimed.researchRunId));
     await transaction.update(jobs).set({
-      status: 'failed',
+      status: finalStatus,
       completedAt: now,
       leaseOwner: null,
       leaseExpiresAt: null,
       errorCategory: failure.code,
       errorDetail: failure.message,
-      progress: { ...progress, failed: failedCount, message: failure.message },
+      progress: stripResearchJobCursor({ ...progress, failed: failedCount, message: finalMessage }),
       updatedAt: now,
     }).where(eq(jobs.id, claimed.jobId));
     await transaction.insert(auditEvents).values({
@@ -392,13 +523,13 @@ export async function failOrRetryResearchJob(
       workspaceId: claimed.actor.workspaceId,
       campaignId: claimed.campaignId,
       actorType: 'system',
-      action: 'research.failed',
+      action: hasSavedProspects ? 'research.completed' : 'research.failed',
       subjectType: 'research_run',
       subjectId: claimed.researchRunId,
-      safeDiff: { errorCode: failure.code, failedCount },
+      safeDiff: { errorCode: failure.code, failedCount, status: finalStatus },
       jobId: claimed.jobId,
     });
-    return 'failed';
+    return finalStatus;
   });
 }
 
@@ -425,15 +556,8 @@ export async function requestResearchJobCancellation(
     if (TERMINAL_STATUSES.has(row.job.status)) return true;
 
     const now = new Date();
-    if (row.job.status === 'running') {
-      await transaction.update(jobs).set({
-        cancelRequestedAt: now,
-        progress: { ...readResearchJobProgress(row.job.progress), message: 'Cancellation requested.' },
-        updatedAt: now,
-      }).where(eq(jobs.id, jobId));
-    } else {
-      await markCancelled(transaction, { ...row.job, cancelRequestedAt: now }, row.runId, now);
-    }
+    const priorStatus = row.job.status;
+    await markCancelled(transaction, { ...row.job, cancelRequestedAt: now }, row.runId, now);
     await transaction.insert(auditEvents).values({
       id: randomUUID(),
       workspaceId: actor.workspaceId,
@@ -443,7 +567,7 @@ export async function requestResearchJobCancellation(
       action: 'research.cancellation_requested',
       subjectType: 'research_run',
       subjectId: row.runId,
-      safeDiff: { status: row.job.status },
+      safeDiff: { status: priorStatus },
       jobId,
     });
     return true;
@@ -479,7 +603,7 @@ export async function markResearchJobDispatchFailed(
       completedAt: now,
       errorCategory: 'RESEARCH_WORKER_DISPATCH_FAILED',
       errorDetail: message,
-      progress: { ...readResearchJobProgress(row.job.progress), failed: 1, message },
+      progress: stripResearchJobCursor({ ...readResearchJobProgress(row.job.progress), failed: 1, message }),
       updatedAt: now,
     }).where(eq(jobs.id, jobId));
     await transaction.insert(auditEvents).values({

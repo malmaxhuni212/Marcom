@@ -332,8 +332,12 @@ function WorkspaceProviderRoot({ children }: { children: ReactNode }) {
           return;
         }
         const taskId = String(data.taskId);
+        let lastCompleted = 0;
+        let pollInFlight = false;
         setResearchRun((current) => (current ? { ...current, taskId, message: 'Searching for matching prospects…' } : current));
         pollRef.current = window.setInterval(async () => {
+          if (pollInFlight) return;
+          pollInFlight = true;
           try {
             const statusResponse = await authenticatedFetch(`/api/projects/${projectId}/batch-research?taskId=${encodeURIComponent(taskId)}`);
             if (statusResponse.status === 404) {
@@ -342,15 +346,28 @@ function WorkspaceProviderRoot({ children }: { children: ReactNode }) {
             }
             if (!statusResponse.ok) return;
             const status = await statusResponse.json();
-            const message = status.message || `Saved ${status.completed ?? 0} of ${status.total ?? count} prospects.`;
-            if (status.status === 'completed' || status.status === 'completed_with_errors') finishRun(projectId, 'completed', message);
-            else if (status.status === 'error') finishRun(projectId, 'failed', message);
-            else if (status.status === 'cancelled') finishRun(projectId, 'cancelled', message);
-            else setResearchRun((current) => (current && current.taskId === taskId ? { ...current, message } : current));
+            const completedNow = typeof status.completed === 'number' ? status.completed : 0;
+            const message = status.message || `Saved ${completedNow} of ${status.total ?? count} prospects.`;
+            if (status.status === 'completed' || status.status === 'completed_with_errors') {
+              finishRun(projectId, 'completed', message);
+            } else if (status.status === 'error') {
+              finishRun(projectId, 'failed', message);
+            } else if (status.status === 'cancelled') {
+              finishRun(projectId, 'cancelled', message);
+            } else {
+              setResearchRun((current) => (current && current.taskId === taskId ? { ...current, message } : current));
+              if (completedNow > lastCompleted) {
+                lastCompleted = completedNow;
+                if (activeIdRef.current === projectId) void loadBundle(projectId);
+                void refreshProjects();
+              }
+            }
           } catch {
             // Transient polling failures are retried on the next tick.
+          } finally {
+            pollInFlight = false;
           }
-        }, 4000);
+        }, 2500);
         return;
       }
 
@@ -400,15 +417,29 @@ function WorkspaceProviderRoot({ children }: { children: ReactNode }) {
         finishRun(projectId, 'failed', (error as Error).message || 'Research failed.');
       }
     },
-    [finishRun],
+    [finishRun, loadBundle, refreshProjects],
   );
 
   const stopResearch = useCallback(async () => {
     const run = researchRun;
     if (!run?.taskId) return;
+    clearPoll();
     setResearchRun({ ...run, message: 'Stopping…' });
-    await authenticatedFetch(`/api/projects/${run.projectId}/batch-research?taskId=${encodeURIComponent(run.taskId)}`, { method: 'DELETE' }).catch(() => undefined);
-  }, [researchRun]);
+    let cancelMessage = 'Research stopped.';
+    try {
+      const response = await authenticatedFetch(
+        `/api/projects/${run.projectId}/batch-research?taskId=${encodeURIComponent(run.taskId)}`,
+        { method: 'DELETE' },
+      );
+      const data = await response.json().catch(() => ({}));
+      if (typeof data.message === 'string' && data.message.trim()) {
+        cancelMessage = data.message;
+      }
+    } catch {
+      // Release UI state and reload any prospects saved before stopping even if network drops.
+    }
+    finishRun(run.projectId, 'cancelled', cancelMessage);
+  }, [researchRun, finishRun]);
 
   const dismissResearchRun = useCallback(() => {
     setResearchRun((current) => (current?.status === 'running' ? current : null));
