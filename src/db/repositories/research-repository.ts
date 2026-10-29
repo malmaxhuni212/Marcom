@@ -217,8 +217,8 @@ export function findDuplicate(
   return entries.find((entry) => {
     if (normalizeName(entry.seed.name) === name || normalizeName(entry.record.identity.name ?? '') === name) return true;
     const existingUrls = [
-      entry.record.websites?.[0]?.url,
-      entry.record.social_profiles?.find((profile) => profile.platform === 'linkedin')?.profile_url,
+      ...(entry.record.websites?.map((website) => website.url) ?? []),
+      ...(entry.record.social_profiles?.map((profile) => profile.profile_url) ?? []),
       entry.seed.website,
       entry.seed.linkedin,
     ].filter(Boolean).map((value) => normalizeIdentifier(value!));
@@ -722,8 +722,43 @@ export async function saveResearch(
         });
       }
     }
-    if (contactRows.length) {
-      await transaction.insert(contactPoints).values(contactRows).onConflictDoNothing();
+    for (const profile of entry.record.social_profiles ?? []) {
+      const source = sourceById.get(profile.source_ids[0]);
+      const channel =
+        profile.platform === 'linkedin' ||
+        profile.platform === 'x' ||
+        profile.platform === 'facebook' ||
+        profile.platform === 'instagram'
+          ? profile.platform
+          : ('other' as const);
+      const normalizedValue = normalizeIdentifier(profile.profile_url);
+      contactRows.push({
+        id: randomUUID(),
+        workspaceId: actor.workspaceId,
+        prospectId: prospect.id,
+        channel,
+        value: profile.profile_url,
+        normalizedValue,
+        valueHash: contactHash(actor, channel, normalizedValue),
+        isPublic: true,
+        sourceUrl: source?.url ?? profile.profile_url,
+        retrievedAt: source?.retrieved_at ? new Date(source.retrieved_at) : new Date(entry.record.researched_at),
+        verificationStatus: profile.confidence === 'verified' ? ('source_verified' as const) : ('unverified' as const),
+        contactName: profile.display_name ? profile.display_name.slice(0, 240) : null,
+        contactRole: null,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+    const seenContactKeys = new Set<string>();
+    const uniqueContactRows = contactRows.filter((row) => {
+      const key = `${row.channel}:${row.valueHash}`;
+      if (seenContactKeys.has(key)) return false;
+      seenContactKeys.add(key);
+      return true;
+    });
+    if (uniqueContactRows.length) {
+      await transaction.insert(contactPoints).values(uniqueContactRows).onConflictDoNothing();
     }
 
     await transaction

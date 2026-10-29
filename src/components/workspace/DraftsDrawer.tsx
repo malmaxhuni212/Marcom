@@ -6,7 +6,7 @@ import type { ResearchEntry } from '@/marcom/schemas/research-record';
 import DraftViewer from './DraftViewer';
 import { useWorkspace } from './WorkspaceContext';
 import { CloseButton, Icon } from './ui';
-import type { DraftChannel } from './format';
+import { draftTargets, type DraftChannel } from './format';
 
 /** Right-hand slide-over showing a prospect's drafted messages (view, edit and copy only). */
 export default function DraftsDrawer({
@@ -36,7 +36,8 @@ export default function DraftsDrawer({
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
 
-  const ready = draft.copy ? 5 : 0;
+  const extraSocialCount = draftTargets(draft, researchEntry).extraSocials.length;
+  const ready = draft.copy ? 5 + extraSocialCount : 0;
 
   return (
     <div className="fixed inset-0 z-[60]">

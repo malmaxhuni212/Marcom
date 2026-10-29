@@ -14,13 +14,16 @@ import {
   CHANNEL_LABEL,
   draftNeedsAttention,
   draftTargets,
+  formatProfileDisplay,
   hostOf,
+  isSocialProfileChannel,
   messageFor,
   plural,
   primaryChannel,
   prospectName,
   reviewStatus,
   subjectFor,
+  targetForChannel,
 } from '../format';
 
 const EMPTY_SETTINGS: PersonalizationSettings = {
@@ -62,6 +65,8 @@ function OutreachBody() {
   const { project, research, drafts, settings, projectId } = bundle;
   const title = project.structured_brief?.project.name || project.name || activeProject?.name || 'Untitled project';
 
+  const researchById = new Map(research.map((entry) => [entry.record.record_id, entry]));
+
   const approvedResearch = useMemo(
     () => research.filter((entry) => reviewStatus(entry) === 'shortlisted'),
     [research],
@@ -100,7 +105,7 @@ function OutreachBody() {
     }> = [];
 
     for (const entry of drafts) {
-      const reason = draftNeedsAttention(entry);
+      const reason = draftNeedsAttention(entry, researchById.get(entry.record_id));
       if (reason) {
         list.push({
           id: entry.record_id,
@@ -125,7 +130,7 @@ function OutreachBody() {
     }
 
     return list;
-  }, [drafts, unpersonalisedApproved]);
+  }, [drafts, researchById, unpersonalisedApproved]);
 
   const personaliseRecords = async (recordIds: string[], openRecordId?: string) => {
     if (personalising || !recordIds.length) return;
@@ -189,6 +194,7 @@ function OutreachBody() {
         <DraftViewer
           key={`${activeDraft.record_id}-${activeDraft.updated_at}`}
           draft={activeDraft}
+          researchEntry={researchById.get(activeDraft.record_id) ?? null}
           projectId={projectId}
           settings={settings}
           onUpdated={(entry) => {
@@ -360,14 +366,21 @@ function OutreachBody() {
               </thead>
               <tbody>
                 {readyDrafts.map((entry) => {
-                  const channel = primaryChannel(entry);
-                  const targets = draftTargets(entry);
-                  const toValue =
-                    channel === 'linkedin'
-                      ? targets.linkedin
-                        ? hostOf(targets.linkedin)
-                        : 'LinkedIn profile not found'
-                      : targets.email || 'Email not found · copy message';
+                  const researchRecord = researchById.get(entry.record_id) ?? null;
+                  const channel = primaryChannel(entry, researchRecord);
+                  const targets = draftTargets(entry, researchRecord);
+                  const channelTarget = targetForChannel(targets, channel);
+                  const toValue = isSocialProfileChannel(channel)
+                    ? channelTarget
+                      ? formatProfileDisplay(channelTarget)
+                      : `${CHANNEL_LABEL[channel]} profile not found`
+                    : channel === 'website_form'
+                      ? targets.website
+                        ? hostOf(targets.website)
+                        : 'Website not found'
+                      : channel === 'whatsapp'
+                        ? targets.phone || 'Phone not found'
+                        : targets.email || 'Email not found · copy message';
                   const factCount = entry.strategy?.hooks?.length ?? 0;
                   const copyKey = `row-${entry.record_id}`;
                   const subject = subjectFor(entry, 0);

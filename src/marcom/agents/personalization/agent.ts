@@ -217,7 +217,7 @@ export function buildStrategistUserPrompt(
     candidateRoutes.push(`- [Website:${w.type}] URL: ${w.url}${w.title ? ` (Title: ${w.title})` : ''}`);
   }
 
-  for (const s of r.social_profiles.slice(0, 2)) {
+  for (const s of r.social_profiles.slice(0, 8)) {
     const isPersonal = s.profile_url.includes('/in/') || !s.profile_url.includes('/company/');
     candidateRoutes.push(`- [Social:${s.platform}] URL: ${s.profile_url} (Type: ${isPersonal ? 'Personal Profile' : 'Company/Org Page'}, Verified: ${s.verified_status ? 'Yes' : 'No'})`);
   }

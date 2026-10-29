@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { socialPlatformLabel } from '@/components/workspace/format';
 
 export default function ResearchRecordCard({ entry, onDelete }: { entry: any, onDelete?: () => void }) {
   const { record, qa } = entry;
@@ -59,13 +60,18 @@ export default function ResearchRecordCard({ entry, onDelete }: { entry: any, on
                 Search: {entry.search_provider}
               </span>
             )}
-            {record.linkedin && (
+            {record.social_profiles?.map((profile: { platform: string; profile_url: string }, idx: number) => (
+              <a key={`${profile.platform}-${idx}`} href={profile.profile_url} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-[11px] text-blue-400 bg-blue-400/10 px-2.5 py-1 rounded-full hover:bg-blue-400/20 transition-colors">
+                {socialPlatformLabel(profile.platform)} ↗
+              </a>
+            ))}
+            {!record.social_profiles?.length && record.linkedin && (
               <a href={record.linkedin} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-[11px] text-blue-400 bg-blue-400/10 px-2.5 py-1 rounded-full hover:bg-blue-400/20 transition-colors">
                 LinkedIn ↗
               </a>
             )}
-            {record.website && (
-              <a href={record.website} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-[11px] text-cyan-400 bg-cyan-400/10 px-2.5 py-1 rounded-full hover:bg-cyan-400/20 transition-colors">
+            {(record.websites?.[0]?.url || record.website) && (
+              <a href={record.websites?.[0]?.url || record.website} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-[11px] text-cyan-400 bg-cyan-400/10 px-2.5 py-1 rounded-full hover:bg-cyan-400/20 transition-colors">
                 Website ↗
               </a>
             )}

@@ -7,6 +7,7 @@
  *  - background research runs, which keep polling even when their dialog is closed.
  */
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { usePathname } from 'next/navigation';
 import { authenticatedFetch } from '@/auth/client';
 import type { Project } from '@/types';
 import type { ProjectMemory } from '@/marcom/memory/types';
@@ -95,6 +96,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 }
 
 function WorkspaceProviderRoot({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
+  const isPublicAuthRoute = pathname === '/login' || pathname === '/bootstrap';
   const [projects, setProjects] = useState<Project[]>([]);
   const [projectsLoaded, setProjectsLoaded] = useState(false);
   const [projectsError, setProjectsError] = useState<string | null>(null);
@@ -108,6 +111,7 @@ function WorkspaceProviderRoot({ children }: { children: ReactNode }) {
   const activeIdRef = useRef<string | null>(null);
   const bundleRef = useRef<ProjectBundle | null>(null);
   const pollRef = useRef<number | null>(null);
+  const initializedRef = useRef(false);
 
   const refreshProjects = useCallback(async () => {
     try {
@@ -149,6 +153,13 @@ function WorkspaceProviderRoot({ children }: { children: ReactNode }) {
   // Initial project list + active project (URL ?project= wins, then the remembered project, then the first).
   // Fire loadBundle in parallel if a remembered/requested project ID is available to eliminate waterfall latency.
   useEffect(() => {
+    if (isPublicAuthRoute) {
+      initializedRef.current = false;
+      return;
+    }
+    if (initializedRef.current) return;
+    initializedRef.current = true;
+
     const requested = new URLSearchParams(window.location.search).get('project');
     let remembered: string | null = null;
     try {
@@ -157,16 +168,23 @@ function WorkspaceProviderRoot({ children }: { children: ReactNode }) {
       remembered = null;
     }
     const eagerCandidate = requested || remembered;
-    if (eagerCandidate) {
-      activeIdRef.current = eagerCandidate;
-      setActiveIdState(eagerCandidate);
-      void loadBundle(eagerCandidate);
-    }
 
-    void refreshProjects().then((list) => {
+    void (async () => {
+      await Promise.resolve();
+      setProjectsError(null);
+      setBundleError(null);
+      if (eagerCandidate) {
+        activeIdRef.current = eagerCandidate;
+        setActiveIdState(eagerCandidate);
+        void loadBundle(eagerCandidate);
+      }
+
+      const list = await refreshProjects();
       if (!list.length) {
         activeIdRef.current = null;
+        bundleRef.current = null;
         setActiveIdState(null);
+        setBundle(null);
         return;
       }
       const chosen = [requested, remembered].find((id) => id && list.some((project) => project.id === id)) ?? list[0]!.id;
@@ -174,15 +192,15 @@ function WorkspaceProviderRoot({ children }: { children: ReactNode }) {
         activeIdRef.current = chosen;
         setActiveIdState(chosen);
       }
-    });
-  }, [refreshProjects, loadBundle]);
+    })();
+  }, [isPublicAuthRoute, refreshProjects, loadBundle]);
 
   useEffect(() => {
-    if (!activeId) return;
+    if (!activeId || isPublicAuthRoute) return;
     activeIdRef.current = activeId;
     if (bundleRef.current?.projectId === activeId) return;
     void loadBundle(activeId);
-  }, [activeId, loadBundle]);
+  }, [activeId, isPublicAuthRoute, loadBundle]);
 
   const setActiveId = useCallback((id: string) => {
     activeIdRef.current = id;

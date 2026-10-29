@@ -4,6 +4,7 @@ import { useState } from 'react';
 import type { ResearchEntry, ReviewStatus } from '@/marcom/schemas/research-record';
 import { evidenceCoverage, reviewStatus } from '@/marcom/research/review';
 import PersonalizationPanel from '@/components/personalization/PersonalizationPanel';
+import { socialPlatformLabel } from '@/components/workspace/format';
 import {
   getPersonalizationActionPresentation,
   type PersonalizationAvailability,
@@ -153,17 +154,17 @@ export default function ProspectEvidenceDrawer({
                     <span>📞</span> {record.public_contact.find(c => c.kind === "phone")?.value}
                   </a>
                 )}
-                {record.social_profiles?.find(p => p.platform === "linkedin") && (
-                  <a href={record.social_profiles.find(p => p.platform === "linkedin")?.profile_url} target="_blank" rel="noreferrer" className="flex items-center gap-2 rounded-lg bg-blue-500/10 px-3 py-1.5 text-sm font-medium text-blue-400 hover:bg-blue-500/20 transition">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-75"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect width="4" height="12" x="2" y="9"/><circle cx="4" cy="4" r="2"/></svg> LinkedIn Profile
+                {record.social_profiles?.map((profile, idx) => (
+                  <a key={`${profile.platform}-${idx}`} href={profile.profile_url} target="_blank" rel="noreferrer" className="flex items-center gap-2 rounded-lg bg-blue-500/10 px-3 py-1.5 text-sm font-medium text-blue-400 hover:bg-blue-500/20 transition">
+                    <span>🔗</span> {socialPlatformLabel(profile.platform)} Profile ↗
                   </a>
-                )}
+                ))}
                 {record.websites?.[0]?.url && (
                   <a href={record.websites[0]?.url} target="_blank" rel="noreferrer" className="flex items-center gap-2 rounded-lg bg-blue-500/10 px-3 py-1.5 text-sm font-medium text-blue-400 hover:bg-blue-500/20 transition">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-75"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/><path d="M2 12h20"/></svg> Website
                   </a>
                 )}
-                {!(record.public_contact?.find(c => c.kind === "email") || record.public_contact?.find(c => c.kind === "phone") || record.social_profiles?.find(p => p.platform === "linkedin") || record.websites?.[0]?.url || (record.key_contacts && record.key_contacts.length > 0)) && (
+                {!(record.public_contact?.find(c => c.kind === "email") || record.public_contact?.find(c => c.kind === "phone") || (record.social_profiles && record.social_profiles.length > 0) || record.websites?.[0]?.url || (record.key_contacts && record.key_contacts.length > 0)) && (
                   <span className="text-sm text-white/30 italic">No contact information available.</span>
                 )}
               </div>
@@ -265,13 +266,16 @@ export default function ProspectEvidenceDrawer({
               </section>
             )}
 
-            {((record.websites?.[0]?.url) || (record.social_profiles?.find(p => p.platform === 'linkedin')?.profile_url) || (record.social_profiles?.find(p => p.platform === 'instagram')?.profile_url) || record.public_contact.length > 0) && (
+            {((record.websites?.[0]?.url) || (record.social_profiles && record.social_profiles.length > 0) || record.public_contact.length > 0) && (
               <section>
                 <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/40">Public routes</h3>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {(record.websites?.[0]?.url) && <a href={(record.websites?.[0]?.url)} target="_blank" rel="noreferrer" className="rounded-lg bg-white/[0.05] px-3 py-2 text-xs text-cyan-300">Website ↗</a>}
-                  {(record.social_profiles?.find(p => p.platform === 'linkedin')?.profile_url) && <a href={(record.social_profiles?.find(p => p.platform === 'linkedin')?.profile_url)} target="_blank" rel="noreferrer" className="rounded-lg bg-white/[0.05] px-3 py-2 text-xs text-cyan-300">LinkedIn ↗</a>}
-                  {(record.social_profiles?.find(p => p.platform === 'instagram')?.profile_url) && <a href={(record.social_profiles?.find(p => p.platform === 'instagram')?.profile_url)} target="_blank" rel="noreferrer" className="rounded-lg bg-white/[0.05] px-3 py-2 text-xs text-cyan-300">Instagram ↗</a>}
+                  {record.social_profiles?.map((profile, idx) => (
+                    <a key={`${profile.platform}-${idx}`} href={profile.profile_url} target="_blank" rel="noreferrer" className="rounded-lg bg-white/[0.05] px-3 py-2 text-xs text-cyan-300">
+                      {socialPlatformLabel(profile.platform)} ↗
+                    </a>
+                  ))}
                   {record.public_contact.map((contact, index) => <span key={`${contact.kind}-${index}`} className="rounded-lg bg-white/[0.05] px-3 py-2 text-xs text-white/55">{contact.kind.replace(/_/g, ' ')}: {contact.value}</span>)}
                 </div>
               </section>

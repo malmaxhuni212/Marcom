@@ -61,3 +61,22 @@ test('duplicate lookup matches canonical URLs', () => {
     existing,
   );
 });
+
+test('duplicate lookup matches non-LinkedIn social profile URLs', () => {
+  const existing = entry('Creator Studio', 'https://creatorstudio.test');
+  existing.record.social_profiles = [
+    {
+      platform: 'instagram',
+      profile_url: 'https://www.instagram.com/creator_studio/',
+      username: 'creator_studio',
+      display_name: 'Creator Studio',
+      verified_status: false,
+      confidence: 'verified',
+      source_ids: ['S1'],
+    },
+  ];
+  assert.equal(
+    findDuplicate([existing], { name: 'Another Handle', website: 'https://instagram.com/creator_studio' }),
+    existing,
+  );
+});

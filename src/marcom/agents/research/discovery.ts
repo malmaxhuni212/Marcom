@@ -1,10 +1,11 @@
 import { z } from 'zod';
 import type { LLMProvider } from '../../llm/provider';
 import { extractJson } from '../../llm/provider';
-import type { SearchProvider } from '../../search/provider';
+import type { SearchCandidate, SearchProvider, SearchResponse } from '../../search/provider';
 import type { StructuredBrief, Target } from '../../schemas/structured-brief';
 import type { ProspectSeed } from '../../schemas/research-record';
 import { canonicalUrl, normalizeName } from './qa';
+import { normalizeDomain, resolveResearchSourcePreferences } from './source-preferences';
 
 const CandidateListSchema = z.strictObject({
   candidates: z.array(
@@ -100,6 +101,27 @@ export function buildDiscoveryQuery(input: {
   return { query, category };
 }
 
+function interleaveCandidates(primary: SearchCandidate[], extra: SearchCandidate[]): SearchCandidate[] {
+  if (!extra.length) return primary;
+  if (!primary.length) return extra;
+  const merged: SearchCandidate[] = [];
+  let pIdx = 0;
+  let eIdx = 0;
+  while (pIdx < primary.length || eIdx < extra.length) {
+    if (pIdx < primary.length) merged.push(primary[pIdx++]);
+    if (pIdx < primary.length) merged.push(primary[pIdx++]);
+    if (eIdx < extra.length) merged.push(extra[eIdx++]);
+  }
+  return merged;
+}
+
+function isUrlExcluded(url: string, excludedDomains: string[]): boolean {
+  if (!excludedDomains.length) return false;
+  const host = normalizeDomain(url);
+  if (!host) return false;
+  return excludedDomains.some((excluded) => host === excluded || host.endsWith(`.${excluded}`));
+}
+
 export async function discoverProspectSeeds(input: {
   brief: StructuredBrief;
   target: Target;
@@ -112,23 +134,127 @@ export async function discoverProspectSeeds(input: {
 }): Promise<DiscoveryResult> {
   const { brief, target, searchProvider, llmProvider, iteration = 0 } = input;
   const { query, category } = buildDiscoveryQuery({ brief, target, iteration });
+  const prefs = resolveResearchSourcePreferences(brief);
+  const caps = searchProvider.capabilities();
 
   const resultLimit = Math.min(
-    searchProvider.capabilities().maximumResults,
-    Math.max(30, Math.min(80, input.desiredCount * 3))
+    caps.maximumResults,
+    Math.max(30, Math.min(80, input.desiredCount * 3)),
   );
 
-  const response = await searchProvider.search({
+  // Exa forbids excludeDomains when category ('people' | 'company') is active; only pass it on open-web searches.
+  const primaryPromise = searchProvider.search({
     query,
     resultLimit,
     includeDomains: [],
-    excludeDomains: [],
+    excludeDomains: !category && caps.supportsDomainFilters ? prefs.excludedDomains : [],
     category,
   });
 
+  const extraWarnings: string[] = [];
+  let extraResponse: SearchResponse | null = null;
+  if (caps.supportsDomainFilters && prefs.extraSourceDomains.length > 0) {
+    const extraLimit = Math.min(
+      caps.maximumResults,
+      Math.max(15, Math.min(40, input.desiredCount * 2)),
+    );
+    const [primary, extra] = await Promise.all([
+      primaryPromise,
+      searchProvider
+        .search({
+          query,
+          resultLimit: extraLimit,
+          includeDomains: prefs.extraSourceDomains,
+          excludeDomains: prefs.excludedDomains,
+          category: undefined,
+        })
+        .catch((err: unknown) => {
+          extraWarnings.push(
+            `Preferred source discovery search failed: ${(err as Error)?.message ?? 'unknown error'}`,
+          );
+          return null;
+        }),
+    ]);
+    extraResponse = extra;
+    return finalizeDiscovery({
+      input,
+      brief,
+      target,
+      llmProvider,
+      query,
+      primaryResponse: primary,
+      extraResponse,
+      extraWarnings,
+      excludedDomains: prefs.excludedDomains,
+    });
+  }
+
+  const primaryResponse = await primaryPromise;
+  return finalizeDiscovery({
+    input,
+    brief,
+    target,
+    llmProvider,
+    query,
+    primaryResponse,
+    extraResponse: null,
+    extraWarnings,
+    excludedDomains: prefs.excludedDomains,
+  });
+}
+
+async function finalizeDiscovery(params: {
+  input: {
+    desiredCount: number;
+    existingNames?: string[];
+    existingUrls?: string[];
+  };
+  brief: StructuredBrief;
+  target: Target;
+  llmProvider: LLMProvider;
+  query: string;
+  primaryResponse: SearchResponse;
+  extraResponse: SearchResponse | null;
+  extraWarnings: string[];
+  excludedDomains: string[];
+}): Promise<DiscoveryResult> {
+  const {
+    input,
+    brief,
+    target,
+    llmProvider,
+    query,
+    primaryResponse,
+    extraResponse,
+    extraWarnings,
+    excludedDomains,
+  } = params;
+
+  const combinedCandidates = interleaveCandidates(
+    primaryResponse.candidates,
+    extraResponse?.candidates ?? [],
+  );
+  const rawCount = primaryResponse.candidates.length + (extraResponse?.candidates.length ?? 0);
+  const requestIds = [primaryResponse.providerRequestId, extraResponse?.providerRequestId].filter(
+    (id): id is string => Boolean(id),
+  );
+  const latencyMs = extraResponse
+    ? Math.max(primaryResponse.latencyMs, extraResponse.latencyMs)
+    : primaryResponse.latencyMs;
+  const primaryCost = primaryResponse.usage.estimatedCostUsd;
+  const extraCost = extraResponse?.usage.estimatedCostUsd ?? null;
+  const estimatedCostUsd =
+    primaryCost === null && extraCost === null ? null : (primaryCost ?? 0) + (extraCost ?? 0);
+  const warnings = [
+    ...primaryResponse.warnings,
+    ...(extraResponse?.warnings ?? []),
+    ...extraWarnings,
+  ];
+
   const existingUrlsSet = new Set((input.existingUrls ?? []).map(canonicalUrl));
-  const byUrl = new Map<string, (typeof response.candidates)[number]>();
-  for (const candidate of response.candidates) {
+  const byUrl = new Map<string, SearchCandidate>();
+  for (const candidate of combinedCandidates) {
+    if (isUrlExcluded(candidate.url, excludedDomains)) continue;
     const key = canonicalUrl(candidate.url);
     if (existingUrlsSet.has(key)) continue;
     if (!byUrl.has(key)) byUrl.set(key, candidate);
@@ -137,14 +263,14 @@ export async function discoverProspectSeeds(input: {
   if (!uniqueCandidates.length) {
     return {
       seeds: [],
-      providerKey: response.providerKey,
-      requestIds: response.providerRequestId ? [response.providerRequestId] : [],
+      providerKey: primaryResponse.providerKey,
+      requestIds,
       query,
-      rawCount: response.candidates.length,
-      duplicateCount: response.candidates.length,
-      latencyMs: response.latencyMs,
-      estimatedCostUsd: response.usage.estimatedCostUsd,
-      warnings: response.warnings,
+      rawCount,
+      duplicateCount: rawCount,
+      latencyMs,
+      estimatedCostUsd,
+      warnings,
     };
   }
 
@@ -166,7 +292,7 @@ export async function discoverProspectSeeds(input: {
       output_shape: {
         candidates: [
           { name: 'string', organisation: 'string|null', website: 'url|null', source_url: 'url', entity_kind: 'person|organisation' },
-          { name: 'string', organisation: 'string|null', website: 'url|null', source_url: 'url', entity_kind: 'person|organisation' }
+          { name: 'string', organisation: 'string|null', website: 'url|null', source_url: 'url', entity_kind: 'person|organisation' },
         ],
       },
     }),
@@ -184,7 +310,13 @@ export async function discoverProspectSeeds(input: {
     const sourceUrl = canonicalUrl(candidate.source_url);
     const website = candidate.website ? canonicalUrl(candidate.website) : '';
     const name = normalizeName(candidate.name);
-    if (!allowedUrls.has(sourceUrl) || existingNames.has(name) || (website && existingUrls.has(website)) || seenNames.has(name) || (website && seenUrls.has(website))) {
+    if (
+      !allowedUrls.has(sourceUrl) ||
+      existingNames.has(name) ||
+      (website && existingUrls.has(website)) ||
+      seenNames.has(name) ||
+      (website && seenUrls.has(website))
+    ) {
       rejectedCount += 1;
       continue;
     }
@@ -201,23 +333,13 @@ export async function discoverProspectSeeds(input: {
 
   return {
     seeds,
-    providerKey: response.providerKey,
-    requestIds: response.providerRequestId ? [response.providerRequestId] : [],
+    providerKey: primaryResponse.providerKey,
+    requestIds,
     query,
-    rawCount: response.candidates.length,
-    duplicateCount: response.candidates.length - uniqueCandidates.length + rejectedCount,
-    latencyMs: response.latencyMs,
-    estimatedCostUsd: response.usage.estimatedCostUsd,
-    warnings: response.warnings,
+    rawCount,
+    duplicateCount: rawCount - uniqueCandidates.length + rejectedCount,
+    latencyMs,
+    estimatedCostUsd,
+    warnings,
   };
 }
-
-
-
-
-
-
-
-
-
-
