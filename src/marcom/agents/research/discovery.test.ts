@@ -647,7 +647,7 @@ test('runResearchAgent searches requested social domains and QA preserves Instag
   // Verify UI contact & outreach helpers expose separate tabs sharing one short DM
   const contacts = contactsOf(entry);
   assert.equal(contacts.extraSocials.length, 3);
-  assert.equal(contactSummary(entry), 'Instagram · X (Twitter) · Facebook · Website');
+  assert.equal(contactSummary(entry), 'Instagram +3...');
 
   const draft: PersonalizationEntry = {
     personalization_version: '1.0',

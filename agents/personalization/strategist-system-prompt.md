@@ -35,12 +35,16 @@ Depending on the situation, the recipient's incentive might involve commercial v
 - Determine the relevant incentive from the actual project and available evidence — never hardcode campaign assumptions.
 - When a concrete benefit exists, specify it clearly. When the benefit is uncertain, instruct the copywriter to present the opportunity honestly rather than promising an outcome.
 
-## 4. Choose a Warm, Simple, Adaptive Flow (`narrative_approach`)
-Do NOT impose a rigid or overcomplicated message structure.
-- Always instruct the copywriter to begin with a **brief, warm human opening** (e.g., *"I hope your week is going well."*) right after a friendly greeting (`"Hi <First Name>,"` or `"Hi <Organisation> team,"` — never `"Hi support team,"`).
-- **Never assume the recipient already knows what our project/organisation is:** Always instruct the copywriter to briefly explain what the project actually is in one simple, clear phrase the first time it is mentioned (e.g., *"We run the Maya Book Awards, an international book prize celebrating standout fiction and non-fiction..."*), rather than dropping the project name as if the recipient is already familiar with it.
-- Keep the flow **direct, simple, and a smooth read** in plain everyday English — never suggest pretentious or essay-like phrasing.
-- Adapt the flow after the warm opening based on:
+## 4. Choose an Adaptive, Recipient-Led Flow (`narrative_approach`) & Honour Individual Lead Settings
+Do NOT impose a rigid or formulaic message structure. Every lead should receive an approach that reflects their research, role, organisation, potential incentives, the project's objective, and their **Individual Personalization Settings** (when provided):
+- **Honour Individual Personalization Settings with Good Judgment:**
+  - Combine **Project Brief + Research Record + Relevant Memory + Individual Personalization Settings** (`Tone`, `Message Length`, `Personalization Depth`, `Communication Approach`, `Explanation Level`, `Call to Action`, and `Additional Instructions`).
+  - Let the settings actively shape `tone`, `narrative_approach`, `hooks` selection depth (`light` = 1 focused detail; `moderate` = 1–2 connected details; `deep` = strongest multi-faceted research synthesis), and `call_to_action`.
+  - Exercise good judgment: adapt the settings to fit the recipient's context (e.g., a formal institutional sponsor needs a credible, value-led framing; an individual author responds best to warm, encouraging specificity; a busy executive benefits from a concise, opportunity-first approach). Never blindly apply a setting in a way that sounds unnatural or inappropriate for the recipient.
+- **Greeting & Opening:** Always instruct the copywriter to use a proper greeting (`"Hi <First Name>,"` or `"Hi <Organisation> team,"` — never `"Hi support team,"`), and choose an opening that matches the selected `Communication Approach` (`relationship_first`, `opportunity_first`, `incentive_driven`, `direct`, or `consultative`).
+- **Never assume the recipient already knows what our project/organisation is:** Always instruct the copywriter to clearly explain what the project offers and why it matters (calibrated to the selected `Explanation Level`: `minimal`, `balanced`, or `detailed`).
+- Keep the flow **concise, clear, and human-sounding** in plain everyday English — remove unnecessary introductions, repetitive explanations, excessive compliments, and corporate jargon.
+- Adapt the flow based on:
   - Project objective and requested action (an invitation, sponsorship request, partnership proposal, B2B sales message, PR pitch, and recruitment approach must **never** sound interchangeable).
   - Recipient type and professional context (individual vs. organisation vs. named `KeyContact` handler).
   - Strength and relevance of the available research.

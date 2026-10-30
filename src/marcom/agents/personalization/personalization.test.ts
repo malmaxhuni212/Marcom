@@ -2,14 +2,17 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { LLMProvider, LLMRequest } from '../../llm/provider';
 import { InMemoryStore, type MemoryStore } from '../../memory/store';
-import type {
-  OutreachCopy,
-  PersonalizationSettings,
-  StrategyDossier,
+import {
+  defaultLeadPersonalizationSettings,
+  type LeadPersonalizationSettings,
+  type OutreachCopy,
+  type PersonalizationSettings,
+  type StrategyDossier,
 } from '../../schemas/personalization';
 import type { ResearchEntry, ResearchRecord } from '../../schemas/research-record';
 import type { StructuredBrief } from '../../schemas/structured-brief';
 import {
+  buildAdaptivePersonalizationEntry,
   buildStrategistUserPrompt,
   buildWriterUserPrompt,
   normalizeStrategyDossier,
@@ -1134,4 +1137,223 @@ Elena Vance`,
     assert.ok((res.strategy?.narrative_approach?.length ?? 0) > 10, `${s.kind} should populate narrative_approach`);
   }
 });
+
+// ============================================================================
+// SCENARIO 14: Per-Lead Personalization Settings across Author, Sponsor, Literary Org & Business Partner
+// ============================================================================
+test('Scenario 14: Per-lead Personalization Settings produce recipient-aware defaults and meaningfully different messages across Author, Sponsor, Literary Organisation, and Business Partnership prospects', () => {
+  const literaryBrief = makeBrief({
+    name: '2026 International Indie Literary Prize & Readers Showcase',
+    description:
+      'Annual literary prize and curated bookshop showcase connecting independent fiction and poetry authors with 85 independent bookshops and festival programmers.',
+    primary_objective:
+      'Invite independent authors, literary organisations, sponsors, and business partners to participate in the 2026 showcase.',
+    outreachObjective:
+      'Highlight concrete reader visibility, curated bookshop distribution, and brand alignment benefits for each participant.',
+  });
+  const campaignSettings = makeSettings({
+    sender_name: 'Clara Mendel',
+    sender_role: 'Programme Director',
+    organisation: 'Indie Literary Showcase',
+    campaign_facts: [
+      'Selected titles and partners are featured across 85 independent bookshops and regional literary festivals in Autumn 2026.',
+    ],
+  });
+
+  // 1. Individual Author
+  const authorEntry = makeResearchEntry({
+    record_id: 'rec-author-1',
+    target_type: 'Independent Fiction Authors',
+    identity: {
+      name: 'Amara Okafor',
+      entity_kind: 'person',
+      identity_verified: true,
+    },
+    role: 'Novelist & Essayist',
+    organisation: null,
+    summary: 'Award-shortlisted literary novelist based in Bristol, author of "The Salt Meridian" (2025).',
+    work_and_projects: ['Published the 2025 literary novel "The Salt Meridian" with Peninsula Press'],
+    achievements: ['Shortlisted for the 2025 Coastal Fiction Prize'],
+    reason_for_relevance: 'Independent literary novelist with an active UK readership and 2025 release.',
+  });
+
+  // 2. Potential Sponsor
+  const sponsorEntry = makeResearchEntry({
+    record_id: 'rec-sponsor-1',
+    target_type: 'Corporate Cultural Sponsors',
+    identity: {
+      name: 'Alder & Finch Paper Co.',
+      entity_kind: 'organisation',
+      identity_verified: true,
+    },
+    role: 'Brand Partnerships Team',
+    organisation: 'Alder & Finch Paper Co.',
+    summary: 'B-Corp archival book-paper manufacturer sponsoring independent publishing and print craft initiatives.',
+    work_and_projects: ['Sponsored the 2025 Northern Small Press Print Bursary'],
+    achievements: ['Supplied FSC-certified archival paper to 40 UK independent publishers in 2025'],
+    reason_for_relevance: 'Active corporate sponsor of independent publishing and literary print awards.',
+  });
+
+  // 3. Literary Organisation
+  const literaryOrgEntry = makeResearchEntry({
+    record_id: 'rec-lit-org-1',
+    target_type: 'Literary Organisations & Writing Centres',
+    identity: {
+      name: 'Scottish Emerging Writers Trust',
+      entity_kind: 'organisation',
+      identity_verified: true,
+    },
+    role: 'Programmes & Mentoring Team',
+    organisation: 'Scottish Emerging Writers Trust',
+    summary: 'Non-profit literary development organisation supporting debut novelists and poets across Scotland.',
+    work_and_projects: ['Runs the annual Highland Debut Fiction Fellowship for 12 emerging authors'],
+    achievements: ['Placed 9 fellowship alumni with independent UK publishers in 2025'],
+    reason_for_relevance: 'Directly supports emerging literary authors who stand to benefit from bookshop showcase visibility.',
+  });
+
+  // 4. Business Partnership Prospect
+  const businessPartnerEntry = makeResearchEntry({
+    record_id: 'rec-partner-1',
+    target_type: 'Business Partnership & Distribution Prospects',
+    identity: {
+      name: 'Julian Mercer',
+      entity_kind: 'person',
+      identity_verified: true,
+    },
+    role: 'Managing Director',
+    organisation: 'Lantern Bookshop Collective',
+    summary: 'Managing Director of Lantern Bookshop Collective, a network of 28 independent bookshops and subscription boxes.',
+    work_and_projects: ['Launched the 2025 Independent Fiction Monthly Curation Box across 28 regional bookshops'],
+    achievements: ['Grew independent press title sales by 34% across member shops in 2025'],
+    reason_for_relevance: 'Commercial distribution and curation partner reaching independent fiction readers.',
+  });
+
+  // Verify sensible recipient-aware defaults differ by archetype
+  const authorDefaults = defaultLeadPersonalizationSettings(authorEntry.record);
+  const sponsorDefaults = defaultLeadPersonalizationSettings(sponsorEntry.record);
+  const litOrgDefaults = defaultLeadPersonalizationSettings(literaryOrgEntry.record);
+  const partnerDefaults = defaultLeadPersonalizationSettings(businessPartnerEntry.record);
+
+  assert.equal(authorDefaults.tone, 'friendly', 'Individual author should default to friendly tone');
+  assert.equal(authorDefaults.communication_approach, 'relationship_first', 'Individual author should default to relationship-first');
+  assert.equal(sponsorDefaults.tone, 'professional', 'Potential sponsor should default to professional tone');
+  assert.equal(sponsorDefaults.communication_approach, 'incentive_driven', 'Potential sponsor should default to incentive-driven');
+  assert.equal(litOrgDefaults.tone, 'professional', 'Literary organisation should default to professional tone');
+  assert.equal(partnerDefaults.message_length, 'very_short', 'Managing Director should default to very_short length');
+  assert.equal(partnerDefaults.communication_approach, 'opportunity_first', 'Managing Director should default to opportunity-first');
+
+  // Verify changing settings produces meaningfully different drafts for the same prospect
+  const warmShortConfig: LeadPersonalizationSettings = {
+    tone: 'friendly',
+    message_length: 'very_short',
+    personalization_depth: 'light',
+    communication_approach: 'direct',
+    explanation_level: 'minimal',
+    call_to_action: 'soft',
+    additional_instructions: 'Keep it warm, avoid sounding promotional, and focus on bookshop visibility.',
+    updated_at: null,
+  };
+
+  const formalDetailedConfig: LeadPersonalizationSettings = {
+    tone: 'formal',
+    message_length: 'detailed',
+    personalization_depth: 'deep',
+    communication_approach: 'incentive_driven',
+    explanation_level: 'detailed',
+    call_to_action: 'direct',
+    additional_instructions: 'Emphasise the 85 independent bookshops and ask directly about submitting The Salt Meridian.',
+    updated_at: null,
+  };
+
+  const draftWarmShort = buildAdaptivePersonalizationEntry({
+    projectId: 'proj-lit',
+    researchEntry: authorEntry,
+    brief: literaryBrief,
+    settings: campaignSettings,
+    leadSettings: warmShortConfig,
+  });
+
+  const draftFormalDetailed = buildAdaptivePersonalizationEntry({
+    projectId: 'proj-lit',
+    researchEntry: authorEntry,
+    brief: literaryBrief,
+    settings: campaignSettings,
+    leadSettings: formalDetailedConfig,
+  });
+
+  assert.notEqual(
+    draftWarmShort.copy?.email_body,
+    draftFormalDetailed.copy?.email_body,
+    'Changing tone, length, depth, approach, explanation, and CTA must produce meaningfully different messages',
+  );
+  assert.ok(
+    draftFormalDetailed.copy!.email_body.startsWith('Dear Amara,'),
+    'Formal tone should use "Dear ..." salutation',
+  );
+  assert.ok(
+    draftWarmShort.copy!.email_body.startsWith('Hi Amara,'),
+    'Friendly tone should use "Hi ..." salutation',
+  );
+  assert.ok(
+    draftFormalDetailed.copy!.email_body.split(/\s+/).length >
+      draftWarmShort.copy!.email_body.split(/\s+/).length + 25,
+    'Detailed message length + detailed explanation must be meaningfully longer than very_short + minimal',
+  );
+  assert.ok(
+    draftFormalDetailed.copy!.email_body.includes('Coastal Fiction Prize'),
+    'Deep personalization must weave in secondary verified achievements (Coastal Fiction Prize)',
+  );
+
+  // Verify Strategist and Writer prompts explicitly include the per-lead settings block
+  const strategistPrompt = buildStrategistUserPrompt(
+    literaryBrief,
+    authorEntry,
+    campaignSettings,
+    '',
+    formalDetailedConfig,
+  );
+  assert.ok(strategistPrompt.includes('INDIVIDUAL LEAD PERSONALIZATION SETTINGS'));
+  assert.ok(strategistPrompt.includes('Tone: Formal'));
+  assert.ok(strategistPrompt.includes('Level of Personalisation: Deep'));
+  assert.ok(strategistPrompt.includes('Emphasise the 85 independent bookshops'));
+
+  const writerPrompt = buildWriterUserPrompt(
+    draftFormalDetailed.strategy!,
+    authorEntry,
+    campaignSettings,
+    'Amara Okafor',
+    literaryBrief,
+    formalDetailedConfig,
+  );
+  assert.ok(writerPrompt.includes('Call to Action Style: Direct'));
+
+  // Verify all 4 archetypes generate accurate, relevant, incentive-driven drafts with zero em-dashes
+  const allFourArchetypes = [
+    { label: 'author', entry: authorEntry, cfg: authorDefaults },
+    { label: 'sponsor', entry: sponsorEntry, cfg: sponsorDefaults },
+    { label: 'literary_org', entry: literaryOrgEntry, cfg: litOrgDefaults },
+    { label: 'business_partner', entry: businessPartnerEntry, cfg: partnerDefaults },
+  ];
+
+  for (const item of allFourArchetypes) {
+    const generated = buildAdaptivePersonalizationEntry({
+      projectId: 'proj-lit',
+      researchEntry: item.entry,
+      brief: literaryBrief,
+      settings: campaignSettings,
+      leadSettings: item.cfg,
+    });
+    assert.ok(generated.copy, `${item.label} should have generated copy`);
+    assert.equal(generated.lead_settings?.tone, item.cfg.tone, `${item.label} should persist its own lead_settings`);
+    assert.ok(
+      !generated.copy!.email_body.includes('—') && !generated.copy!.email_body.includes('–'),
+      `${item.label} email body must not contain em-dashes or en-dashes`,
+    );
+    assert.ok(
+      (generated.strategy?.recipient_incentive?.length ?? 0) > 15,
+      `${item.label} strategy must include a concrete recipient incentive`,
+    );
+  }
+});
+
 

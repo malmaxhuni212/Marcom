@@ -1,9 +1,27 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { authenticatedFetch } from '@/auth/client';
 import type { ResearchEntry, ReviewStatus } from '@/marcom/schemas/research-record';
-import type { PersonalizationEntry, PersonalizationSettings } from '@/marcom/schemas/personalization';
+import {
+  defaultLeadPersonalizationSettings,
+  recommendLeadPersonalization,
+  LEAD_APPROACH_LABELS,
+  LEAD_CTA_LABELS,
+  LEAD_DEPTH_LABELS,
+  LEAD_EXPLANATION_LABELS,
+  LEAD_LENGTH_LABELS,
+  LEAD_TONE_LABELS,
+  type LeadCallToAction,
+  type LeadCommunicationApproach,
+  type LeadExplanationLevel,
+  type LeadMessageLength,
+  type LeadPersonalizationDepth,
+  type LeadPersonalizationSettings,
+  type LeadTone,
+  type PersonalizationEntry,
+  type PersonalizationSettings,
+} from '@/marcom/schemas/personalization';
 import type { StructuredBrief } from '@/marcom/schemas/structured-brief';
 import CampaignConfigurationForm from '@/components/campaign/CampaignConfigurationForm';
 import CampaignSettingsModal from '@/components/personalization/CampaignSettingsModal';
@@ -79,6 +97,104 @@ function researchBullets(entry: ResearchEntry): string[] {
     .map((item) => item.trim())
     .filter(Boolean)
     .slice(0, 6);
+}
+
+function buildClientFallbackDraft(
+  projectId: string,
+  researchEntry: ResearchEntry,
+  brief: StructuredBrief | null | undefined,
+  settings: PersonalizationSettings | null | undefined,
+  existing?: PersonalizationEntry | null,
+): PersonalizationEntry {
+  const rec = researchEntry.record;
+  const name = prospectName(researchEntry);
+  const isOrg = rec.identity.entity_kind === 'organisation';
+  const keyPerson = rec.key_contacts?.[0];
+  const firstName = isOrg
+    ? keyPerson?.name?.trim().split(/\s+/)[0] || `${name} team`
+    : name.trim().split(/\s+/)[0] || name;
+
+  const strip = (text: string) => text.replace(/\s*[—–]\s*/g, ', ').replace(/,\s*,/g, ',');
+  const campaignName = brief?.project?.name || 'our upcoming initiative';
+  const primaryObjective =
+    brief?.project?.primary_objective ||
+    brief?.outreach?.objectives?.[0] ||
+    'explore a relevant collaboration';
+  const valueProp =
+    settings?.campaign_facts?.[0] ||
+    brief?.outreach?.objectives?.[0] ||
+    primaryObjective;
+
+  const rawHook =
+    rec.work_and_projects?.[0] ||
+    rec.achievements?.[0] ||
+    rec.reason_for_relevance ||
+    rec.summary ||
+    `your work${rec.organisation ? ` at ${rec.organisation}` : ''}`;
+  const cleanHook = strip(rawHook).replace(/\.$/, '');
+
+  const senderSignoff =
+    settings?.signature?.trim() ||
+    [
+      settings?.sender_name?.trim() || 'The Campaign Team',
+      [settings?.sender_role?.trim(), settings?.organisation?.trim() || brief?.project?.name].filter(Boolean).join(', '),
+    ]
+      .filter(Boolean)
+      .join('\n');
+
+  const ctaLine = settings?.call_to_action_link
+    ? `Would it be useful if I shared the brief overview (${settings.call_to_action_link}) so you can see if it fits your calendar?`
+    : `Would it be useful if I sent over a short one-page overview so you can see if the format and timing are a fit?`;
+
+  const copy = existing?.copy ?? {
+    subject_lines: [
+      { text: strip(`${name} / ${campaignName}`).slice(0, 90), style: 'direct' as const },
+      { text: strip(`Connecting around ${campaignName}`).slice(0, 90), style: 'value' as const },
+      { text: strip(`Quick question for ${firstName}`).slice(0, 90), style: 'curiosity' as const },
+    ],
+    email_body: strip(
+      `Hi ${firstName},\n\nI hope your week is going well. Following ${cleanHook}, I wanted to reach out regarding ${campaignName}.\n\n${valueProp.endsWith('.') ? valueProp : `${valueProp}.`} Given your focus${rec.organisation ? ` at ${rec.organisation}` : ''}, we thought this would be genuinely relevant to share with you.\n\n${ctaLine}\n\nBest regards,\n${senderSignoff}`,
+    ),
+    alternative_opening: null,
+    linkedin_message: strip(
+      `Hi ${firstName}, hope your week is going well. Following ${cleanHook.slice(0, 95)}, I wanted to share a quick note on ${campaignName}. Open to a 1-page overview?`,
+    ).slice(0, 290),
+    follow_up_body: strip(
+      `Hi ${firstName},\n\nI wanted to follow up briefly on my note regarding ${campaignName} in case it is relevant to your work${rec.organisation ? ` at ${rec.organisation}` : ''}.\n\n${ctaLine}\n\nBest regards,\n${senderSignoff}`,
+    ),
+    hook_usage: strip(`Referenced verified research finding (${cleanHook.slice(0, 120)}) in the opening paragraph.`),
+  };
+
+  const now = new Date().toISOString();
+  const resolvedLeadSettings =
+    existing?.lead_settings ??
+    settings?.lead_settings?.[rec.record_id] ??
+    defaultLeadPersonalizationSettings(rec);
+  return {
+    personalization_version: '1.0',
+    record_id: rec.record_id,
+    project_id: projectId,
+    prospect_name: name,
+    target_type: rec.target_type,
+    batch_id: existing?.batch_id ?? researchEntry.batch_id ?? null,
+    batch_number: existing?.batch_number ?? researchEntry.batch_number ?? null,
+    status: existing?.status === 'approved' ? 'approved' : 'draft',
+    lead_settings: resolvedLeadSettings,
+    previous_versions: existing?.previous_versions ?? [],
+    strategy: existing?.strategy ?? null,
+    copy,
+    ai_copy: existing?.ai_copy ?? copy,
+    edited_by_human: existing?.edited_by_human ?? false,
+    qa: existing?.qa ?? null,
+    auto_revisions: existing?.auto_revisions ?? 0,
+    models: existing?.models ?? { strategist: 'openai/gpt-oss-20b', writer: 'openai/gpt-oss-20b' },
+    timings_ms: existing?.timings_ms ?? { strategist: 0, writer: 0 },
+    generated_at: existing?.generated_at ?? now,
+    updated_at: existing?.updated_at ?? now,
+    reviewed_at: existing?.reviewed_at ?? null,
+    reviewer_note: existing?.reviewer_note ?? null,
+    error: null,
+  };
 }
 
 interface BestContactRecommendation {
@@ -412,6 +528,8 @@ function ProspectsBody({ initialTab }: { initialTab?: TabId }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [researchConfigOpen, setResearchConfigOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [configureQueueIds, setConfigureQueueIds] = useState<string[]>([]);
+  const [configureFocusTick, setConfigureFocusTick] = useState(0);
   const [checkedIds, setCheckedIds] = useState<Record<string, boolean>>({});
   const [sentIds, setSentIds] = useState<Record<string, boolean>>({});
   const [personalisingIds, setPersonalisingIds] = useState<string[]>([]);
@@ -502,8 +620,15 @@ function ProspectsBody({ initialTab }: { initialTab?: TabId }) {
   const draftByRecordId = useMemo(() => {
     const map = new Map<string, PersonalizationEntry>();
     for (const item of drafts) map.set(item.record_id, item);
+    for (const entry of research) {
+      const id = entry.record.record_id;
+      const existing = map.get(id);
+      if (reviewStatus(entry) === 'shortlisted' && (!existing || !existing.copy)) {
+        map.set(id, buildClientFallbackDraft(projectId, entry, brief, settings, existing));
+      }
+    }
     return map;
-  }, [drafts]);
+  }, [drafts, research, projectId, brief, settings]);
 
   const researchByRecordId = useMemo(() => {
     const map = new Map<string, ResearchEntry>();
@@ -742,64 +867,106 @@ function ProspectsBody({ initialTab }: { initialTab?: TabId }) {
 
   const personalising = personalisingIds.length > 0;
 
-  const approveAndPersonalise = async (recordIds: string[], openDrawerAfter = false) => {
+  const openPersonalizationConfig = (recordIds: string[]) => {
+    if (!recordIds.length) return;
+    setConfigureQueueIds(recordIds);
+    setSelectedId(recordIds[0]!);
+    setConfigureFocusTick((t) => t + 1);
+  };
+
+  const approveAndPersonalise = async (
+    recordIds: string[],
+    openDrawerAfter = false,
+    customLeadSettings?: LeadPersonalizationSettings,
+  ) => {
     if (!recordIds.length || personalising) return;
     setPersonalisingIds(recordIds);
     setActionError(null);
     setActionNotice(null);
     try {
-      // 1. Ensure all selected prospects are marked Approved (shortlisted) first
-      const toApprove = recordIds.filter((id) => {
+      const singleId = recordIds[0]!;
+      const singleEntry = researchByRecordId.get(singleId);
+      const resolvedSingleLeadSettings =
+        customLeadSettings ??
+        settings?.lead_settings?.[singleId] ??
+        draftByRecordId.get(singleId)?.lead_settings ??
+        (singleEntry ? defaultLeadPersonalizationSettings(singleEntry.record) : undefined);
+
+      const batchLeadSettingsByRecordId: Record<string, LeadPersonalizationSettings> = {
+        ...(settings?.lead_settings ?? {}),
+      };
+      for (const id of recordIds) {
         const entry = researchByRecordId.get(id);
-        return entry && reviewStatus(entry) !== 'shortlisted';
-      });
-      for (const id of toApprove) {
-        const entry = researchByRecordId.get(id);
-        updateResearchReview(id, 'shortlisted', entry?.review?.note ?? null);
-      }
-      if (toApprove.length > 0) {
-        await Promise.all(
-          toApprove.map((id) => {
-            const entry = researchByRecordId.get(id);
-            return saveDecision(projectId, id, 'shortlisted', entry?.review?.note ?? null);
-          }),
-        );
+        const existingCfg =
+          (id === singleId ? customLeadSettings : undefined) ??
+          batchLeadSettingsByRecordId[id] ??
+          draftByRecordId.get(id)?.lead_settings ??
+          (entry ? defaultLeadPersonalizationSettings(entry.record) : undefined);
+        if (existingCfg) {
+          batchLeadSettingsByRecordId[id] = existingCfg;
+        }
       }
 
-      // 2. Run Personalization Agent so Approved = Personalised
       const response = await authenticatedFetch(`/api/projects/${projectId}/personalization`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(
           recordIds.length === 1
-            ? { recordId: recordIds[0], force: true }
-            : { recordIds },
+            ? {
+                recordId: singleId,
+                force: true,
+                ...(resolvedSingleLeadSettings ? { leadSettings: resolvedSingleLeadSettings } : {}),
+              }
+            : {
+                recordIds,
+                force: true,
+                leadSettingsByRecordId: batchLeadSettingsByRecordId,
+              },
         ),
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || 'Personalisation could not be completed.');
+      if (data.settings) {
+        setSettings(data.settings as PersonalizationSettings);
+      }
 
       const returnedItems: PersonalizationEntry[] = Array.isArray(data.items)
         ? data.items
         : data.entry
           ? [data.entry]
           : [];
+      for (const id of recordIds) {
+        const entry = researchByRecordId.get(id);
+        updateResearchReview(id, 'shortlisted', entry?.review?.note ?? null);
+      }
       for (const item of returnedItems) {
         updateDraft(item);
       }
-      setCheckedIds({});
-      setTab('shortlisted');
+
+      const remainingQueue = configureQueueIds.filter((qId) => !recordIds.includes(qId));
+      setConfigureQueueIds(remainingQueue);
       void reload();
 
-      const firstReady = returnedItems.find((item) => item.copy) ?? returnedItems[0];
-      if (openDrawerAfter && firstReady) {
-        setSelectedId(firstReady.record_id);
-      } else if (returnedItems.length > 0) {
+      if (remainingQueue.length > 0) {
+        const nextLeadId = remainingQueue[0]!;
+        setSelectedId(nextLeadId);
+        setConfigureFocusTick((t) => t + 1);
         setActionNotice(
-          `Personalized ${plural(returnedItems.length, 'lead')} across all 5 channels and moved ${returnedItems.length === 1 ? 'it' : 'them'} to the Personalized tab.`,
+          `Personalized ${plural(returnedItems.length || recordIds.length, 'lead')}. Now configuring personalization settings for the next lead (${remainingQueue.length} remaining).`,
         );
-        if (firstReady) {
+      } else {
+        setCheckedIds({});
+        setTab('shortlisted');
+        const firstReady = returnedItems.find((item) => item.copy) ?? returnedItems[0];
+        if (openDrawerAfter && firstReady) {
           setSelectedId(firstReady.record_id);
+        } else if (returnedItems.length > 0) {
+          setActionNotice(
+            `Personalized ${plural(returnedItems.length, 'lead')} across all 5 channels and moved ${returnedItems.length === 1 ? 'it' : 'them'} to the Personalized tab.`,
+          );
+          if (firstReady) {
+            setSelectedId(firstReady.record_id);
+          }
         }
       }
     } catch (err) {
@@ -1032,27 +1199,11 @@ function ProspectsBody({ initialTab }: { initialTab?: TabId }) {
                   <span aria-hidden="true" className="h-2 w-2 shrink-0 rounded-full bg-[#5BD69A]" />
                   <span className="truncate text-sm text-[#B7D9C6]">
                     <span className="font-semibold text-[#8EE6B6]">
-                      {counts.shortlisted} personalized · {readyDraftEntries.length > 0 ? 'drafts ready' : 'ready for outreach'}
+                      {counts.shortlisted} personalized · drafts ready
                     </span>
                   </span>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
-                  {unpersonalisedApprovedIds.length > 0 && (
-                    <button
-                      type="button"
-                      disabled={personalising}
-                      onClick={() =>
-                        void approveAndPersonalise(
-                          unpersonalisedApprovedIds,
-                          readyDraftEntries.length === 0,
-                        )
-                      }
-                      className="inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-[#5BD69A] px-3 text-[13px] font-semibold text-[#0E1014] transition hover:opacity-95 disabled:opacity-50"
-                    >
-                      {personalising ? <Spinner size={13} /> : <Icon name="sparkle" size={14} />}
-                      {personalising ? 'Writing…' : 'Personalize'}
-                    </button>
-                  )}
                   <button
                     type="button"
                     disabled={counts.shortlisted === 0 || personalising}
@@ -1099,25 +1250,14 @@ function ProspectsBody({ initialTab }: { initialTab?: TabId }) {
                     Move {selectedVisibleIds.length} back to Personalized
                   </button>
                 ) : tab === 'shortlisted' ? (
-                  <>
-                    <button
-                      type="button"
-                      disabled={personalising}
-                      onClick={() => void approveAndPersonalise(selectedVisibleIds, selectedVisibleIds.length === 1)}
-                      className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-[#2A2F39] bg-[#171A20] px-3.5 text-xs font-semibold text-[#C9CDD4] transition hover:border-[#3A3F4A] hover:text-[#F1F2F4] disabled:opacity-50"
-                    >
-                      {personalising ? <Spinner size={13} /> : <Icon name="refresh" size={14} />}
-                      {personalising ? 'Rewriting…' : `Rewrite ${selectedVisibleIds.length}`}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => markLeadsSent(selectedVisibleIds, true)}
-                      className="inline-flex h-10 items-center gap-2 rounded-xl bg-[#5ED3DF] px-4 text-[13px] font-semibold text-[#0E1014] transition hover:opacity-95"
-                    >
-                      <Icon name="check" size={15} stroke={2.6} />
-                      Mark {selectedVisibleIds.length} as sent
-                    </button>
-                  </>
+                  <button
+                    type="button"
+                    onClick={() => markLeadsSent(selectedVisibleIds, true)}
+                    className="inline-flex h-10 items-center gap-2 rounded-xl bg-[#5ED3DF] px-4 text-[13px] font-semibold text-[#0E1014] transition hover:opacity-95"
+                  >
+                    <Icon name="check" size={15} stroke={2.6} />
+                    Mark {selectedVisibleIds.length} as sent
+                  </button>
                 ) : (
                   <>
                     {selectedVisibleIds.some((id) => {
@@ -1133,39 +1273,32 @@ function ProspectsBody({ initialTab }: { initialTab?: TabId }) {
                         Mark {selectedVisibleIds.length} as sent
                       </button>
                     )}
-                    <button
-                      type="button"
-                      disabled={personalising}
-                      onClick={() => void approveAndPersonalise(selectedVisibleIds, selectedVisibleIds.length === 1)}
-                      className="inline-flex h-10 items-center gap-2 rounded-xl bg-[#5BD69A] px-4 text-[13px] font-semibold text-[#0E1014] transition hover:opacity-95 disabled:opacity-50"
-                    >
-                      {personalising ? <Spinner size={14} /> : <Icon name="sparkle" size={15} />}
-                      {personalising ? 'Personalizing…' : `Personalize ${selectedVisibleIds.length}`}
-                    </button>
+                    {(() => {
+                      const unpersonalizedSelectedIds = selectedVisibleIds.filter((id) => {
+                        const entry = researchByRecordId.get(id);
+                        return entry && reviewStatus(entry) !== 'shortlisted' && !sentIds[id];
+                      });
+                      if (unpersonalizedSelectedIds.length === 0) return null;
+                      return (
+                        <button
+                          type="button"
+                          disabled={personalising}
+                          onClick={() =>
+                            void approveAndPersonalise(
+                              unpersonalizedSelectedIds,
+                              unpersonalizedSelectedIds.length === 1,
+                            )
+                          }
+                          className="inline-flex h-10 items-center gap-2 rounded-xl bg-[#5BD69A] px-4 text-[13px] font-semibold text-[#0E1014] transition hover:opacity-95 disabled:opacity-50"
+                        >
+                          {personalising ? <Spinner size={14} /> : <Icon name="sparkle" size={15} />}
+                          {personalising ? 'Personalizing…' : `Personalize ${unpersonalizedSelectedIds.length}`}
+                        </button>
+                      );
+                    })()}
                   </>
                 )}
               </div>
-            </div>
-          )}
-
-          {/* Only show on Personalized tab if any personalized lead is missing drafts */}
-          {isApprovedTab && unpersonalisedApprovedIds.length > 0 && selectedVisibleIds.length === 0 && (
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#1F4A33] bg-[#10261B] px-4 py-3">
-              <span className="text-sm text-[#B7D9C6]">
-                <strong className="font-semibold text-[#8EE6B6]">
-                  {plural(unpersonalisedApprovedIds.length, 'personalized lead')}
-                </strong>{' '}
-                still need outreach drafts generated.
-              </span>
-              <button
-                type="button"
-                disabled={personalising}
-                onClick={() => void approveAndPersonalise(unpersonalisedApprovedIds, unpersonalisedApprovedIds.length === 1)}
-                className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-[#5BD69A] px-3.5 text-xs font-semibold text-[#0E1014] hover:opacity-95 disabled:opacity-50"
-              >
-                {personalising ? <Spinner size={13} /> : <Icon name="sparkle" size={14} />}
-                {personalising ? 'Personalizing…' : `Personalize ${unpersonalisedApprovedIds.length}`}
-              </button>
             </div>
           )}
 
@@ -1235,13 +1368,10 @@ function ProspectsBody({ initialTab }: { initialTab?: TabId }) {
           ) : (
             <>
               <div className="overflow-x-auto rounded-[18px] border border-[#2A2F39] bg-[#171A20]">
-                <table
-                  style={{ minWidth: hasPanel ? 580 : 920 }}
-                  className="w-full border-collapse text-sm"
-                >
+                <table className="w-full border-collapse text-sm">
                   <thead>
                     <tr className="text-left text-xs text-[#A7ADB8]">
-                      <th scope="col" className="w-11 border-b border-[#2A2F39] py-2 pl-3.5 pr-0">
+                      <th scope="col" className="w-10 border-b border-[#2A2F39] py-2 pl-3 pr-0">
                         <button
                           type="button"
                           role="checkbox"
@@ -1263,11 +1393,11 @@ function ProspectsBody({ initialTab }: { initialTab?: TabId }) {
                           {allVisibleChecked && <Icon name="check" size={12} stroke={3.2} />}
                         </button>
                       </th>
-                      <th scope="col" className="border-b border-[#2A2F39] px-4 py-3 font-semibold">
+                      <th scope="col" className="border-b border-[#2A2F39] px-3 py-3 font-semibold">
                         Prospect
                       </th>
                       {!hasPanel && (
-                        <th scope="col" className="border-b border-[#2A2F39] px-4 py-3 font-semibold">
+                        <th scope="col" className="whitespace-nowrap border-b border-[#2A2F39] px-2.5 py-3 font-semibold">
                           <button
                             type="button"
                             onClick={cycleTypeFilter}
@@ -1281,7 +1411,7 @@ function ProspectsBody({ initialTab }: { initialTab?: TabId }) {
                           </button>
                         </th>
                       )}
-                      <th scope="col" className="border-b border-[#2A2F39] px-4 py-3 font-semibold">
+                      <th scope="col" className="whitespace-nowrap border-b border-[#2A2F39] px-2.5 py-3 font-semibold">
                         <button
                           type="button"
                           onClick={cycleLocationFilter}
@@ -1294,7 +1424,7 @@ function ProspectsBody({ initialTab }: { initialTab?: TabId }) {
                           Location <Icon name="chevronDown" size={12} />
                         </button>
                       </th>
-                      <th scope="col" className="border-b border-[#2A2F39] px-4 py-3 font-semibold">
+                      <th scope="col" className="whitespace-nowrap border-b border-[#2A2F39] px-2.5 py-3 font-semibold">
                         <button
                           type="button"
                           onClick={toggleEvidenceFilter}
@@ -1308,11 +1438,11 @@ function ProspectsBody({ initialTab }: { initialTab?: TabId }) {
                         </button>
                       </th>
                       {!hasPanel && (
-                        <th scope="col" className="border-b border-[#2A2F39] px-4 py-3 font-semibold">
+                        <th scope="col" className="whitespace-nowrap border-b border-[#2A2F39] px-3.5 py-3 font-semibold">
                           Contact found
                         </th>
                       )}
-                      <th scope="col" className="border-b border-[#2A2F39] px-4 py-3 font-semibold">
+                      <th scope="col" className="whitespace-nowrap border-b border-[#2A2F39] px-3.5 py-3 font-semibold">
                         <button
                           type="button"
                           onClick={cycleStatusTab}
@@ -1325,7 +1455,7 @@ function ProspectsBody({ initialTab }: { initialTab?: TabId }) {
                           Status <Icon name="chevronDown" size={12} />
                         </button>
                       </th>
-                      <th scope="col" className="w-14 border-b border-[#2A2F39] py-3 pl-1 pr-3.5 text-right font-semibold">
+                      <th scope="col" className="w-[1%] whitespace-nowrap border-b border-[#2A2F39] py-3 pl-7 pr-4 text-right font-semibold">
                         <span className="sr-only">Actions</span>
                       </th>
                     </tr>
@@ -1360,7 +1490,7 @@ function ProspectsBody({ initialTab }: { initialTab?: TabId }) {
                         >
                           <td
                             onClick={(event) => event.stopPropagation()}
-                            className="w-11 border-b border-[#22262E] pl-3.5 pr-0"
+                            className="w-10 border-b border-[#22262E] pl-3 pr-0"
                           >
                             <button
                               type="button"
@@ -1377,39 +1507,43 @@ function ProspectsBody({ initialTab }: { initialTab?: TabId }) {
                           </td>
                           <td
                             style={{ boxShadow: isSelected ? 'inset 3px 0 0 #5ED3DF' : 'none' }}
-                            className="border-b border-[#22262E] px-4 py-3.5"
+                            className="border-b border-[#22262E] px-3 py-3"
                           >
-                            <div className="flex items-center gap-3 text-[#F1F2F4]">
-                              <Initials name={name} size={36} />
-                              <span className="flex min-w-0 flex-col gap-0.5">
-                                <span className="truncate font-semibold">{name}</span>
-                                <span className="text-xs text-[#8A909C]">
+                            <div className="flex max-w-[240px] items-center gap-2.5 text-[#F1F2F4]">
+                              <Initials name={name} size={34} />
+                              <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                                <span className="truncate font-semibold" title={name}>{name}</span>
+                                <span className="truncate text-xs text-[#8A909C]">
                                   {researchedDateLabel ? `Found ${researchedDateLabel}` : entry.record.target_type}
                                 </span>
                               </span>
                             </div>
                           </td>
                           {!hasPanel && (
-                            <td className="border-b border-[#22262E] px-[18px] py-3.5 text-[#C9CDD4]">
+                            <td className="whitespace-nowrap border-b border-[#22262E] px-2.5 py-3 text-[#C9CDD4]">
                               {entityLabel}
                             </td>
                           )}
-                          <td className="border-b border-[#22262E] px-[18px] py-3.5 text-[#C9CDD4]">
-                            {locationLabel}
+                          <td className="border-b border-[#22262E] px-2.5 py-3 text-[#C9CDD4]">
+                            <div className="max-w-[165px] truncate" title={locationLabel}>
+                              {locationLabel}
+                            </div>
                           </td>
                           <td
                             style={{ color: verification.color }}
-                            className="border-b border-[#22262E] px-[18px] py-3.5 font-medium"
+                            className="whitespace-nowrap border-b border-[#22262E] px-2.5 py-3 font-medium"
                           >
                             {verification.label}
                           </td>
                           {!hasPanel && (
-                            <td className="whitespace-nowrap border-b border-[#22262E] px-4 py-3.5 text-[#C9CDD4]">
-                              {contactLabel}
+                            <td className="whitespace-nowrap border-b border-[#22262E] px-3.5 py-3 text-[#C9CDD4]">
+                              <div className="max-w-[165px] truncate" title={contactLabel}>
+                                {contactLabel}
+                              </div>
                             </td>
                           )}
-                          <td className="whitespace-nowrap border-b border-[#22262E] px-[18px] py-3.5">
-                            <div className="flex flex-wrap items-center gap-1.5">
+                          <td className="whitespace-nowrap border-b border-[#22262E] px-3.5 py-3">
+                            <div className="flex items-center gap-1.5">
                               <Pill bg={statusMeta.bg} fg={statusMeta.fg}>
                                 {statusMeta.label}
                               </Pill>
@@ -1422,10 +1556,10 @@ function ProspectsBody({ initialTab }: { initialTab?: TabId }) {
                           </td>
                           <td
                             onClick={(event) => event.stopPropagation()}
-                            className="whitespace-nowrap border-b border-[#22262E] py-3 pl-1 pr-3.5 text-right"
+                            className="w-[1%] whitespace-nowrap border-b border-[#22262E] py-3 pl-7 pr-4 text-right"
                           >
-                            <div className="inline-flex items-center justify-end gap-1.5">
-                              {status === 'shortlisted' && draft?.copy ? (
+                            <div className="inline-flex items-center justify-end gap-2">
+                              {status === 'shortlisted' || isSent || tab === 'shortlisted' || tab === 'sent' ? (
                                 <>
                                   <button
                                     type="button"
@@ -1467,8 +1601,8 @@ function ProspectsBody({ initialTab }: { initialTab?: TabId }) {
                                   <button
                                     type="button"
                                     aria-label={`Review ${name}`}
-                                    title="Inspect research details"
-                                    onClick={() => setSelectedId(id)}
+                                    title="Configure personalization settings & inspect research details"
+                                    onClick={() => openPersonalizationConfig([id])}
                                     className="inline-flex h-[34px] w-[34px] items-center justify-center rounded-[10px] border-0 bg-[#3A2F17] text-[#F2C36B] transition hover:bg-[#4A3B1C]"
                                   >
                                     <Icon name="review" size={16} />
@@ -1502,11 +1636,24 @@ function ProspectsBody({ initialTab }: { initialTab?: TabId }) {
           total={visible.length}
           projectId={projectId}
           brief={brief}
+          settings={settings}
           draft={draftByRecordId.get(selectedEntry.record.record_id) ?? null}
           isSent={Boolean(sentIds[selectedEntry.record.record_id] || selectedEntry.relationship_status === 'contacted')}
           onToggleSent={() => toggleSent(selectedEntry.record.record_id)}
           personalising={personalisingIds.includes(selectedEntry.record.record_id)}
-          onClose={() => setSelectedId(null)}
+          focusPersonalizeTick={configureFocusTick}
+          configureQueueIds={configureQueueIds}
+          onSelectQueueLead={(nextId) => {
+            setSelectedId(nextId);
+            setConfigureFocusTick((t) => t + 1);
+          }}
+          onPersonaliseBatch={(ids, currentLeadCfg) =>
+            void approveAndPersonalise(ids, true, currentLeadCfg)
+          }
+          onClose={() => {
+            setSelectedId(null);
+            setConfigureQueueIds([]);
+          }}
           onNavigate={(delta) => {
             const idx = visible.findIndex((item) => item.record.record_id === selectedEntry.record.record_id);
             const next = visible[idx + delta];
@@ -1520,7 +1667,12 @@ function ProspectsBody({ initialTab }: { initialTab?: TabId }) {
             updateDraft(updated);
             void reload();
           }}
-          onPersonalise={() => void approveAndPersonalise([selectedEntry.record.record_id], true)}
+          onSettingsUpdated={(updatedSettings) => {
+            setSettings(updatedSettings);
+          }}
+          onPersonalise={(leadCfg) =>
+            void approveAndPersonalise([selectedEntry.record.record_id], true, leadCfg)
+          }
           onOpenDrafts={(channel) => {
             setDrawerState({ recordId: selectedEntry.record.record_id, channel });
           }}
@@ -1607,14 +1759,20 @@ function ProspectDetailPanel({
   total,
   projectId,
   brief,
+  settings,
   draft,
   isSent,
   onToggleSent,
   personalising,
+  focusPersonalizeTick = 0,
+  configureQueueIds = [],
+  onSelectQueueLead,
+  onPersonaliseBatch,
   onClose,
   onNavigate,
   onDecisionOptimistic,
   onDraftUpdated,
+  onSettingsUpdated,
   onPersonalise,
   onOpenDrafts,
 }: {
@@ -1623,15 +1781,21 @@ function ProspectDetailPanel({
   total: number;
   projectId: string;
   brief: NonNullable<ReturnType<typeof useWorkspace>['bundle']>['project']['structured_brief'];
+  settings: PersonalizationSettings | null;
   draft: PersonalizationEntry | null;
   isSent: boolean;
   onToggleSent: () => void;
   personalising: boolean;
+  focusPersonalizeTick?: number;
+  configureQueueIds?: string[];
+  onSelectQueueLead?: (recordId: string) => void;
+  onPersonaliseBatch?: (recordIds: string[], currentLeadCfg?: LeadPersonalizationSettings) => void;
   onClose: () => void;
   onNavigate: (delta: -1 | 1) => void;
   onDecisionOptimistic: (status: ReviewStatus, note: string | null) => void;
   onDraftUpdated: (entry: PersonalizationEntry) => void;
-  onPersonalise: () => void;
+  onSettingsUpdated: (settings: PersonalizationSettings) => void;
+  onPersonalise: (leadCfg?: LeadPersonalizationSettings) => void;
   onOpenDrafts: (channel?: DraftChannel) => void;
 }) {
   const [note, setNote] = useState(entry.review?.note ?? '');
@@ -1643,6 +1807,7 @@ function ProspectDetailPanel({
   const [error, setError] = useState<string | null>(null);
   const [moreResearchOpen, setMoreResearchOpen] = useState(false);
   const { copied, copy } = useClipboard();
+  const settingsSectionRef = useRef<HTMLElement | null>(null);
 
   const name = prospectName(entry);
   const status = reviewStatus(entry);
@@ -1653,6 +1818,135 @@ function ProspectDetailPanel({
   const isApproved = status === 'shortlisted';
   const hasDraft = Boolean(draft?.copy);
   const defaultDraftChannel = draft ? primaryChannel(draft, entry) : 'email';
+
+  const recommendation = useMemo(
+    () => recommendLeadPersonalization(entry.record),
+    [entry.record],
+  );
+  const defaultLeadCfg = recommendation.settings;
+
+  const savedLeadSettings = useMemo<LeadPersonalizationSettings>(
+    () =>
+      draft?.lead_settings ??
+      settings?.lead_settings?.[entry.record.record_id] ??
+      defaultLeadCfg,
+    [draft?.lead_settings, settings?.lead_settings, entry.record.record_id, defaultLeadCfg],
+  );
+
+  const [leadSettings, setLeadSettings] = useState<LeadPersonalizationSettings>(savedLeadSettings);
+  const [settingsExpanded, setSettingsExpanded] = useState<boolean>(!hasDraft || focusPersonalizeTick > 0);
+  const [isConfiguringMode, setIsConfiguringMode] = useState<boolean>(!hasDraft || focusPersonalizeTick > 0);
+  const [savingLeadSettings, setSavingLeadSettings] = useState(false);
+  const [leadSettingsSaved, setLeadSettingsSaved] = useState(
+    Boolean(draft?.lead_settings || settings?.lead_settings?.[entry.record.record_id]),
+  );
+  const [viewingVersionIdx, setViewingVersionIdx] = useState<number | null>(null);
+  const [restoringVersion, setRestoringVersion] = useState(false);
+
+  const isUsingRecommended =
+    leadSettings.tone === defaultLeadCfg.tone &&
+    leadSettings.message_length === defaultLeadCfg.message_length &&
+    leadSettings.personalization_depth === defaultLeadCfg.personalization_depth &&
+    leadSettings.communication_approach === defaultLeadCfg.communication_approach &&
+    leadSettings.explanation_level === defaultLeadCfg.explanation_level &&
+    leadSettings.call_to_action === defaultLeadCfg.call_to_action &&
+    !leadSettings.additional_instructions.trim();
+
+  const queueIndex = configureQueueIds.indexOf(entry.record.record_id);
+  const inConfigureQueue = queueIndex >= 0 && configureQueueIds.length > 0;
+  const showConfigAtTop = isConfiguringMode || !hasDraft || inConfigureQueue;
+
+  useEffect(() => {
+    setLeadSettings(savedLeadSettings);
+    setLeadSettingsSaved(
+      Boolean(draft?.lead_settings || settings?.lead_settings?.[entry.record.record_id]),
+    );
+    setViewingVersionIdx(null);
+  }, [entry.record.record_id, savedLeadSettings, draft?.lead_settings, settings?.lead_settings]);
+
+  useEffect(() => {
+    if (focusPersonalizeTick > 0) {
+      setIsConfiguringMode(true);
+      setSettingsExpanded(true);
+      const timer = window.setTimeout(() => {
+        settingsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 40);
+      return () => window.clearTimeout(timer);
+    }
+  }, [focusPersonalizeTick, entry.record.record_id]);
+
+  const updateLeadSetting = <K extends keyof LeadPersonalizationSettings>(
+    key: K,
+    value: LeadPersonalizationSettings[K],
+  ) => {
+    setLeadSettings((curr) => ({ ...curr, [key]: value }));
+    setLeadSettingsSaved(false);
+  };
+
+  const saveLeadSettings = async (nextSettings: LeadPersonalizationSettings = leadSettings) => {
+    if (savingLeadSettings) return;
+    setSavingLeadSettings(true);
+    setError(null);
+    try {
+      const response = await authenticatedFetch(`/api/projects/${projectId}/personalization`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          recordId: entry.record.record_id,
+          leadSettings: nextSettings,
+        }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || 'Could not save personalization settings.');
+      if (data.settings) {
+        onSettingsUpdated(data.settings as PersonalizationSettings);
+      }
+      const updatedEntry = (data.item ?? data.entry) as PersonalizationEntry | undefined;
+      if (updatedEntry) {
+        onDraftUpdated(updatedEntry);
+      }
+      setLeadSettingsSaved(true);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setSavingLeadSettings(false);
+    }
+  };
+
+  const restorePreviousVersion = async (versionIdx: number) => {
+    const version = draft?.previous_versions?.[versionIdx];
+    if (!draft || !version || restoringVersion) return;
+    setRestoringVersion(true);
+    setError(null);
+    try {
+      const response = await authenticatedFetch(`/api/projects/${projectId}/personalization`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          recordId: entry.record.record_id,
+          copy: version.copy,
+          ...(version.lead_settings ? { leadSettings: version.lead_settings } : {}),
+        }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || 'Could not restore draft version.');
+      if (data.settings) {
+        onSettingsUpdated(data.settings as PersonalizationSettings);
+      }
+      const updatedEntry = (data.item ?? data.entry) as PersonalizationEntry | undefined;
+      if (updatedEntry) {
+        onDraftUpdated(updatedEntry);
+      }
+      if (version.lead_settings) {
+        setLeadSettings(version.lead_settings);
+      }
+      setViewingVersionIdx(null);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setRestoringVersion(false);
+    }
+  };
 
   const [activeChannel, setActiveChannel] = useState<DraftChannel>(defaultDraftChannel);
   const [subjectIdx, setSubjectIdx] = useState(0);
@@ -1686,12 +1980,27 @@ function ProspectDetailPanel({
       ? contacts.linkedin
       : contacts.extraSocials.find((s) => s.platform === activeChannel)?.url ?? null;
 
-  const activeMessageText = draft
+  const activeVersion =
+    viewingVersionIdx !== null && draft?.previous_versions?.[viewingVersionIdx]
+      ? draft.previous_versions[viewingVersionIdx]!
+      : null;
+
+  const displayedDraft: PersonalizationEntry | null = useMemo(() => {
+    if (!draft) return null;
+    if (!activeVersion) return draft;
+    return {
+      ...draft,
+      copy: activeVersion.copy,
+      lead_settings: activeVersion.lead_settings ?? draft.lead_settings,
+    };
+  }, [draft, activeVersion]);
+
+  const activeMessageText = displayedDraft
     ? editingDraft
       ? draftEdits[editBucket]
-      : messageFor(draft, activeChannel)
+      : messageFor(displayedDraft, activeChannel)
     : '';
-  const activeSubjectText = draft ? subjectFor(draft, subjectIdx) : '';
+  const activeSubjectText = displayedDraft ? subjectFor(displayedDraft, subjectIdx) : '';
 
   const saveInlineDraftEdit = async () => {
     if (!draft?.copy || savingDraftEdit) return;
@@ -1752,7 +2061,7 @@ function ProspectDetailPanel({
       setMoreResearchOpen(false);
       // When a prospect is Approved, automatically personalise it right away so Approved = Personalised
       if (nextStatus === 'shortlisted' && !hasDraft) {
-        onPersonalise();
+        onPersonalise(leadSettings);
       }
     } catch (err) {
       setError((err as Error).message);
@@ -1867,6 +2176,404 @@ function ProspectDetailPanel({
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
 
+  const personalizationSettingsSection = (
+    <section
+      ref={settingsSectionRef}
+      aria-label="Personalization Settings"
+      className="flex flex-col gap-3 rounded-2xl border border-[#3B3577] bg-[#161524] p-4 shadow-[0_8px_28px_rgba(20,16,44,0.45)]"
+    >
+      {/* Batch Configuration Queue Bar when configuring multiple selected leads */}
+      {configureQueueIds.length > 1 && queueIndex >= 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#2F6B4B] bg-[#10261B] px-3 py-2 text-xs text-[#B7D9C6]">
+          <div className="flex items-center gap-2">
+            <span className="inline-flex h-5 items-center rounded-md bg-[#1A3F2C] px-2 text-[11px] font-bold text-[#8EE6B6]">
+              Lead {queueIndex + 1} of {configureQueueIds.length}
+            </span>
+            <span className="font-medium text-[#D8F3E5]">
+              Choose personalization settings for each lead
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              disabled={queueIndex <= 0}
+              onClick={() => {
+                const prevId = configureQueueIds[queueIndex - 1];
+                if (prevId && onSelectQueueLead) onSelectQueueLead(prevId);
+              }}
+              className="rounded-lg border border-[#2F6B4B] bg-[#153324] px-2 py-1 text-[11px] font-semibold text-[#8EE6B6] hover:bg-[#1B402D] disabled:opacity-40"
+            >
+              ← Prev
+            </button>
+            <button
+              type="button"
+              disabled={queueIndex >= configureQueueIds.length - 1}
+              onClick={() => {
+                const nextId = configureQueueIds[queueIndex + 1];
+                if (nextId && onSelectQueueLead) onSelectQueueLead(nextId);
+              }}
+              className="rounded-lg border border-[#2F6B4B] bg-[#153324] px-2 py-1 text-[11px] font-semibold text-[#8EE6B6] hover:bg-[#1B402D] disabled:opacity-40"
+            >
+              Next →
+            </button>
+            {onPersonaliseBatch && (
+              <button
+                type="button"
+                disabled={personalising}
+                onClick={() => onPersonaliseBatch(configureQueueIds, leadSettings)}
+                className="rounded-lg bg-[#5BD69A] px-2.5 py-1 text-[11px] font-bold text-[#0E1014] hover:opacity-95 disabled:opacity-50"
+              >
+                Personalize all {configureQueueIds.length} now
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <Icon name="sparkle" size={15} className="text-[#B1A6FF]" />
+          <div className="flex flex-col gap-0.5">
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="m-0 text-[14px] font-semibold text-[#F1F2F4]">
+                Personalization Settings
+              </h3>
+              <span className="rounded-md bg-[#26224A] px-2 py-0.5 text-[11px] font-semibold text-[#CFC8FF]">
+                This prospect only
+              </span>
+              {isUsingRecommended ? (
+                <span className="inline-flex items-center gap-1 rounded-md border border-[#2E6B75] bg-[#12313A] px-2 py-0.5 text-[11px] font-semibold text-[#9BE6EE]">
+                  ✦ Recommended from research
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 rounded-md border border-[#4A3B17] bg-[#261E0E] px-2 py-0.5 text-[11px] font-semibold text-[#F2C36B]">
+                  Customised for {name}
+                </span>
+              )}
+              {leadSettingsSaved && (
+                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[#5BD69A]">
+                  <Icon name="check" size={11} stroke={3} /> Saved
+                </span>
+              )}
+            </div>
+            <span className="text-xs text-[#A7ADB8]">
+              Review or adjust how the AI approaches {name} before generating outreach drafts
+            </span>
+          </div>
+        </div>
+        <button
+          type="button"
+          aria-expanded={settingsExpanded}
+          onClick={() => setSettingsExpanded((curr) => !curr)}
+          className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-[#3B3577] bg-[#1D1B30] px-2.5 text-xs font-semibold text-[#CFC8FF] hover:bg-[#26224A]"
+        >
+          {settingsExpanded ? 'Hide settings' : 'Configure'}
+          <Icon
+            name="chevronDown"
+            size={13}
+            className={`transition-transform ${settingsExpanded ? 'rotate-180' : ''}`}
+          />
+        </button>
+      </div>
+
+      {/* Research-based recommendation rationale & highlights */}
+      <div className="flex flex-col gap-2 rounded-xl border border-[#2B2752] bg-[#12111E] px-3.5 py-2.5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#9BE6EE]">
+            ✦ Why these settings are recommended for {name}
+          </span>
+          {!isUsingRecommended && (
+            <button
+              type="button"
+              onClick={() => {
+                setLeadSettings(defaultLeadCfg);
+                setLeadSettingsSaved(false);
+              }}
+              className="rounded-md border border-[#2E6B75] bg-[#12313A] px-2 py-0.5 text-[11px] font-semibold text-[#9BE6EE] hover:bg-[#183D48]"
+            >
+              Use recommended settings
+            </button>
+          )}
+        </div>
+        <p className="m-0 text-xs leading-relaxed text-[#D5D8DE]">
+          {recommendation.rationale}
+        </p>
+        {recommendation.highlights.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5">
+            {recommendation.highlights.map((item, idx) => (
+              <span
+                key={idx}
+                className="rounded-md border border-[#26224A] bg-[#1A182B] px-2 py-0.5 text-[11px] text-[#CFC8FF]"
+              >
+                {item}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Compact summary pills (always visible so user sees active configuration at a glance) */}
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="rounded-full border border-[#3B3577] bg-[#1D1B30] px-2.5 py-0.5 text-[11px] font-medium text-[#E0DCFF]">
+          Tone: <strong>{LEAD_TONE_LABELS[leadSettings.tone]}</strong>
+        </span>
+        <span className="rounded-full border border-[#3B3577] bg-[#1D1B30] px-2.5 py-0.5 text-[11px] font-medium text-[#E0DCFF]">
+          Length: <strong>{LEAD_LENGTH_LABELS[leadSettings.message_length]}</strong>
+        </span>
+        <span className="rounded-full border border-[#3B3577] bg-[#1D1B30] px-2.5 py-0.5 text-[11px] font-medium text-[#E0DCFF]">
+          Depth: <strong>{LEAD_DEPTH_LABELS[leadSettings.personalization_depth].label}</strong>
+        </span>
+        <span className="rounded-full border border-[#3B3577] bg-[#1D1B30] px-2.5 py-0.5 text-[11px] font-medium text-[#E0DCFF]">
+          Approach: <strong>{LEAD_APPROACH_LABELS[leadSettings.communication_approach].label}</strong>
+        </span>
+        <span className="rounded-full border border-[#3B3577] bg-[#1D1B30] px-2.5 py-0.5 text-[11px] font-medium text-[#E0DCFF]">
+          Explanation: <strong>{LEAD_EXPLANATION_LABELS[leadSettings.explanation_level].label}</strong>
+        </span>
+        <span className="rounded-full border border-[#3B3577] bg-[#1D1B30] px-2.5 py-0.5 text-[11px] font-medium text-[#E0DCFF]">
+          CTA: <strong>{LEAD_CTA_LABELS[leadSettings.call_to_action].label}</strong>
+        </span>
+      </div>
+
+      {settingsExpanded && (
+        <div className="flex flex-col gap-3.5 border-t border-[#2B2752] pt-3">
+          {/* 1. Tone */}
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-[#D5D8DE]">Tone</span>
+              <span className="text-[11px] text-[#9B97B8]">
+                Recommended: {LEAD_TONE_LABELS[defaultLeadCfg.tone]}
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {(Object.keys(LEAD_TONE_LABELS) as LeadTone[]).map((toneKey) => {
+                const active = leadSettings.tone === toneKey;
+                return (
+                  <button
+                    key={toneKey}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => updateLeadSetting('tone', toneKey)}
+                    className={`h-8 rounded-lg border px-2.5 text-xs font-semibold transition ${
+                      active
+                        ? 'border-[#B1A6FF] bg-[#26224A] text-[#F1F2F4]'
+                        : 'border-[#2A2F39] bg-[#12151A] text-[#A7ADB8] hover:border-[#3B3577] hover:text-[#F1F2F4]'
+                    }`}
+                  >
+                    {LEAD_TONE_LABELS[toneKey]}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 2. Message Length & 3. Personalization Depth */}
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-[#D5D8DE]">Message Length</span>
+                <span className="text-[11px] text-[#9B97B8]">
+                  {LEAD_LENGTH_LABELS[leadSettings.message_length]}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-1.5">
+                {(Object.keys(LEAD_LENGTH_LABELS) as LeadMessageLength[]).map((lenKey) => {
+                  const active = leadSettings.message_length === lenKey;
+                  return (
+                    <button
+                      key={lenKey}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => updateLeadSetting('message_length', lenKey)}
+                      className={`h-8 rounded-lg border px-2 text-xs font-semibold transition ${
+                        active
+                          ? 'border-[#B1A6FF] bg-[#26224A] text-[#F1F2F4]'
+                          : 'border-[#2A2F39] bg-[#12151A] text-[#A7ADB8] hover:border-[#3B3577] hover:text-[#F1F2F4]'
+                      }`}
+                    >
+                      {LEAD_LENGTH_LABELS[lenKey]}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-[#D5D8DE]">Personalization Depth</span>
+              </div>
+              <div className="grid grid-cols-3 gap-1.5">
+                {(Object.keys(LEAD_DEPTH_LABELS) as LeadPersonalizationDepth[]).map((depthKey) => {
+                  const active = leadSettings.personalization_depth === depthKey;
+                  return (
+                    <button
+                      key={depthKey}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => updateLeadSetting('personalization_depth', depthKey)}
+                      className={`h-8 rounded-lg border px-2 text-xs font-semibold transition ${
+                        active
+                          ? 'border-[#B1A6FF] bg-[#26224A] text-[#F1F2F4]'
+                          : 'border-[#2A2F39] bg-[#12151A] text-[#A7ADB8] hover:border-[#3B3577] hover:text-[#F1F2F4]'
+                      }`}
+                    >
+                      {LEAD_DEPTH_LABELS[depthKey].label}
+                    </button>
+                  );
+                })}
+              </div>
+              <span className="text-[11px] leading-snug text-[#9B97B8]">
+                {LEAD_DEPTH_LABELS[leadSettings.personalization_depth].description}
+              </span>
+            </div>
+          </div>
+
+          {/* 4. Approach */}
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-[#D5D8DE]">Approach</span>
+              <span className="text-[11px] text-[#9B97B8]">
+                {LEAD_APPROACH_LABELS[leadSettings.communication_approach].description}
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {(Object.keys(LEAD_APPROACH_LABELS) as LeadCommunicationApproach[]).map((appKey) => {
+                const active = leadSettings.communication_approach === appKey;
+                return (
+                  <button
+                    key={appKey}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => updateLeadSetting('communication_approach', appKey)}
+                    className={`h-8 rounded-lg border px-2.5 text-xs font-semibold transition ${
+                      active
+                        ? 'border-[#B1A6FF] bg-[#26224A] text-[#F1F2F4]'
+                        : 'border-[#2A2F39] bg-[#12151A] text-[#A7ADB8] hover:border-[#3B3577] hover:text-[#F1F2F4]'
+                    }`}
+                  >
+                    {LEAD_APPROACH_LABELS[appKey].label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 5. Explanation & 6. Call to Action */}
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="flex flex-col gap-1.5">
+              <span className="text-xs font-semibold text-[#D5D8DE]">Explanation</span>
+              <div className="grid grid-cols-3 gap-1.5">
+                {(Object.keys(LEAD_EXPLANATION_LABELS) as LeadExplanationLevel[]).map((expKey) => {
+                  const active = leadSettings.explanation_level === expKey;
+                  return (
+                    <button
+                      key={expKey}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => updateLeadSetting('explanation_level', expKey)}
+                      className={`h-8 rounded-lg border px-2 text-xs font-semibold transition ${
+                        active
+                          ? 'border-[#B1A6FF] bg-[#26224A] text-[#F1F2F4]'
+                          : 'border-[#2A2F39] bg-[#12151A] text-[#A7ADB8] hover:border-[#3B3577] hover:text-[#F1F2F4]'
+                      }`}
+                    >
+                      {LEAD_EXPLANATION_LABELS[expKey].label}
+                    </button>
+                  );
+                })}
+              </div>
+              <span className="text-[11px] leading-snug text-[#9B97B8]">
+                {LEAD_EXPLANATION_LABELS[leadSettings.explanation_level].description}
+              </span>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <span className="text-xs font-semibold text-[#D5D8DE]">Call to Action</span>
+              <div className="grid grid-cols-2 gap-1.5">
+                {(Object.keys(LEAD_CTA_LABELS) as LeadCallToAction[]).map((ctaKey) => {
+                  const active = leadSettings.call_to_action === ctaKey;
+                  return (
+                    <button
+                      key={ctaKey}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => updateLeadSetting('call_to_action', ctaKey)}
+                      className={`h-8 rounded-lg border px-2 text-xs font-semibold transition ${
+                        active
+                          ? 'border-[#B1A6FF] bg-[#26224A] text-[#F1F2F4]'
+                          : 'border-[#2A2F39] bg-[#12151A] text-[#A7ADB8] hover:border-[#3B3577] hover:text-[#F1F2F4]'
+                      }`}
+                    >
+                      {LEAD_CTA_LABELS[ctaKey].label}
+                    </button>
+                  );
+                })}
+              </div>
+              <span className="text-[11px] leading-snug text-[#9B97B8]">
+                {LEAD_CTA_LABELS[leadSettings.call_to_action].description}
+              </span>
+            </div>
+          </div>
+
+          {/* 7. Additional Instructions */}
+          <label className="flex flex-col gap-1.5">
+            <span className="flex items-center justify-between text-xs font-semibold text-[#D5D8DE]">
+              <span>Additional Instructions</span>
+              <span className="font-normal text-[#9B97B8]">Optional · specific to {name}</span>
+            </span>
+            <textarea
+              value={leadSettings.additional_instructions}
+              onChange={(e) => updateLeadSetting('additional_instructions', e.target.value)}
+              rows={2}
+              placeholder="Make the message warmer, avoid sounding too promotional, focus on the recipient's potential benefit and keep it under 100 words."
+              className="w-full resize-y rounded-xl border border-[#2A2F39] bg-[#12151A] px-3 py-2 text-xs leading-relaxed text-[#F1F2F4] outline-none placeholder:text-[#666C78] focus:border-[#B1A6FF]"
+            />
+          </label>
+
+          {/* Settings Action Row */}
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={savingLeadSettings}
+                onClick={() => void saveLeadSettings(leadSettings)}
+                className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-[#3B3577] bg-[#1D1B30] px-3 text-xs font-semibold text-[#CFC8FF] hover:bg-[#26224A] disabled:opacity-50"
+              >
+                {savingLeadSettings ? <Spinner size={12} /> : <Icon name="check" size={12} />}
+                {savingLeadSettings ? 'Saving…' : 'Save settings'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setLeadSettings(defaultLeadCfg);
+                  setLeadSettingsSaved(false);
+                }}
+                className="h-8 rounded-lg border-0 bg-transparent px-2 text-xs font-semibold text-[#9B97B8] hover:text-[#F1F2F4]"
+              >
+                Use recommended
+              </button>
+            </div>
+
+            <button
+              type="button"
+              disabled={personalising}
+              onClick={() => onPersonalise(leadSettings)}
+              className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-[#5BD69A] px-4 text-xs font-bold text-[#0E1014] transition hover:opacity-95 disabled:opacity-50"
+            >
+              {personalising ? <Spinner size={13} /> : <Icon name="sparkle" size={13} />}
+              {personalising
+                ? 'Personalizing…'
+                : hasDraft
+                  ? 'Regenerate with settings'
+                  : configureQueueIds.length > 1 && queueIndex >= 0
+                    ? `Confirm & Personalize (${queueIndex + 1}/${configureQueueIds.length}) →`
+                    : 'Confirm & Personalize Drafts'}
+            </button>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+
   return (
     <div className="fixed inset-0 z-[55] flex justify-end">
       {/* Backdrop: click outside to close */}
@@ -1944,6 +2651,9 @@ function ProspectDetailPanel({
         </div>
 
         <VerificationCard entry={entry} brief={brief} />
+
+        {/* When configuring personalization (or before draft exists), place Personalization Settings right at the top */}
+        {showConfigAtTop && personalizationSettingsSection}
 
         {/* 1. BEST WAY TO CONTACT & WHY */}
         <section className="flex flex-col gap-3 rounded-2xl border border-[#2E6B75] bg-[#112229] p-4">
@@ -2054,6 +2764,9 @@ function ProspectDetailPanel({
           </section>
         )}
 
+        {/* 2.5. PER-LEAD PERSONALIZATION SETTINGS (when already personalized and not in top config mode) */}
+        {!showConfigAtTop && personalizationSettingsSection}
+
         {/* 3. CLEAN, FULL-READABLE OUTREACH MESSAGE VIEWER */}
         <section className="flex flex-col gap-3.5 rounded-2xl border border-[#2A2F39] bg-[#171A20] p-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -2074,6 +2787,17 @@ function ProspectDetailPanel({
                   {draft?.status === 'approved' ? 'Approved' : 'Ready to review'}
                 </Pill>
               )}
+              {hasDraft && draft?.status !== 'approved' && viewingVersionIdx === null && (
+                <button
+                  type="button"
+                  disabled={approvingDraft}
+                  onClick={() => void approveDraftInPlace()}
+                  className="inline-flex h-8 items-center gap-1 rounded-lg border border-[#2F6B4B] bg-[#10261B] px-2.5 text-xs font-semibold text-[#8EE6B6] hover:bg-[#153324] disabled:opacity-50"
+                >
+                  <Icon name="check" size={12} stroke={2.6} />
+                  {approvingDraft ? 'Approving…' : 'Approve draft'}
+                </button>
+              )}
               {hasDraft && (
                 <button
                   type="button"
@@ -2087,8 +2811,66 @@ function ProspectDetailPanel({
             </div>
           </div>
 
-          {hasDraft && draft?.copy ? (
+          {hasDraft && displayedDraft?.copy ? (
             <>
+              {/* Applied settings indicator + Previous versions bar */}
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#232732] bg-[#12151A] px-3 py-2 text-[11px] text-[#A7ADB8]">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="font-semibold text-[#B1A6FF]">Applied settings:</span>
+                  <span>
+                    {LEAD_TONE_LABELS[(displayedDraft.lead_settings ?? leadSettings).tone]} ·{' '}
+                    {LEAD_LENGTH_LABELS[(displayedDraft.lead_settings ?? leadSettings).message_length]} ·{' '}
+                    {LEAD_DEPTH_LABELS[(displayedDraft.lead_settings ?? leadSettings).personalization_depth].label} depth ·{' '}
+                    {LEAD_APPROACH_LABELS[(displayedDraft.lead_settings ?? leadSettings).communication_approach].label} ·{' '}
+                    {LEAD_CTA_LABELS[(displayedDraft.lead_settings ?? leadSettings).call_to_action].label} CTA
+                  </span>
+                </div>
+                {(draft?.previous_versions?.length ?? 0) > 0 && (
+                  <div className="flex flex-wrap items-center gap-1">
+                    <span className="text-[#8A909C]">Versions:</span>
+                    <button
+                      type="button"
+                      onClick={() => setViewingVersionIdx(null)}
+                      className={`rounded-md px-2 py-0.5 text-[11px] font-semibold ${
+                        viewingVersionIdx === null
+                          ? 'bg-[#26224A] text-[#CFC8FF]'
+                          : 'text-[#8A909C] hover:text-[#F1F2F4]'
+                      }`}
+                    >
+                      Latest
+                    </button>
+                    {draft!.previous_versions!.map((ver, idx) => (
+                      <button
+                        key={`${ver.version}-${ver.generated_at}`}
+                        type="button"
+                        onClick={() => {
+                          setViewingVersionIdx(idx);
+                          setEditingDraft(false);
+                        }}
+                        title={`Saved ${shortDate(ver.generated_at)}`}
+                        className={`rounded-md px-2 py-0.5 text-[11px] font-semibold ${
+                          viewingVersionIdx === idx
+                            ? 'bg-[#26224A] text-[#CFC8FF]'
+                            : 'text-[#8A909C] hover:text-[#F1F2F4]'
+                        }`}
+                      >
+                        Prev {idx + 1}
+                      </button>
+                    ))}
+                    {viewingVersionIdx !== null && (
+                      <button
+                        type="button"
+                        disabled={restoringVersion}
+                        onClick={() => void restorePreviousVersion(viewingVersionIdx)}
+                        className="ml-1 rounded-md border border-[#2E6B75] bg-[#12313A] px-2 py-0.5 text-[11px] font-semibold text-[#9BE6EE] hover:bg-[#183D48]"
+                      >
+                        {restoringVersion ? 'Restoring…' : 'Restore this version'}
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+
               {/* Channel switcher pills right inside the panel */}
               <div role="tablist" aria-label="Outreach channels" className="flex flex-wrap gap-1.5">
                 {channelTabs.map((item) => {
@@ -2188,10 +2970,10 @@ function ProspectDetailPanel({
                     </button>
                   </div>
 
-                  {activeChannel === 'email' && (draft.copy.subject_lines?.length ?? 0) > 1 && (
+                  {activeChannel === 'email' && (displayedDraft.copy.subject_lines?.length ?? 0) > 1 && (
                     <div className="flex flex-wrap items-center gap-1.5 pt-1">
                       <span className="text-[11px] text-[#8A909C]">Options:</span>
-                      {draft.copy.subject_lines.map((line, i) => (
+                      {displayedDraft.copy.subject_lines.map((line, i) => (
                         <button
                           key={line.text}
                           type="button"
@@ -2215,17 +2997,21 @@ function ProspectDetailPanel({
                 <div className="flex items-center justify-between border-b border-[#1E222B] px-4 py-2.5">
                   <span className="text-xs font-semibold text-[#A7ADB8]">
                     {CHANNEL_LABEL[activeChannel]} message
-                    {draft.strategy?.recipient_incentive ? ' · Incentive-led' : ''}
+                    {displayedDraft.strategy?.recipient_incentive ? ' · Incentive-led' : ''}
                   </span>
                   <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setEditingDraft((v) => !v)}
-                      className="text-xs font-semibold text-[#C9CDD4] hover:text-[#F1F2F4]"
-                    >
-                      {editingDraft ? 'Cancel edit' : 'Edit text'}
-                    </button>
-                    <span className="text-[#2A2F39]">·</span>
+                    {viewingVersionIdx === null && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => setEditingDraft((v) => !v)}
+                          className="text-xs font-semibold text-[#C9CDD4] hover:text-[#F1F2F4]"
+                        >
+                          {editingDraft ? 'Cancel edit' : 'Edit text'}
+                        </button>
+                        <span className="text-[#2A2F39]">·</span>
+                      </>
+                    )}
                     <button
                       type="button"
                       onClick={() => void copy(activeMessageText, 'inline-body')}
@@ -2297,7 +3083,7 @@ function ProspectDetailPanel({
                 <button
                   type="button"
                   disabled={personalising}
-                  onClick={onPersonalise}
+                  onClick={() => onPersonalise(leadSettings)}
                   className="inline-flex h-10 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl border border-[#2A2F39] bg-[#12151A] px-3.5 text-[13px] font-semibold text-[#C9CDD4] transition hover:border-[#3A3F4A] hover:text-[#F1F2F4] disabled:opacity-50"
                 >
                   {personalising ? <Spinner size={13} /> : <Icon name="refresh" size={14} />}
@@ -2316,7 +3102,7 @@ function ProspectDetailPanel({
                 <button
                   type="button"
                   disabled={personalising}
-                  onClick={onPersonalise}
+                  onClick={() => onPersonalise(leadSettings)}
                   className="inline-flex h-10 items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-[#26224A] px-4 text-[13px] font-semibold text-[#CFC8FF] hover:bg-[#322D5E] disabled:opacity-50"
                 >
                   {personalising ? <Spinner size={14} /> : <Icon name="sparkle" size={15} />}
@@ -2507,34 +3293,29 @@ function ProspectDetailPanel({
           More research
         </button>
         {isApproved ? (
-          hasDraft ? (
-            <button
-              type="button"
-              onClick={onToggleSent}
-              className={`inline-flex h-[46px] items-center justify-center gap-1.5 rounded-xl px-3 text-sm font-semibold transition ${
-                isSent
-                  ? 'border border-[#2E6B75] bg-[#12313A] text-[#9BE6EE] hover:bg-[#183D48]'
-                  : 'bg-[#5BD69A] text-[#0E1014] hover:opacity-95'
-              }`}
-            >
-              <Icon name="check" size={15} stroke={2.6} />
-              {isSent ? 'Sent · Move back' : 'Mark as sent'}
-            </button>
-          ) : (
-            <button
-              type="button"
-              disabled={personalising}
-              onClick={onPersonalise}
-              className={`${btnPrimary} h-[46px] px-3`}
-            >
-              {personalising ? 'Writing…' : 'Personalise'}
-            </button>
-          )
+          <button
+            type="button"
+            onClick={onToggleSent}
+            className={`inline-flex h-[46px] items-center justify-center gap-1.5 rounded-xl px-3 text-sm font-semibold transition ${
+              isSent
+                ? 'border border-[#2E6B75] bg-[#12313A] text-[#9BE6EE] hover:bg-[#183D48]'
+                : 'bg-[#5BD69A] text-[#0E1014] hover:opacity-95'
+            }`}
+          >
+            <Icon name="check" size={15} stroke={2.6} />
+            {isSent ? 'Sent · Move back' : 'Mark as sent'}
+          </button>
         ) : (
           <button
             type="button"
             disabled={saving || personalising}
-            onClick={() => void commitDecision('shortlisted')}
+            onClick={() => {
+              if (note.trim() && !noteSaved) {
+                void saveDecision(projectId, entry.record.record_id, 'shortlisted', note.trim());
+                setNoteSaved(true);
+              }
+              onPersonalise(leadSettings);
+            }}
             className={`${
               verification.state === 'unverified' ? btnSecondary : btnPrimary
             } h-[46px] px-3`}

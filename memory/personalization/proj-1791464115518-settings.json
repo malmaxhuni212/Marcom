@@ -10,5 +10,37 @@
   "call_to_action_link": "https://mayabookawards.com/guidelines",
   "signature": "Warm regards,\nMaya Editorial Team\nsubmissions@mayabookawards.com",
   "extra_guidance": "Professional, warm, respectful. Never pressure. Cite their actual books or literary achievements.",
-  "updated_at": "2026-10-13T11:52:04.912Z"
+  "lead_settings": {
+    "r-canongate-mvp4mfuw": {
+      "tone": "formal",
+      "message_length": "detailed",
+      "personalization_depth": "deep",
+      "communication_approach": "incentive_driven",
+      "explanation_level": "detailed",
+      "call_to_action": "direct",
+      "additional_instructions": "Focus on institutional prestige and long-term visibility.",
+      "updated_at": "2026-10-30T13:04:23.506Z"
+    },
+    "r-little-brown-book-group-mvp4lm76": {
+      "tone": "professional",
+      "message_length": "short",
+      "personalization_depth": "moderate",
+      "communication_approach": "incentive_driven",
+      "explanation_level": "balanced",
+      "call_to_action": "specific_request",
+      "additional_instructions": "",
+      "updated_at": null
+    },
+    "r-hachette-uk-mvp4l3w1": {
+      "tone": "professional",
+      "message_length": "short",
+      "personalization_depth": "moderate",
+      "communication_approach": "incentive_driven",
+      "explanation_level": "balanced",
+      "call_to_action": "specific_request",
+      "additional_instructions": "",
+      "updated_at": "2026-10-30T13:55:20.280Z"
+    }
+  },
+  "updated_at": "2026-10-30T13:55:20.294Z"
 }

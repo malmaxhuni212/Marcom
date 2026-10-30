@@ -15,6 +15,281 @@ export const PERSONALIZATION_VERSION = '1.0' as const;
 const nonEmpty = z.string().trim().min(1);
 
 /* ------------------------------------------------------------------ */
+/* Per-Lead Personalization Settings (individual prospect controls)    */
+/* ------------------------------------------------------------------ */
+
+export const LeadToneSchema = z.enum([
+  'professional',
+  'friendly',
+  'conversational',
+  'confident',
+  'persuasive',
+  'formal',
+]);
+export type LeadTone = z.infer<typeof LeadToneSchema>;
+
+export const LeadMessageLengthSchema = z.enum([
+  'very_short',
+  'short',
+  'balanced',
+  'detailed',
+]);
+export type LeadMessageLength = z.infer<typeof LeadMessageLengthSchema>;
+
+export const LeadPersonalizationDepthSchema = z.enum([
+  'light',
+  'moderate',
+  'deep',
+]);
+export type LeadPersonalizationDepth = z.infer<typeof LeadPersonalizationDepthSchema>;
+
+export const LeadCommunicationApproachSchema = z.enum([
+  'relationship_first',
+  'opportunity_first',
+  'incentive_driven',
+  'direct',
+  'consultative',
+]);
+export type LeadCommunicationApproach = z.infer<typeof LeadCommunicationApproachSchema>;
+
+export const LeadExplanationLevelSchema = z.enum([
+  'minimal',
+  'balanced',
+  'detailed',
+]);
+export type LeadExplanationLevel = z.infer<typeof LeadExplanationLevelSchema>;
+
+export const LeadCallToActionSchema = z.enum([
+  'soft',
+  'further_discussion',
+  'specific_request',
+  'direct',
+]);
+export type LeadCallToAction = z.infer<typeof LeadCallToActionSchema>;
+
+export const LeadPersonalizationSettingsSchema = z.strictObject({
+  tone: LeadToneSchema.default('professional'),
+  message_length: LeadMessageLengthSchema.default('short'),
+  personalization_depth: LeadPersonalizationDepthSchema.default('deep'),
+  communication_approach: LeadCommunicationApproachSchema.default('incentive_driven'),
+  explanation_level: LeadExplanationLevelSchema.default('balanced'),
+  call_to_action: LeadCallToActionSchema.default('soft'),
+  additional_instructions: z.string().trim().max(1_000).default(''),
+  updated_at: z.string().nullable().optional().default(null),
+});
+export type LeadPersonalizationSettings = z.infer<typeof LeadPersonalizationSettingsSchema>;
+
+export const LEAD_TONE_LABELS: Record<LeadTone, string> = {
+  professional: 'Professional',
+  friendly: 'Friendly',
+  conversational: 'Conversational',
+  confident: 'Confident',
+  persuasive: 'Persuasive',
+  formal: 'Formal',
+};
+
+export const LEAD_LENGTH_LABELS: Record<LeadMessageLength, string> = {
+  very_short: 'Very Short',
+  short: 'Short',
+  balanced: 'Balanced',
+  detailed: 'Detailed',
+};
+
+export const LEAD_DEPTH_LABELS: Record<LeadPersonalizationDepth, { label: string; description: string }> = {
+  light: { label: 'Light', description: 'Mention one relevant detail' },
+  moderate: { label: 'Moderate', description: 'Connect several relevant details to the opportunity' },
+  deep: { label: 'Deep', description: 'Use strongest research for a highly individualised approach' },
+};
+
+export const LEAD_APPROACH_LABELS: Record<LeadCommunicationApproach, { label: string; description: string }> = {
+  relationship_first: { label: 'Relationship-first', description: 'Establish a natural connection before introducing the opportunity' },
+  opportunity_first: { label: 'Opportunity-first', description: 'Quickly introduce something valuable to the recipient' },
+  incentive_driven: { label: 'Incentive-driven', description: 'Emphasise what the recipient could gain' },
+  direct: { label: 'Direct', description: 'Get to the point with minimal introduction' },
+  consultative: { label: 'Consultative', description: 'Present the opportunity as a relevant discussion' },
+};
+
+export const LEAD_EXPLANATION_LABELS: Record<LeadExplanationLevel, { label: string; description: string }> = {
+  minimal: { label: 'Minimal', description: 'Explain only what is necessary' },
+  balanced: { label: 'Balanced', description: 'Communicate the opportunity and its value clearly' },
+  detailed: { label: 'Detailed', description: 'Provide additional context and explain thoroughly' },
+};
+
+export const LEAD_CTA_LABELS: Record<LeadCallToAction, { label: string; description: string }> = {
+  soft: { label: 'Soft', description: 'Soft and low-pressure' },
+  further_discussion: { label: 'Further Discussion', description: 'Invite further discussion' },
+  specific_request: { label: 'Specific Request', description: 'Request a specific action' },
+  direct: { label: 'Direct', description: 'Directly ask for participation' },
+};
+
+export interface LeadPersonalizationRecommendation {
+  settings: LeadPersonalizationSettings;
+  rationale: string;
+  highlights: string[];
+}
+
+export function recommendLeadPersonalization(record?: {
+  target_type?: string | null;
+  role?: string | null;
+  organisation?: string | null;
+  summary?: string | null;
+  reason_for_relevance?: string | null;
+  work_and_projects?: string[] | null;
+  achievements?: string[] | null;
+  background?: string[] | null;
+  industry_activity?: string[] | null;
+  research_confidence?: string | null;
+  public_contact?: Array<{ kind?: string; value?: string }> | null;
+  key_contacts?: Array<{ name?: string; role?: string | null; email?: string | null }> | null;
+  identity?: { name?: string | null; entity_kind?: string | null; identity_verified?: boolean } | null;
+} | null): LeadPersonalizationRecommendation {
+  if (!record) {
+    return {
+      settings: LeadPersonalizationSettingsSchema.parse({}),
+      rationale: 'Balanced professional defaults selected.',
+      highlights: ['Standard profile defaults'],
+    };
+  }
+
+  const name = record.identity?.name || record.organisation || 'this prospect';
+  const targetHaystack = `${record.target_type ?? ''} ${record.role ?? ''} ${record.organisation ?? ''} ${record.summary ?? ''}`.toLowerCase();
+  const isOrg = record.identity?.entity_kind === 'organisation';
+  const worksCount = (record.work_and_projects?.length ?? 0) + (record.achievements?.length ?? 0);
+  const totalFacts =
+    worksCount + (record.background?.length ?? 0) + (record.industry_activity?.length ?? 0);
+  const topFact =
+    record.work_and_projects?.[0] ||
+    record.achievements?.[0] ||
+    record.industry_activity?.[0] ||
+    null;
+  const shortenedFact = topFact
+    ? topFact.length > 65
+      ? `${topFact.slice(0, 62).trim()}…`
+      : topFact
+    : null;
+
+  const isSparse = record.research_confidence === 'low' || totalFacts === 0;
+  const isRich = worksCount >= 2 || totalFacts >= 3;
+
+  // 1. Individual Author / Writer / Creative
+  if (/\b(?:author|writer|novelist|poet|illustrator|creator|artist|journalist|essayist)\b/.test(targetHaystack)) {
+    const depth: LeadPersonalizationDepth = isSparse ? 'light' : 'deep';
+    return {
+      settings: {
+        tone: 'friendly',
+        message_length: 'short',
+        personalization_depth: depth,
+        communication_approach: 'relationship_first',
+        explanation_level: 'balanced',
+        call_to_action: 'soft',
+        additional_instructions: '',
+        updated_at: null,
+      },
+      rationale: `${name} is an author, so a warm, friendly message that connects to their writing and ends with a low-pressure invite works best.`,
+      highlights: [
+        'Author → Friendly tone',
+        isSparse ? 'Limited research → Light depth' : 'Strong research → Deep depth',
+        'Low-pressure ask',
+      ],
+    };
+  }
+
+  // 2. Corporate Sponsor / Funder / Foundation
+  if (/\b(?:sponsor|sponsorship|corporate|foundation|grant|funder|investor|philanthrop|b-corp)\b/.test(targetHaystack)) {
+    const depth: LeadPersonalizationDepth = isSparse ? 'light' : 'moderate';
+    return {
+      settings: {
+        tone: 'professional',
+        message_length: 'balanced',
+        personalization_depth: depth,
+        communication_approach: 'incentive_driven',
+        explanation_level: 'balanced',
+        call_to_action: 'further_discussion',
+        additional_instructions: '',
+        updated_at: null,
+      },
+      rationale: `${name} is a potential sponsor, so a professional message that focuses on what they gain and invites a quick chat works best.`,
+      highlights: [
+        'Sponsor → Professional tone',
+        'Focus on what they gain',
+        'Invite a quick chat',
+      ],
+    };
+  }
+
+  // 3. Senior Executive / Managing Director / Founder
+  if (/\b(?:ceo|chief|managing director|president|vp|vice president|founder|chair|director general)\b/.test(targetHaystack)) {
+    const depth: LeadPersonalizationDepth = isSparse ? 'light' : 'moderate';
+    return {
+      settings: {
+        tone: 'confident',
+        message_length: 'very_short',
+        personalization_depth: depth,
+        communication_approach: 'opportunity_first',
+        explanation_level: 'minimal',
+        call_to_action: 'soft',
+        additional_instructions: '',
+        updated_at: null,
+      },
+      rationale: `Busy decision-makers read fast, so a very short, confident message for ${name} that gets straight to the point works best.`,
+      highlights: [
+        'Executive → Very short',
+        'Lead with the opportunity',
+        'Low-pressure ask',
+      ],
+    };
+  }
+
+  // 4. Literary / Publishing / Industry Organisation
+  if (isOrg) {
+    const depth: LeadPersonalizationDepth = isSparse ? 'light' : 'moderate';
+    return {
+      settings: {
+        tone: 'professional',
+        message_length: 'short',
+        personalization_depth: depth,
+        communication_approach: 'incentive_driven',
+        explanation_level: 'balanced',
+        call_to_action: 'specific_request',
+        additional_instructions: '',
+        updated_at: null,
+      },
+      rationale: `${name} is an organisation, so a short, professional message that explains the benefit for their authors and asks for the right contact works best.`,
+      highlights: [
+        'Organisation → Professional tone',
+        'Focus on author/member benefit',
+        'Ask for the right contact',
+      ],
+    };
+  }
+
+  // 5. General Individual Professional / Editor / Partner
+  const depth: LeadPersonalizationDepth = isSparse ? 'light' : isRich ? 'deep' : 'moderate';
+  return {
+    settings: {
+      tone: 'professional',
+      message_length: 'short',
+      personalization_depth: depth,
+      communication_approach: 'incentive_driven',
+      explanation_level: 'balanced',
+      call_to_action: 'soft',
+      additional_instructions: '',
+      updated_at: null,
+    },
+    rationale: `A short, professional message for ${name} that highlights what they gain and keeps the ask low-pressure.`,
+    highlights: [
+      'Professional tone',
+      isSparse ? 'Limited research → Light depth' : 'Strong research → Deep depth',
+      'Low-pressure ask',
+    ],
+  };
+}
+
+export function defaultLeadPersonalizationSettings(record?: Parameters<typeof recommendLeadPersonalization>[0]): LeadPersonalizationSettings {
+  return recommendLeadPersonalization(record).settings;
+}
+
+/* ------------------------------------------------------------------ */
 /* Campaign settings (human-provided, the only campaign facts allowed) */
 /* ------------------------------------------------------------------ */
 
@@ -28,6 +303,8 @@ export const PersonalizationSettingsSchema = z.strictObject({
   signature: z.string().trim().max(500).nullable().default(null),
   /** Free-form extra guidance from the team (e.g. "UK spelling", "never mention fees"). */
   extra_guidance: z.string().trim().max(1_000).default(''),
+  /** Individual per-lead personalization configurations indexed by record_id. */
+  lead_settings: z.record(z.string(), LeadPersonalizationSettingsSchema).optional(),
   updated_at: z.string().nullable().default(null),
 });
 export type PersonalizationSettings = z.infer<typeof PersonalizationSettingsSchema>;
@@ -254,6 +531,13 @@ export interface PersonalizationQA {
 export const PersonalizationStatusSchema = z.enum(['draft', 'approved', 'rejected', 'needs_more_research', 'failed']);
 export type PersonalizationStatus = z.infer<typeof PersonalizationStatusSchema>;
 
+export interface PersonalizationDraftVersion {
+  version: number;
+  generated_at: string;
+  copy: OutreachCopy;
+  lead_settings?: LeadPersonalizationSettings | null;
+}
+
 export interface PersonalizationEntry {
   personalization_version: typeof PERSONALIZATION_VERSION;
   record_id: string;
@@ -273,6 +557,11 @@ export interface PersonalizationEntry {
   qa: PersonalizationQA | null;
   /** How many automatic self-correction passes the copywriter needed. */
   auto_revisions: number;
+
+  /** Individual per-lead personalization settings applied to generate this draft. */
+  lead_settings?: LeadPersonalizationSettings | null;
+  /** Previous draft versions preserved when regenerating with updated settings. */
+  previous_versions?: PersonalizationDraftVersion[];
 
   models: { strategist: string; writer: string };
   timings_ms: { strategist: number; writer: number };

@@ -146,9 +146,27 @@ function WorkspaceProviderRoot({ children }: { children: ReactNode }) {
       setBundle(nextBundle);
       setBundleError(null);
     } catch (error) {
-      if (activeIdRef.current === projectId) setBundleError((error as Error).message);
+      if (activeIdRef.current !== projectId) return;
+      const message = (error as Error).message;
+      // If a remembered project ID no longer exists (e.g. after switching between DB and local fallback),
+      // automatically recover to the first available project instead of stranding the user.
+      if (message.toLowerCase().includes('not found')) {
+        const list = await refreshProjects();
+        const fallback = list.find((p) => p.id !== projectId) ?? list[0];
+        if (fallback && fallback.id !== projectId) {
+          activeIdRef.current = fallback.id;
+          setBundleError(null);
+          setActiveIdState(fallback.id);
+          try {
+            window.localStorage.setItem(ACTIVE_PROJECT_KEY, fallback.id);
+          } catch {}
+          void loadBundle(fallback.id);
+          return;
+        }
+      }
+      setBundleError(message);
     }
-  }, []);
+  }, [refreshProjects]);
 
   // Initial project list + active project (URL ?project= wins, then the remembered project, then the first).
   // Fire loadBundle in parallel if a remembered/requested project ID is available to eliminate waterfall latency.
@@ -190,7 +208,11 @@ function WorkspaceProviderRoot({ children }: { children: ReactNode }) {
       const chosen = [requested, remembered].find((id) => id && list.some((project) => project.id === id)) ?? list[0]!.id;
       if (chosen !== activeIdRef.current) {
         activeIdRef.current = chosen;
+        setBundleError(null);
         setActiveIdState(chosen);
+        try {
+          window.localStorage.setItem(ACTIVE_PROJECT_KEY, chosen);
+        } catch {}
       }
     })();
   }, [isPublicAuthRoute, refreshProjects, loadBundle]);
@@ -214,9 +236,19 @@ function WorkspaceProviderRoot({ children }: { children: ReactNode }) {
   }, []);
 
   const reload = useCallback(async () => {
-    const id = activeIdRef.current;
+    setBundleError(null);
+    const list = await refreshProjects();
+    let id = activeIdRef.current;
+    if (list.length > 0 && (!id || !list.some((p) => p.id === id))) {
+      id = list[0]!.id;
+      activeIdRef.current = id;
+      setActiveIdState(id);
+      try {
+        window.localStorage.setItem(ACTIVE_PROJECT_KEY, id);
+      } catch {}
+    }
     if (!id) return;
-    await Promise.all([loadBundle(id), refreshProjects()]);
+    await loadBundle(id);
   }, [loadBundle, refreshProjects]);
 
   const updateDraft = useCallback((entry: PersonalizationEntry) => {

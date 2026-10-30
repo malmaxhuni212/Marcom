@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { LeadPersonalizationSettingsSchema } from '../schemas/personalization';
 
 export const GeneratePersonalizationRequestSchema = z.strictObject({
   recordId: z.string().trim().min(1).max(255).optional(),
@@ -8,6 +9,8 @@ export const GeneratePersonalizationRequestSchema = z.strictObject({
   allShortlisted: z.boolean().optional(),
   forceRegenerate: z.boolean().optional(),
   force: z.boolean().optional(),
+  leadSettings: LeadPersonalizationSettingsSchema.optional(),
+  leadSettingsByRecordId: z.record(z.string(), LeadPersonalizationSettingsSchema).optional(),
 }).superRefine((value, context) => {
   if (!value.recordId && !value.recordIds && !value.batchId && !value.allShortlisted && !value.mode) {
     context.addIssue({ code: 'custom', message: 'Select at least one prospect to personalize.' });

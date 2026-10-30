@@ -21,6 +21,14 @@ import { extractJson, type LLMProvider } from '../../llm/provider';
 import { GroqProvider } from '../../llm/groq-provider';
 import { loadPersonalizationPrompts } from '../prompt-loader';
 import {
+  defaultLeadPersonalizationSettings,
+  LEAD_APPROACH_LABELS,
+  LEAD_CTA_LABELS,
+  LEAD_DEPTH_LABELS,
+  LEAD_EXPLANATION_LABELS,
+  LEAD_LENGTH_LABELS,
+  LEAD_TONE_LABELS,
+  type LeadPersonalizationSettings,
   type OutreachCopy,
   OutreachCopySchema,
   PERSONALIZATION_VERSION,
@@ -41,12 +49,48 @@ export interface RunPersonalizationOptions {
   brief: StructuredBrief;
   entry: ResearchEntry;
   settings: PersonalizationSettings;
+  leadSettings?: LeadPersonalizationSettings;
   store: MemoryStore;
   strategistModel?: string;
   writerModel?: string;
   strategistProvider?: LLMProvider;
   writerProvider?: LLMProvider;
   force?: boolean;
+}
+
+export function formatLeadSettingsPromptBlock(
+  leadSettings: LeadPersonalizationSettings,
+  record: ResearchRecord,
+): string {
+  const toneLabel = LEAD_TONE_LABELS[leadSettings.tone];
+  const lengthLabel = LEAD_LENGTH_LABELS[leadSettings.message_length];
+  const depthInfo = LEAD_DEPTH_LABELS[leadSettings.personalization_depth];
+  const approachInfo = LEAD_APPROACH_LABELS[leadSettings.communication_approach];
+  const explanationInfo = LEAD_EXPLANATION_LABELS[leadSettings.explanation_level];
+  const ctaInfo = LEAD_CTA_LABELS[leadSettings.call_to_action];
+
+  const wordBudgetMap: Record<LeadPersonalizationSettings['message_length'], string> = {
+    very_short: '40–65 words (1–2 crisp paragraphs; cut all preamble)',
+    short: '65–95 words (2–3 concise paragraphs)',
+    balanced: '95–130 words (3 well-paced paragraphs)',
+    detailed: '130–170 words (3–4 paragraphs with fuller context and proposition detail)',
+  };
+
+  return [
+    `\n=== INDIVIDUAL LEAD PERSONALIZATION SETTINGS (Configured for ${record.identity.name || 'this prospect'}) ===`,
+    `- Tone: ${toneLabel} (${leadSettings.tone})`,
+    `- Message Length: ${lengthLabel} — Target email length: ${wordBudgetMap[leadSettings.message_length]}`,
+    `- Level of Personalisation: ${depthInfo.label} — ${depthInfo.description}`,
+    `- Communication Approach: ${approachInfo.label} — ${approachInfo.description}`,
+    `- Explanation Level: ${explanationInfo.label} — ${explanationInfo.description}`,
+    `- Call to Action Style: ${ctaInfo.label} — ${ctaInfo.description}`,
+    leadSettings.additional_instructions?.trim()
+      ? `- Additional User Instructions for This Lead: "${leadSettings.additional_instructions.trim()}"`
+      : '',
+    `- Good Judgment Rule: Combine Project Brief + Research Record + Memory + these Individual Personalization Settings. Let these settings actively shape the tone, opening flow, research depth, explanation level, and CTA, while adapting naturally to this recipient (${record.role || record.target_type}${record.organisation ? ` at ${record.organisation}` : ''}) so the message never sounds forced or inappropriate.`,
+  ]
+    .filter(Boolean)
+    .join('\n');
 }
 
 function hasUsableContactRoute(record: ResearchRecord, strategy: StrategyDossier): boolean {
@@ -79,6 +123,7 @@ export function normalizeStrategyDossier(
   rawStrategy: StrategyDossier,
   record: ResearchRecord,
   brief: StructuredBrief,
+  leadSettings?: LeadPersonalizationSettings,
 ): StrategyDossier {
   const strategy: StrategyDossier = {
     ...rawStrategy,
@@ -89,6 +134,26 @@ export function normalizeStrategyDossier(
     human_checks: [...rawStrategy.human_checks],
     hooks: [...rawStrategy.hooks],
   };
+
+  if (leadSettings) {
+    if (leadSettings.personalization_depth === 'light' && strategy.hooks.length > 1) {
+      strategy.hooks = strategy.hooks.slice(0, 1);
+    } else if (leadSettings.personalization_depth === 'moderate' && strategy.hooks.length > 2) {
+      strategy.hooks = strategy.hooks.slice(0, 2);
+    }
+    const toneRegisterMap: Record<LeadPersonalizationSettings['tone'], StrategyDossier['tone']['register']> = {
+      professional: 'warm_professional',
+      friendly: 'warm_professional',
+      conversational: 'peer',
+      confident: 'peer',
+      persuasive: 'enthusiastic',
+      formal: 'formal',
+    };
+    strategy.tone = {
+      register: toneRegisterMap[leadSettings.tone] ?? strategy.tone.register,
+      guidance: `${LEAD_TONE_LABELS[leadSettings.tone]} tone, ${LEAD_LENGTH_LABELS[leadSettings.message_length].toLowerCase()} length, ${LEAD_APPROACH_LABELS[leadSettings.communication_approach].label.toLowerCase()} approach, ${LEAD_EXPLANATION_LABELS[leadSettings.explanation_level].label.toLowerCase()} explanation.${leadSettings.additional_instructions ? ` Additional guidance: ${leadSettings.additional_instructions}` : ''}`,
+    };
+  }
 
   // 1. Ensure recipient_incentive is always present and grounded
   if (!strategy.recipient_incentive || strategy.recipient_incentive.trim().length < 8) {
@@ -197,8 +262,10 @@ export function buildStrategistUserPrompt(
   research: ResearchEntry,
   settings: PersonalizationSettings,
   memoryNote: string,
+  leadSettings?: LeadPersonalizationSettings,
 ): string {
   const r = research.record;
+  const resolvedLeadSettings = leadSettings ?? settings.lead_settings?.[r.record_id];
   const target = (brief.targets as any[]).find((t) => t.id === r.brief_target_id) || brief.targets?.[0];
 
   const evidenceFormatted = r.evidence
@@ -330,6 +397,7 @@ export function buildStrategistUserPrompt(
     `3. Rigorously evaluate every contact route and populate 'contact_audit' completely.`,
 
     memoryNote ? `\n=== MEMORY CONTEXT & RELATIONSHIP HISTORY ===\n${memoryNote}` : '',
+    resolvedLeadSettings ? formatLeadSettingsPromptBlock(resolvedLeadSettings, r) : '',
 
     `\nAnalyze this prospect thoroughly. Output the JSON StrategyDossier object only.`,
   ]
@@ -343,7 +411,9 @@ export function buildWriterUserPrompt(
   settings: PersonalizationSettings,
   prospectName: string,
   brief?: StructuredBrief,
+  leadSettings?: LeadPersonalizationSettings,
 ): string {
+  const resolvedLeadSettings = leadSettings ?? settings.lead_settings?.[research.record.record_id];
   const hooksFormatted = strategy.hooks
     .map(
       (h) =>
@@ -424,13 +494,14 @@ export function buildWriterUserPrompt(
     strategy.human_checks.length
       ? `Limitations / Reviewer Notes:\n${strategy.human_checks.map((c) => `- ${c}`).join('\n')}`
       : '',
+    resolvedLeadSettings ? formatLeadSettingsPromptBlock(resolvedLeadSettings, research.record) : '',
 
-    `\n=== WRITING STYLE & WARMTH REQUIREMENTS ===`,
-    `1. Greeting & Warm Beginning: Start with "${recommendedGreeting}", then open the first paragraph with a brief, warm human line (such as "I hope your week is going well.") before smoothly connecting to their work or organisation.`,
-    `2. Explain the Project Clearly (Never Assume They Know Us): The recipient has NEVER heard of ${brief?.project?.name || settings.organisation || 'our project'} before. Do not mention the project name as if they already know what it is. Always introduce it with a short, plain-English phrase explaining what it actually is (e.g., "We run the Maya Book Awards, an international book prize celebrating standout fiction and non-fiction."). Also make subject lines self-explanatory to a newcomer (never use bare shorthand like "Maya 2026").`,
-    `3. Don't Overcomplicate: Use plain, everyday English that is direct, polite, easy to understand, and a smooth read from start to finish. Use natural words like "especially" instead of robotic phrases like "including titles like" or "such as titles like".`,
+    `\n=== WRITING STYLE & CONVERSION REQUIREMENTS ===`,
+    `1. Greeting & Opening: Start with "${recommendedGreeting}". Match your opening sentence to the prospect's Communication Approach (${resolvedLeadSettings ? LEAD_APPROACH_LABELS[resolvedLeadSettings.communication_approach].label : 'warm and natural'}): if Relationship-first or Friendly, open with a warm human check-in and connection; if Direct or Opportunity-first, lead immediately with the relevant point or opportunity without filler.`,
+    `2. Explain the Project Clearly (Calibrated to Explanation Level: ${resolvedLeadSettings ? LEAD_EXPLANATION_LABELS[resolvedLeadSettings.explanation_level].label : 'Balanced'}): The recipient may not know ${brief?.project?.name || settings.organisation || 'our project'} yet. Introduce what the project offers and why it matters clearly, and prioritize what the recipient stands to gain (Recipient Incentive).`,
+    `3. Concise, Human Voice (Target Length: ${resolvedLeadSettings ? LEAD_LENGTH_LABELS[resolvedLeadSettings.message_length] : 'Short and concise'}): Use plain, everyday English that feels individually written. Avoid repetitive explanations, excessive compliments, and corporate jargon.`,
     `4. NO EM-DASHES (—) OR ASTERISKS (*): Never use the "—" character or markdown asterisks (*title*) anywhere in the message text or subject lines. Use commas or periods instead.`,
-    `5. Simple Next Step: End with one easy, low-pressure question (never push for a "15-minute virtual coffee" or calendar invite on first contact). Output JSON only.`,
+    `5. Clear Next Step (CTA Style: ${resolvedLeadSettings ? LEAD_CTA_LABELS[resolvedLeadSettings.call_to_action].label : 'Soft and low-pressure'}): Make the requested action clear and easy to reply to. Output JSON only.`,
   ]
     .filter(Boolean)
     .join('\n');
@@ -440,6 +511,7 @@ export function normalizeOutreachCopy(
   copy: OutreachCopy,
   record: ResearchRecord,
   prospectName: string,
+  leadSettings?: LeadPersonalizationSettings,
 ): OutreachCopy {
   const cleanText = (text: string) =>
     text
@@ -462,7 +534,17 @@ export function normalizeOutreachCopy(
       .replace(/\([^)]*\)/g, '')
       .trim()
       .split(/\s+/)[0] || prospectName;
-  const properGreeting = isOrg ? `Hi ${prospectName} team,` : `Hi ${cleanFirstName},`;
+  const isFormal = leadSettings?.tone === 'formal';
+  const properGreeting = isFormal
+    ? `Dear ${isOrg ? `${prospectName} team` : cleanFirstName},`
+    : isOrg
+      ? `Hi ${prospectName} team,`
+      : `Hi ${cleanFirstName},`;
+
+  const shouldEnsureWarmCheckIn = leadSettings
+    ? (leadSettings.communication_approach === 'relationship_first' || leadSettings.tone === 'friendly') &&
+      leadSettings.message_length !== 'very_short'
+    : true;
 
   const fixGreetingAndWarmth = (body: string, ensureWarmStart: boolean): string => {
     let cleaned = cleanText(body);
@@ -471,6 +553,9 @@ export function normalizeOutreachCopy(
       /^(?:hi|hello|dear)(?:\s+(?:support|info|admin|enquiries|inquiries|general|helpdesk)?\s*team)?\s*,/i,
       properGreeting,
     );
+    if (isFormal) {
+      cleaned = cleaned.replace(/^hi\s+([^,\n]+),/i, 'Dear $1,');
+    }
 
     if (!ensureWarmStart) return cleaned;
 
@@ -494,7 +579,7 @@ export function normalizeOutreachCopy(
       ...s,
       text: cleanText(s.text),
     })),
-    email_body: fixGreetingAndWarmth(copy.email_body, true),
+    email_body: fixGreetingAndWarmth(copy.email_body, shouldEnsureWarmCheckIn),
     alternative_opening: copy.alternative_opening ? cleanText(copy.alternative_opening) : null,
     linkedin_message: cleanText(copy.linkedin_message).replace(
       /^(?:hi|hello)\s+(?:support|info|admin|enquiries|inquiries|general)\s+team\s*,/i,
@@ -511,6 +596,7 @@ export async function runPersonalizationAgent(options: RunPersonalizationOptions
     brief,
     entry,
     settings,
+    leadSettings,
     store,
     strategistModel = 'openai/gpt-oss-20b',
     writerModel = 'openai/gpt-oss-20b',
@@ -520,6 +606,7 @@ export async function runPersonalizationAgent(options: RunPersonalizationOptions
   const prompts = loadPersonalizationPrompts();
   const record = entry.record;
   const prospectName = record.identity.name || entry.seed.name;
+  const resolvedLeadSettings = leadSettings ?? settings.lead_settings?.[record.record_id];
 
   // Retrieve project and relationship memory
   const memoryContext = retrieveMemoryContext(
@@ -546,7 +633,13 @@ export async function runPersonalizationAgent(options: RunPersonalizationOptions
   // -------------------------------------------------------------
   const strategistProvider: LLMProvider =
     options.strategistProvider ?? new GroqProvider({ model: strategistModel, pool: 'personalization' });
-  const strategistPrompt = buildStrategistUserPrompt(brief, entry, settings, memoryNotes.join('\n'));
+  const strategistPrompt = buildStrategistUserPrompt(
+    brief,
+    entry,
+    settings,
+    memoryNotes.join('\n'),
+    resolvedLeadSettings,
+  );
 
   let strategy: StrategyDossier | null = null;
   const tStrategistStart = Date.now();
@@ -562,7 +655,7 @@ export async function runPersonalizationAgent(options: RunPersonalizationOptions
     );
     const parsed = extractJson(rawStrategy);
     const parsedStrategy = StrategyDossierSchema.parse(parsed);
-    strategy = normalizeStrategyDossier(parsedStrategy, record, brief);
+    strategy = normalizeStrategyDossier(parsedStrategy, record, brief, resolvedLeadSettings);
   } catch (error) {
     console.error(`Personalization Strategist failed for ${prospectName}:`, error);
     return {
@@ -580,6 +673,7 @@ export async function runPersonalizationAgent(options: RunPersonalizationOptions
       edited_by_human: false,
       qa: null,
       auto_revisions: 0,
+      lead_settings: resolvedLeadSettings ?? null,
       models: { strategist: strategistModel, writer: writerModel },
       timings_ms: { strategist: Date.now() - tStrategistStart, writer: 0 },
       generated_at: new Date().toISOString(),
@@ -609,6 +703,7 @@ export async function runPersonalizationAgent(options: RunPersonalizationOptions
       edited_by_human: false,
       qa: null,
       auto_revisions: 0,
+      lead_settings: resolvedLeadSettings ?? null,
       models: { strategist: strategistModel, writer: writerModel },
       timings_ms: { strategist: strategistTime, writer: 0 },
       generated_at: new Date().toISOString(),
@@ -624,7 +719,14 @@ export async function runPersonalizationAgent(options: RunPersonalizationOptions
   // -------------------------------------------------------------
   const writerProvider: LLMProvider =
     options.writerProvider ?? new GroqProvider({ model: writerModel, pool: 'personalization' });
-  const baseWriterPrompt = buildWriterUserPrompt(strategy, entry, settings, prospectName, brief);
+  const baseWriterPrompt = buildWriterUserPrompt(
+    strategy,
+    entry,
+    settings,
+    prospectName,
+    brief,
+    resolvedLeadSettings,
+  );
 
   let copy: OutreachCopy | null = null;
   let qaResult = null;
@@ -645,10 +747,14 @@ export async function runPersonalizationAgent(options: RunPersonalizationOptions
       );
 
       const parsed = extractJson(rawCopy);
-      copy = normalizeOutreachCopy(OutreachCopySchema.parse(parsed), record, prospectName);
+      copy = normalizeOutreachCopy(OutreachCopySchema.parse(parsed), record, prospectName, resolvedLeadSettings);
 
-      // Run deterministic QA with full project brief & confirmed campaign facts context
-      qaResult = validatePersonalizationCopy(strategy, copy, record, { brief, settings });
+      // Run deterministic QA with full project brief, confirmed campaign facts & individual lead settings
+      qaResult = validatePersonalizationCopy(strategy, copy, record, {
+        brief,
+        settings,
+        leadSettings: resolvedLeadSettings,
+      });
 
       // If QA has no severe errors, we accept it
       if (qaResult.status !== 'failed' || attempt === 2) {
@@ -681,6 +787,7 @@ export async function runPersonalizationAgent(options: RunPersonalizationOptions
           edited_by_human: false,
           qa: null,
           auto_revisions: autoRevisions,
+          lead_settings: resolvedLeadSettings ?? null,
           models: { strategist: strategistModel, writer: writerModel },
           timings_ms: { strategist: strategistTime, writer: Date.now() - tWriterStart },
           generated_at: new Date().toISOString(),
@@ -715,12 +822,380 @@ export async function runPersonalizationAgent(options: RunPersonalizationOptions
     edited_by_human: false,
     qa: qaResult,
     auto_revisions: autoRevisions,
+    lead_settings: resolvedLeadSettings ?? null,
     models: { strategist: strategistModel, writer: writerModel },
     timings_ms: { strategist: strategistTime, writer: writerTime },
     generated_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
     reviewed_at: null,
     reviewer_note: limitationSummary,
+    error: null,
+  };
+}
+
+/**
+ * Settings-aware, evidence-grounded generator that combines:
+ * Project Brief + Research Record + Campaign Settings + Individual Lead Personalization Settings.
+ * Used as a deterministic fallback and for verifying settings-driven differentiation.
+ */
+export function buildAdaptivePersonalizationEntry(params: {
+  projectId: string;
+  researchEntry: ResearchEntry;
+  brief?: StructuredBrief | null;
+  settings: PersonalizationSettings;
+  leadSettings?: LeadPersonalizationSettings | null;
+  existing?: PersonalizationEntry | null;
+}): PersonalizationEntry {
+  const { projectId, researchEntry, brief, settings, existing } = params;
+  const rec = researchEntry.record;
+  const leadCfg =
+    params.leadSettings ??
+    settings.lead_settings?.[rec.record_id] ??
+    existing?.lead_settings ??
+    defaultLeadPersonalizationSettings(rec);
+
+  const strip = (text: string) => text.replace(/\s*[—–]\s*/g, ', ').replace(/,\s*,/g, ',').trim();
+  const prospectName = rec.identity.name || researchEntry.seed.name || 'Prospect';
+  const isOrg = rec.identity.entity_kind === 'organisation';
+  const keyPerson = rec.key_contacts?.[0];
+  const cleanFirstName = isOrg
+    ? keyPerson?.name?.trim().split(/\s+/)[0] || `${prospectName} team`
+    : prospectName
+        .replace(/^(?:dr|prof|mr|ms|mrs|miss)\.?\s+/i, '')
+        .replace(/\([^)]*\)/g, '')
+        .trim()
+        .split(/\s+/)[0] || prospectName;
+
+  const campaignName = brief?.project?.name || settings.organisation || 'our initiative';
+  const projectDesc = strip(
+    brief?.project?.description ||
+      brief?.project?.primary_objective ||
+      'a curated initiative connecting standout work with relevant audiences and partners',
+  ).replace(/\.$/, '');
+  const primaryObjective = strip(
+    brief?.project?.primary_objective ||
+      brief?.outreach?.objectives?.[0] ||
+      'explore a relevant collaboration',
+  ).replace(/\.$/, '');
+  const confirmedFact1 = settings.campaign_facts?.[0] ? strip(settings.campaign_facts[0]).replace(/\.$/, '') : '';
+  const confirmedFact2 = settings.campaign_facts?.[1] ? strip(settings.campaign_facts[1]).replace(/\.$/, '') : '';
+
+  const work1 = strip(
+    rec.work_and_projects?.[0] ||
+      rec.achievements?.[0] ||
+      rec.industry_activity?.[0] ||
+      rec.reason_for_relevance ||
+      `your work${rec.organisation ? ` at ${rec.organisation}` : ''}`,
+  ).replace(/\.$/, '');
+  const work2 = strip(
+    rec.work_and_projects?.[1] ||
+      rec.achievements?.[0] ||
+      rec.industry_activity?.[0] ||
+      rec.background?.[0] ||
+      '',
+  ).replace(/\.$/, '');
+  const achievement1 = strip(rec.achievements?.[0] || rec.industry_activity?.[0] || '').replace(/\.$/, '');
+
+  // Determine recipient-specific incentive based on prospect type and campaign facts
+  const targetHaystack = `${rec.target_type ?? ''} ${rec.role ?? ''} ${rec.organisation ?? ''}`.toLowerCase();
+  const isAuthor = /\b(?:author|writer|novelist|poet)\b/.test(targetHaystack);
+  const isSponsor = /\b(?:sponsor|sponsorship|corporate|funder|foundation)\b/.test(targetHaystack);
+  const isPartner = /\b(?:partner|partnership|business|enterprise|director|commercial)\b/.test(targetHaystack);
+
+  const recipientBenefit = strip(
+    confirmedFact1 ||
+      (isAuthor
+        ? `connecting ${work1} with a wider readership, trade visibility, and long-term recognition through ${campaignName}`
+        : isSponsor
+          ? `direct visibility and alignment for ${rec.organisation || prospectName} alongside vetted participants in ${campaignName}`
+          : isPartner
+            ? `a practical collaboration that connects ${rec.organisation || prospectName} directly with the audience and network behind ${campaignName}`
+            : `meaningful visibility, peer exchange, and alignment with ${campaignName} (${primaryObjective})`),
+  ).replace(/\.$/, '');
+
+  // Greeting by Tone
+  const greeting =
+    leadCfg.tone === 'formal'
+      ? `Dear ${isOrg ? `${prospectName} team` : cleanFirstName},`
+      : `Hi ${isOrg ? `${prospectName} team` : cleanFirstName},`;
+
+  // Sign-off by Tone
+  const senderSignoff =
+    settings.signature?.trim() ||
+    [
+      settings.sender_name?.trim() || 'The Campaign Team',
+      [settings.sender_role?.trim(), settings.organisation?.trim() || brief?.project?.name].filter(Boolean).join(', '),
+    ]
+      .filter(Boolean)
+      .join('\n');
+  const signoffClosing =
+    leadCfg.tone === 'formal'
+      ? 'Yours sincerely,'
+      : leadCfg.tone === 'friendly' || leadCfg.tone === 'conversational'
+        ? 'Warmly,'
+        : 'Best regards,';
+
+  // Research hook clause calibrated to Personalization Depth (light / moderate / deep)
+  let researchClause = '';
+  if (leadCfg.personalization_depth === 'light') {
+    researchClause = `Given your work on ${work1}${rec.organisation && !work1.includes(rec.organisation) ? ` at ${rec.organisation}` : ''}`;
+  } else if (leadCfg.personalization_depth === 'moderate') {
+    researchClause =
+      work2 && work2 !== work1
+        ? `Following your work on ${work1} and ${work2}${rec.organisation && !work1.includes(rec.organisation) ? ` at ${rec.organisation}` : ''}`
+        : `Following your work on ${work1} and your focus as ${rec.role || rec.target_type}${rec.organisation ? ` at ${rec.organisation}` : ''}`;
+  } else {
+    // deep
+    const extraDetail =
+      achievement1 && achievement1 !== work1
+        ? `, alongside ${achievement1},`
+        : work2 && work2 !== work1
+          ? ` and ${work2},`
+          : '';
+    researchClause = `Your work on ${work1}${extraDetail}${rec.organisation && !work1.includes(rec.organisation) ? ` at ${rec.organisation}` : ''} stood out to us because of how closely it aligns with ${rec.reason_for_relevance ? strip(rec.reason_for_relevance).replace(/\.$/, '').toLowerCase() : primaryObjective.toLowerCase()}`;
+  }
+
+  // Project explanation calibrated to Explanation Level (minimal / balanced / detailed)
+  let explanationBlock = '';
+  if (leadCfg.explanation_level === 'minimal') {
+    explanationBlock = `Through ${campaignName} (${projectDesc}), ${recipientBenefit}.`;
+  } else if (leadCfg.explanation_level === 'balanced') {
+    explanationBlock = `We are running ${campaignName}, ${projectDesc}. For ${isOrg ? prospectName : 'you'}, participating offers a clear benefit: ${recipientBenefit}.`;
+  } else {
+    // detailed
+    const extraFactSentence = confirmedFact2
+      ? ` ${confirmedFact2}.`
+      : ` Our goal is to ${primaryObjective.charAt(0).toLowerCase() + primaryObjective.slice(1)}.`;
+    explanationBlock = `We are organising ${campaignName}, ${projectDesc}.${extraFactSentence} Specifically for ${rec.organisation || prospectName}, this provides a tangible value exchange: ${recipientBenefit}, while connecting directly with the priorities behind ${work1}.`;
+  }
+
+  // Opening & structure calibrated to Communication Approach + Tone
+  const warmCheckIn =
+    leadCfg.tone === 'friendly'
+      ? 'I hope you are having a great week. '
+      : leadCfg.tone === 'conversational'
+        ? 'Hope your week is going well. '
+        : leadCfg.communication_approach === 'relationship_first'
+          ? 'I hope your week is going well. '
+          : '';
+
+  let openingParagraph = '';
+  if (leadCfg.communication_approach === 'relationship_first') {
+    openingParagraph = `${warmCheckIn}${researchClause}${researchClause.endsWith('.') ? '' : ', and I wanted to reach out personally.'}`;
+  } else if (leadCfg.communication_approach === 'opportunity_first') {
+    openingParagraph = `${warmCheckIn}I am reaching out with an opportunity through ${campaignName} (${projectDesc}) that connects directly to ${work1}.`;
+  } else if (leadCfg.communication_approach === 'incentive_driven') {
+    openingParagraph = `${warmCheckIn}Because ${recipientBenefit}, we immediately thought of ${work1}${rec.organisation && !work1.includes(rec.organisation) ? ` at ${rec.organisation}` : ''}.`;
+  } else if (leadCfg.communication_approach === 'direct') {
+    openingParagraph = `${researchClause}. We would like to invite ${isOrg ? prospectName : 'you'} to consider ${campaignName}.`;
+  } else {
+    // consultative
+    openingParagraph = `${warmCheckIn}${researchClause}, which prompted a question about how ${rec.organisation || 'your team'} is approaching collaborations like ${campaignName} this year.`;
+  }
+
+  // Call to Action calibrated to Call to Action setting (soft / further_discussion / specific_request / direct)
+  const linkSuffix = settings.call_to_action_link ? ` (${settings.call_to_action_link})` : '';
+  let ctaSentence = '';
+  if (leadCfg.call_to_action === 'soft') {
+    ctaSentence = `Would it be useful if I sent over a short one-page overview${linkSuffix} so you can see if it is of interest?`;
+  } else if (leadCfg.call_to_action === 'further_discussion') {
+    ctaSentence = `Would you be open to a brief conversation or exchanging a few thoughts on how ${campaignName} could align with your plans?`;
+  } else if (leadCfg.call_to_action === 'specific_request') {
+    ctaSentence = `Could you let me know if I may send the brief overview${linkSuffix} for ${work1}, or point me to the best person on your team?`;
+  } else {
+    // direct
+    ctaSentence = `Would ${isOrg ? prospectName : 'you'} be interested in participating in ${campaignName}${linkSuffix} this season?`;
+  }
+
+  // Incorporate additional instructions naturally if present
+  const additionalNote = leadCfg.additional_instructions?.trim()
+    ? strip(leadCfg.additional_instructions.trim())
+    : '';
+
+  // Assemble Email Body calibrated to Message Length (very_short / short / balanced / detailed)
+  let emailParagraphs: string[];
+  if (leadCfg.message_length === 'very_short') {
+    emailParagraphs = [
+      greeting,
+      `${openingParagraph} ${leadCfg.explanation_level === 'minimal' ? `Through ${campaignName}, ${recipientBenefit}.` : explanationBlock}`,
+      `${ctaSentence}\n\n${signoffClosing}\n${senderSignoff}`,
+    ];
+  } else if (leadCfg.message_length === 'short') {
+    emailParagraphs = [
+      greeting,
+      openingParagraph,
+      `${explanationBlock} ${ctaSentence}`,
+      `${signoffClosing}\n${senderSignoff}`,
+    ];
+  } else if (leadCfg.message_length === 'balanced') {
+    emailParagraphs = [
+      greeting,
+      openingParagraph,
+      explanationBlock,
+      `${ctaSentence}\n\n${signoffClosing}\n${senderSignoff}`,
+    ];
+  } else {
+    // detailed
+    const contextPara =
+      work2 && work2 !== work1
+        ? `When we reviewed both ${work1} and ${work2}, it was clear that your perspective${rec.role ? ` as ${rec.role}` : ''} brings the exact depth that makes ${campaignName} valuable for participants.`
+        : `Given your track record with ${work1}${rec.location ? ` in ${rec.location}` : ''}, we believe ${campaignName} offers a timely and relevant fit without requiring a heavy time commitment upfront.`;
+    emailParagraphs = [
+      greeting,
+      openingParagraph,
+      explanationBlock,
+      contextPara,
+      `${ctaSentence}\n\n${signoffClosing}\n${senderSignoff}`,
+    ];
+  }
+
+  const emailBody = strip(emailParagraphs.join('\n\n'));
+
+  const linkedinMessage = strip(
+    `${greeting} ${work1.slice(0, 85)} caught our attention for ${campaignName} (${recipientBenefit.slice(0, 80)}). ${
+      leadCfg.call_to_action === 'direct'
+        ? 'Interested in participating?'
+        : leadCfg.call_to_action === 'further_discussion'
+          ? 'Open to a quick discussion?'
+          : 'Open to seeing the 1-page overview?'
+    }`,
+  ).slice(0, 280);
+
+  const followUpBody = strip(
+    `${greeting}\n\nFollowing up briefly on my note regarding ${campaignName} and how it connects to ${work1}. ${ctaSentence}\n\n${signoffClosing}\n${senderSignoff}`,
+  );
+
+  const hasEmail =
+    (rec.public_contact?.some((c) => c.kind === 'email' && c.value) ?? false) ||
+    (rec.key_contacts?.some((k) => Boolean(k.email)) ?? false);
+  const hasLinkedIn =
+    (rec.social_profiles?.some((s) => s.platform === 'linkedin' && s.profile_url) ?? false) ||
+    (rec.key_contacts?.some((k) => Boolean(k.linkedin_url)) ?? false);
+  const recommendedChannel = hasEmail ? 'email' : hasLinkedIn ? 'linkedin' : 'contact_form';
+
+  const toneRegisterMap: Record<LeadPersonalizationSettings['tone'], StrategyDossier['tone']['register']> = {
+    professional: 'warm_professional',
+    friendly: 'warm_professional',
+    conversational: 'peer',
+    confident: 'peer',
+    persuasive: 'enthusiastic',
+    formal: 'formal',
+  };
+
+  const hooks: StrategyDossier['hooks'] = [
+    {
+      id: 'H1',
+      fact: work1,
+      evidence_quote: rec.evidence?.[0]?.quote ?? null,
+      source_ids: rec.sources?.[0]?.id ? [rec.sources[0].id] : ['S1'],
+      why_it_resonates: strip(rec.reason_for_relevance || `Connects ${prospectName}'s work directly to ${campaignName}.`),
+      strength: 'strong',
+    },
+  ];
+  if (leadCfg.personalization_depth !== 'light' && work2 && work2 !== work1) {
+    hooks.push({
+      id: 'H2',
+      fact: work2,
+      evidence_quote: rec.evidence?.[1]?.quote ?? null,
+      source_ids: rec.sources?.[0]?.id ? [rec.sources[0].id] : ['S1'],
+      why_it_resonates: strip(`Provides a secondary verified touchpoint for ${prospectName}.`),
+      strength: 'moderate',
+    });
+  }
+
+  const strategy: StrategyDossier = {
+    readiness: 'ready',
+    readiness_reason: 'Verified research profile and configured per-lead outreach strategy.',
+    prospect_snapshot: strip(
+      rec.summary || `${prospectName}${rec.role ? ` (${rec.role})` : ''} is a verified prospect for ${campaignName}.`,
+    ),
+    recipient_priorities: strip(rec.reason_for_relevance || work1),
+    relevance_thesis: strip(
+      rec.reason_for_relevance || `${prospectName}'s work on ${work1} aligns directly with ${campaignName}.`,
+    ),
+    campaign_objective: primaryObjective,
+    outreach_goal: strip(brief?.outreach?.objectives?.[0] || primaryObjective),
+    recipient_incentive: recipientBenefit,
+    potential_objections: ['Calendar availability and clarity on next steps'],
+    narrative_approach: `${LEAD_APPROACH_LABELS[leadCfg.communication_approach].label} approach with ${LEAD_DEPTH_LABELS[leadCfg.personalization_depth].label.toLowerCase()} personalisation and ${LEAD_EXPLANATION_LABELS[leadCfg.explanation_level].label.toLowerCase()} explanation.${additionalNote ? ` Custom guidance: ${additionalNote}` : ''}`,
+    hooks,
+    primary_hook_id: 'H1',
+    angle: strip(`Connect ${work1} to ${recipientBenefit}.`),
+    tone: {
+      register: toneRegisterMap[leadCfg.tone],
+      guidance: `${LEAD_TONE_LABELS[leadCfg.tone]} tone, ${LEAD_LENGTH_LABELS[leadCfg.message_length].toLowerCase()} length, ${LEAD_CTA_LABELS[leadCfg.call_to_action].label.toLowerCase()} CTA.${additionalNote ? ` ${additionalNote}` : ''}`,
+    },
+    recommended_channel: recommendedChannel,
+    channel_reason:
+      recommendedChannel === 'email'
+        ? 'Verified email route available in the research dossier.'
+        : recommendedChannel === 'linkedin'
+          ? 'Verified LinkedIn profile available for direct outreach.'
+          : 'Official website contact route available in the research dossier.',
+    contact_audit: existing?.strategy?.contact_audit ?? null,
+    call_to_action: ctaSentence,
+    avoid: ['Avoid unverified claims or generic AI clichés'],
+    human_checks: [],
+    confidence: rec.identity.identity_verified ? 'high' : 'medium',
+  };
+
+  const copy: OutreachCopy = {
+    subject_lines: [
+      {
+        text: strip(`${work1.slice(0, 32)} / ${campaignName}`).slice(0, 58),
+        style: 'direct',
+      },
+      {
+        text: strip(`${campaignName}: opportunity for ${isOrg ? prospectName : cleanFirstName}`).slice(0, 58),
+        style: 'value',
+      },
+      {
+        text: strip(`Question for ${cleanFirstName} regarding ${work1.slice(0, 28)}`).slice(0, 58),
+        style: 'curiosity',
+      },
+    ],
+    email_body: emailBody,
+    alternative_opening:
+      work2 && work2 !== work1
+        ? strip(`Your work on ${work2} also maps closely to what we are building with ${campaignName}.`)
+        : null,
+    linkedin_message: linkedinMessage,
+    follow_up_body: followUpBody,
+    hook_usage: strip(
+      `Applied ${LEAD_TONE_LABELS[leadCfg.tone]} tone, ${LEAD_LENGTH_LABELS[leadCfg.message_length]} length, ${LEAD_DEPTH_LABELS[leadCfg.personalization_depth].label} depth, and ${LEAD_APPROACH_LABELS[leadCfg.communication_approach].label} approach referencing ${work1.slice(0, 80)}.`,
+    ),
+  };
+
+  const qa = validatePersonalizationCopy(strategy, copy, rec, {
+    brief: brief ?? undefined,
+    settings,
+    leadSettings: leadCfg,
+  });
+
+  const now = new Date().toISOString();
+  return {
+    personalization_version: PERSONALIZATION_VERSION,
+    record_id: rec.record_id,
+    project_id: projectId,
+    prospect_name: prospectName,
+    target_type: rec.target_type,
+    batch_id: existing?.batch_id ?? researchEntry.batch_id ?? null,
+    batch_number: existing?.batch_number ?? researchEntry.batch_number ?? null,
+    status: existing?.status === 'approved' ? 'approved' : 'draft',
+    strategy,
+    copy,
+    ai_copy: copy,
+    edited_by_human: false,
+    qa,
+    auto_revisions: existing?.auto_revisions ?? 0,
+    lead_settings: leadCfg,
+    previous_versions: existing?.previous_versions,
+    models: existing?.models ?? { strategist: 'openai/gpt-oss-20b', writer: 'openai/gpt-oss-20b' },
+    timings_ms: existing?.timings_ms ?? { strategist: 0, writer: 0 },
+    generated_at: existing?.generated_at ?? now,
+    updated_at: now,
+    reviewed_at: existing?.reviewed_at ?? null,
+    reviewer_note: existing?.reviewer_note ?? null,
     error: null,
   };
 }

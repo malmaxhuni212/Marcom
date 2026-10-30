@@ -17,6 +17,7 @@
 import type { ResearchRecord } from '../../schemas/research-record';
 import type { StructuredBrief } from '../../schemas/structured-brief';
 import type {
+  LeadPersonalizationSettings,
   OutreachCopy,
   PersonalizationQA,
   PersonalizationQAIssue,
@@ -27,6 +28,7 @@ import type {
 export interface PersonalizationQAContext {
   brief?: StructuredBrief;
   settings?: PersonalizationSettings;
+  leadSettings?: LeadPersonalizationSettings;
   allowedFactsText?: string;
 }
 
@@ -274,21 +276,24 @@ export function validatePersonalizationCopy(
     });
   }
 
-  // 3. Email body word budget (ideal 70–150 words)
+  // 3. Email body word budget (calibrated to per-lead message_length setting when provided)
   const emailWords = countWords(copy.email_body);
-  if (emailWords < 45) {
+  const lengthPref = context?.leadSettings?.message_length;
+  const minWords = lengthPref === 'very_short' ? 28 : lengthPref === 'short' ? 40 : 45;
+  const maxWords = lengthPref === 'very_short' ? 85 : lengthPref === 'short' ? 125 : lengthPref === 'detailed' ? 210 : 185;
+  if (emailWords < minWords) {
     issues.push({
       severity: 'warning',
       code: 'email_too_short',
       field: 'email',
       message: `Email body is very brief (${emailWords} words). Ensure context and value prop are clear.`,
     });
-  } else if (emailWords > 185) {
+  } else if (emailWords > maxWords) {
     issues.push({
       severity: 'warning',
       code: 'email_too_long',
       field: 'email',
-      message: `Email body is too long (${emailWords} words; target is 70–150 words). Busy professionals skip long cold emails.`,
+      message: `Email body is too long (${emailWords} words; target max is ${maxWords} words). Busy professionals skip long cold emails.`,
     });
   }
 

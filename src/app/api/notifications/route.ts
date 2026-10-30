@@ -41,12 +41,32 @@ export async function GET(req: Request) {
   if (!access.ok) return access.response;
   const actor = access.actor;
   const isDb = isDatabaseConfigured();
-  const projects = isDb ? await listCampaigns(actor) : new JsonFileMemoryStore().projects();
+  let projects = [];
+  if (isDb) {
+    try {
+      projects = await listCampaigns(actor);
+    } catch (error) {
+      if (!access.allowFileFallback) throw error;
+      projects = new JsonFileMemoryStore().projects();
+    }
+  } else {
+    projects = new JsonFileMemoryStore().projects();
+  }
   const notifications: NotificationItem[] = [];
   let totalPersonalizationsCount = 0;
 
   for (const p of projects) {
-    const research = isDb ? await listResearch(actor, p.project_id) : listFileResearch(p.project_id);
+    let research = [];
+    if (isDb) {
+      try {
+        research = await listResearch(actor, p.project_id);
+      } catch (error) {
+        if (!access.allowFileFallback) throw error;
+        research = listFileResearch(p.project_id);
+      }
+    } else {
+      research = listFileResearch(p.project_id);
+    }
 
     // 1. Batches Completed
     const batchMap = new Map<number, { count: number; lastTime: number; batchId: string }>();

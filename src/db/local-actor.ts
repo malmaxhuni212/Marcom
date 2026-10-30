@@ -1,6 +1,6 @@
 import { and, eq } from 'drizzle-orm';
 import { getDatabase, type MarcomDatabase } from './client';
-import { isDatabaseConfigured } from './env';
+import { isDatabaseConfigured, markDatabaseTemporarilyUnavailable } from './env';
 import { users, workspaceMemberships, workspaces } from './schema';
 
 export const LOCAL_WORKSPACE_ID = '10000000-0000-4000-8000-000000000001';
@@ -59,7 +59,10 @@ export async function resolveLocalPilotActor(
 
     return actor;
   } catch (error) {
-    console.warn('Database error in resolveLocalPilotActor, falling back to static local actor.', error);
+    if (!database) {
+      markDatabaseTemporarilyUnavailable();
+    }
+    console.warn('Database error in resolveLocalPilotActor, falling back to static local actor.');
     return getLocalPilotActor();
   }
 }

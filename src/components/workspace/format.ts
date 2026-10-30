@@ -267,8 +267,10 @@ export function contactSummary(entry: ResearchEntry): string {
     ...extraLabels,
     (c.website || c.contactForm) && 'Website',
     c.phone && 'Phone',
-  ].filter(Boolean);
-  return found.length ? found.join(' · ') : 'None found';
+  ].filter(Boolean) as string[];
+  if (!found.length) return 'None found';
+  if (found.length === 1) return found[0]!;
+  return `${found[0]} +${found.length - 1}...`;
 }
 
 export interface Verification {

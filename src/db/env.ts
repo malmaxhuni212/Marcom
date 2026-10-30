@@ -6,6 +6,30 @@ const DatabaseEnvironmentSchema = z.object({
   NETLIFY_DB_URL: z.string().url().optional(),
 });
 
+const DB_COOLDOWN_MS = 60_000;
+type DbEnvGlobal = typeof globalThis & {
+  __marcomDbUnavailableUntil?: number;
+};
+const dbEnvGlobal = globalThis as DbEnvGlobal;
+
+export function markDatabaseTemporarilyUnavailable(): void {
+  dbEnvGlobal.__marcomDbUnavailableUntil = Date.now() + DB_COOLDOWN_MS;
+}
+
+export function isDatabaseConfigured(
+  environment: Record<string, string | undefined> = process.env,
+): boolean {
+  if (
+    environment === process.env &&
+    (dbEnvGlobal.__marcomDbUnavailableUntil ?? 0) > Date.now()
+  ) {
+    return false;
+  }
+  const parsed = DatabaseEnvironmentSchema.safeParse(environment);
+  if (!parsed.success) return false;
+  return Boolean(parsed.data.DATABASE_URL || parsed.data.NETLIFY_DB_URL);
+}
+
 export function getDatabaseUrl(
   environment: Record<string, string | undefined> = process.env,
 ): string {
@@ -51,14 +75,6 @@ export function getApplicationDatabaseUrl(
   }
 
   return getDatabaseUrl(environment);
-}
-
-export function isDatabaseConfigured(
-  environment: Record<string, string | undefined> = process.env,
-): boolean {
-  const parsed = DatabaseEnvironmentSchema.safeParse(environment);
-  if (!parsed.success) return false;
-  return Boolean(parsed.data.DATABASE_URL || parsed.data.NETLIFY_DB_URL);
 }
 
 export function usesNetlifyManagedMigrations(

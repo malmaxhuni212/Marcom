@@ -41,7 +41,9 @@ function ProjectSwitcher({ onNavigate }: { onNavigate: () => void }) {
   }, [open]);
 
   const reviewCount = bundle?.summary?.needs_review ?? activeProject?.reviewCount ?? 0;
-  const personalizedCount = bundle?.drafts?.length ?? activeProject?.qualifiedCount ?? 0;
+  const personalizedCount = bundle
+    ? Math.max(bundle.summary?.shortlisted ?? 0, bundle.drafts?.length ?? 0)
+    : (activeProject?.qualifiedCount ?? 0);
 
   return (
     <div ref={ref} className="relative">
