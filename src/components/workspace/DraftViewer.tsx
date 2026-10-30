@@ -6,7 +6,18 @@ import type { PersonalizationEntry, PersonalizationSettings } from '@/marcom/sch
 import type { ResearchEntry } from '@/marcom/schemas/research-record';
 import { useClipboard } from './prospect-parts';
 import { Icon, Spinner, btnPrimary, btnSecondary } from './ui';
-import { CHANNEL_LABEL, draftTargets, hostOf, messageFor, primaryChannel, subjectFor, type DraftChannel } from './format';
+import {
+  CHANNEL_LABEL,
+  draftTargets,
+  formatProfileDisplay,
+  isShortSocialChannel,
+  isSocialProfileChannel,
+  messageFor,
+  primaryChannel,
+  subjectFor,
+  targetForChannel,
+  type DraftChannel,
+} from './format';
 
 interface Marker {
   text: string;
@@ -112,12 +123,11 @@ export default function DraftViewer({
   const strategy = draft.strategy;
   const qa = draft.qa;
 
-  const editBucket =
-    channel === 'linkedin' || channel === 'whatsapp'
-      ? 'linkedin'
-      : channel === 'follow_up'
-        ? 'follow_up'
-        : 'email';
+  const editBucket = isShortSocialChannel(channel)
+    ? 'linkedin'
+    : channel === 'follow_up'
+      ? 'follow_up'
+      : 'email';
 
   const markers = useMemo<Marker[]>(() => {
     const list: Marker[] = [];
@@ -245,14 +255,7 @@ export default function DraftViewer({
 
   const text = editing ? edits[editBucket] : messageFor(draft, channel);
   const subject = subjectFor(draft, subjectIndex);
-  const to =
-    channel === 'linkedin'
-      ? targets.linkedin
-      : channel === 'whatsapp'
-        ? targets.phone
-        : channel === 'website_form'
-          ? targets.website
-          : targets.email;
+  const to = targetForChannel(targets, channel);
 
   const verifiedHooks = qa?.verified_hook_ids.length ?? 0;
   const confidenceLevel = strategy?.confidence ?? (verifiedHooks > 0 ? 'medium' : 'low');
@@ -279,21 +282,26 @@ export default function DraftViewer({
   }
   if (draft.edited_by_human) checks.push({ text: 'Edited by you', tone: 'info' });
   if (strategy?.readiness === 'needs_more_research') checks.push({ text: 'Strategist suggested more research', tone: 'warn' });
-  const linkedInTooLong = (channel === 'linkedin' || channel === 'whatsapp') && text.length > 300;
+  const linkedInTooLong = isShortSocialChannel(channel) && text.length > 300;
 
   const channels: { id: DraftChannel; dot: string }[] = [
     { id: 'email', dot: targets.email ? '#5BD69A' : '#F2C36B' },
     { id: 'linkedin', dot: targets.linkedin ? '#5BD69A' : '#F2C36B' },
+    ...targets.extraSocials.map((social) => ({
+      id: social.platform as DraftChannel,
+      dot: '#5BD69A',
+    })),
     { id: 'whatsapp', dot: targets.phone ? '#5BD69A' : '#F2C36B' },
     { id: 'website_form', dot: targets.website ? '#5BD69A' : '#F2C36B' },
     { id: 'follow_up', dot: targets.email ? '#8A909C' : '#F2C36B' },
   ];
-  const how: Record<DraftChannel, string> = {
-    email: 'Copy the subject and message, then paste them into your own email. Nothing is sent from MARCOM.',
-    linkedin: 'Copy the note, open their profile and paste it into a connection request or message.',
-    whatsapp: 'Copy this short message to send via WhatsApp or SMS when a mobile number is available.',
-    website_form: 'Copy each field into their contact form. Most website forms ask for these fields.',
-    follow_up: 'A short follow-up message to send yourself 4–6 days later if there is no reply.',
+  const howText = (ch: DraftChannel): string => {
+    if (ch === 'email') return 'Copy the subject and message, then paste them into your own email. Nothing is sent from MARCOM.';
+    if (ch === 'linkedin') return 'Copy the note, open their profile and paste it into a connection request or message.';
+    if (ch === 'whatsapp') return 'Copy this short message to send via WhatsApp or SMS when a mobile number is available.';
+    if (ch === 'website_form') return 'Copy each field into their contact form. Most website forms ask for these fields.';
+    if (ch === 'follow_up') return 'A short follow-up message to send yourself 4–6 days later if there is no reply.';
+    return `Copy the profile link or click Open to visit their ${CHANNEL_LABEL[ch]} profile, then paste this short message.`;
   };
 
   const senderName = settings?.sender_name?.trim() || 'Alex Morgan';
@@ -488,24 +496,24 @@ export default function DraftViewer({
           </div>
         </div>
       ) : (
-        /* Email / LinkedIn / WhatsApp / Follow-up Message View */
+        /* Email / LinkedIn / Social / WhatsApp / Follow-up Message View */
         <div className="flex flex-col overflow-hidden rounded-[18px] border border-[#2A2F39] bg-[#171A20]">
           {to ? (
             <div className="flex items-center gap-2.5 border-b border-[#2A2F39] px-[18px] py-3 text-sm">
               <span className="w-[60px] shrink-0 text-[#8A909C]">
-                {channel === 'linkedin' ? 'Profile' : channel === 'whatsapp' ? 'Phone' : 'To'}
+                {isSocialProfileChannel(channel) ? 'Profile' : channel === 'whatsapp' ? 'Phone' : 'To'}
               </span>
               <span className="min-w-0 flex-1 truncate text-[#5ED3DF]">
-                {channel === 'linkedin' ? hostOf(to) + (to.includes('/in/') ? to.slice(to.indexOf('/in/')) : '') : to}
+                {isSocialProfileChannel(channel) ? formatProfileDisplay(to) : to}
               </span>
               <button
                 type="button"
-                onClick={() => void copy(to, 'to')}
+                onClick={() => void copy(to, `to-${channel}`)}
                 className="rounded-lg border border-[#2A2F39] px-2.5 py-1 text-xs font-semibold text-[#C9CDD4] hover:text-[#F1F2F4]"
               >
-                {copied === 'to' ? '✓ Copied' : 'Copy'}
+                {copied === `to-${channel}` ? '✓ Copied' : 'Copy'}
               </button>
-              {channel === 'linkedin' && (
+              {isSocialProfileChannel(channel) && (
                 <a
                   href={to.startsWith('http') ? to : `https://${to}`}
                   target="_blank"
@@ -520,8 +528,8 @@ export default function DraftViewer({
             <div className="flex items-center gap-2.5 border-b border-[#4A3B17] bg-[#231D10] px-[18px] py-2.5 text-[13px] text-[#E5D3A8]">
               <Icon name="warning" size={16} className="text-[#F2C36B]" />
               <span className="flex-1">
-                {channel === 'linkedin'
-                  ? 'No LinkedIn profile found'
+                {isSocialProfileChannel(channel)
+                  ? `No ${CHANNEL_LABEL[channel]} profile found`
                   : channel === 'whatsapp'
                     ? 'No phone number found'
                     : 'No email address found'}{' '}
@@ -584,7 +592,7 @@ export default function DraftViewer({
               aria-label={`${CHANNEL_LABEL[channel]} message`}
               value={edits[editBucket]}
               onChange={(event) => setEdits((current) => ({ ...current, [editBucket]: event.target.value }))}
-              rows={channel === 'linkedin' || channel === 'whatsapp' ? 6 : 12}
+              rows={isShortSocialChannel(channel) ? 6 : 12}
               className="w-full resize-y border-0 bg-[#12151A] px-[18px] py-4 text-[14.5px] leading-[1.65] text-[#F1F2F4] outline-none"
             />
           ) : (
@@ -607,8 +615,8 @@ export default function DraftViewer({
             </div>
           )}
           <div className={`px-[18px] pb-3.5 pt-1 text-xs ${linkedInTooLong ? 'text-[#F7B1AA]' : 'text-[#8A909C]'}`}>
-            {channel === 'linkedin' || channel === 'whatsapp'
-              ? `${text.length} / 300 characters · short direct note`
+            {isShortSocialChannel(channel)
+              ? `${text.length} / 300 characters · short direct message (shared across social tabs)`
               : channel === 'email'
                 ? `${text.trim().split(/\s+/).filter(Boolean).length} words · full email with subject line`
                 : 'Short follow-up message'}
@@ -630,7 +638,7 @@ export default function DraftViewer({
           )}
           <div className="flex gap-2.5 border-t border-[#22262E] bg-[#12151A] px-[18px] py-3 text-[12.5px] leading-snug text-[#A7ADB8]">
             <Icon name="copy" size={15} className="mt-px text-[#5ED3DF]" />
-            <span>{how[channel]}</span>
+            <span>{howText(channel)}</span>
           </div>
         </div>
       )}

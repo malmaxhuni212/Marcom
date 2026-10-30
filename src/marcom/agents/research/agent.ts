@@ -19,6 +19,11 @@ import { extractJson } from '../../llm/provider';
 import type { LLMProvider } from '../../llm/provider';
 import type { SearchCandidate, SearchProvider, SearchResponse, SeenSource } from '../../search/provider';
 import { canonicalUrl, normalizeAndQA, normalizeName } from './qa';
+import {
+  normalizeDomain,
+  resolveResearchSourcePreferences,
+  type ResearchSourcePreferences,
+} from './source-preferences';
 
 export type ResearchStage = 'resolving' | 'researching' | 'validating' | 'saving' | 'complete';
 
@@ -57,6 +62,7 @@ function buildUserPrompt(
   memoryNote: string | null,
   evidenceBundle: string,
   contactRoles: string[] | null,
+  sourcePrefs: ResearchSourcePreferences,
 ): string {
   const t = plan.target;
   const researchFields = brief.database.fields.filter((f) => f.expected_source === 'research').map((f) => f.name);
@@ -65,6 +71,10 @@ function buildUserPrompt(
     .filter(([, v]) => v && String(v).trim())
     .map(([k, v]) => `${k}: ${clip(String(v), 300)}`)
     .join('\n');
+  const requestedTargets = [
+    ...sourcePrefs.requestedSocialPlatforms,
+    ...sourcePrefs.preferredDomains,
+  ];
 
   return [
     `PROJECT: ${brief.project.name ?? 'Unnamed project'}`,
@@ -74,7 +84,10 @@ function buildUserPrompt(
     `QUALIFICATION CRITERIA (assess each):\n${list([...plan.qualification_criteria, ...plan.criteria_needing_definition])}`,
     `EXCLUSIONS (flag if hit):\n${list(plan.exclusion_criteria)}`,
     `FIELDS TO FIND:\n${list(fields, 10)}`,
-    plan.preferred_source_types.length ? `PREFERRED SOURCES: ${plan.preferred_source_types.slice(0, 6).join('; ')}` : '',
+    plan.preferred_source_types.length ? `PREFERRED SOURCES: ${plan.preferred_source_types.slice(0, 8).join('; ')}` : '',
+    requestedTargets.length
+      ? `REQUESTED PLATFORMS & WEBSITES: Extract every verified profile or page from ${[...new Set(requestedTargets)].slice(0, 12).join(', ')} present in the supplied evidence. Put every verified social/creator profile URL (LinkedIn, Instagram, Facebook, X/Twitter, TikTok, YouTube, Threads, Bluesky, Goodreads, Substack, Medium, etc.) into social_profiles with its accurate platform and source_ids.`
+      : '',
     plan.verification_requirements.length ? `VERIFICATION RULES:\n${list(plan.verification_requirements, 4)}` : '',
     plan.human_rules.length ? `HUMAN RULES (override everything):\n${list(plan.human_rules, 4)}` : '',
     contactRoles?.length
@@ -97,11 +110,21 @@ function buildSearchQuery(brief: StructuredBrief, plan: ReturnType<typeof planRe
     seed.organisation,
     seed.website,
     plan.target.target_type,
-    'official website OR contact OR email OR about'
+    'official website OR contact OR email OR about',
   ]
     .filter(Boolean)
     .join(' ')
     .slice(0, 500);
+}
+
+/** Builds a clean identity query for open-web social/domain-scoped searches without website-only keywords. */
+export function buildRequestedSourcesQuery(plan: ReturnType<typeof planResearch>, seed: ProspectSeed): string {
+  const base = [seed.name, seed.organisation, seed.role, plan.target.target_type]
+    .filter(Boolean)
+    .join(' ')
+    .trim()
+    .slice(0, 400);
+  return base.length >= 3 ? base : `${seed.name} profile`.slice(0, 400);
 }
 
 /** True when the prospect is an organisation, so named staff should be searched as contact routes. */
@@ -183,9 +206,23 @@ export function buildContactQueries(seed: ProspectSeed, roles: string[]): { team
 interface EvidenceGroup {
   candidates: SearchCandidate[];
   maximumCharacters: number;
+  perCandidateCharacters?: number;
 }
 
-function buildEvidence(groups: EvidenceGroup[]): {
+const TOTAL_EVIDENCE_MAX_CHARS = 8_000;
+
+function isExcludedDomainUrl(url: string, excludedDomains: string[]): boolean {
+  if (!excludedDomains.length) return false;
+  const host = normalizeDomain(url);
+  if (!host) return false;
+  return excludedDomains.some((excluded) => host === excluded || host.endsWith(`.${excluded}`));
+}
+
+function buildEvidence(
+  groups: EvidenceGroup[],
+  excludedDomains: string[] = [],
+  maxTotalCharacters: number = TOTAL_EVIDENCE_MAX_CHARS,
+): {
   bundle: string;
   seen: SeenSource[];
   pages: { url: string; text: string }[];
@@ -196,26 +233,34 @@ function buildEvidence(groups: EvidenceGroup[]): {
   const pages: { url: string; text: string }[] = [];
   const sections: string[] = [];
   let sourceNumber = 0;
+  let totalUsedCharacters = 0;
 
   for (const group of groups) {
+    if (totalUsedCharacters >= maxTotalCharacters) break;
     let usedCharacters = 0;
+    const perItemCap = group.perCandidateCharacters ?? 2_200;
     for (const candidate of group.candidates) {
-      if (usedCharacters >= group.maximumCharacters) break;
+      if (usedCharacters >= group.maximumCharacters || totalUsedCharacters >= maxTotalCharacters) break;
+      if (isExcludedDomainUrl(candidate.url, excludedDomains)) continue;
       const key = canonicalUrl(candidate.url);
       if (used.has(key)) continue;
       used.add(key);
       sourceNumber += 1;
-      const text = [candidate.highlights.join('\n'), candidate.text].filter(Boolean).join('\n').slice(0, 2_200);
+      const text = [candidate.highlights.join('\n'), candidate.text].filter(Boolean).join('\n').slice(0, perItemCap);
       const source = [
         `SOURCE ID: S${sourceNumber}`,
         `URL: ${candidate.url}`,
         `TITLE: ${candidate.title}`,
         `CONTENT: ${text || '(No page text returned. Use only the title and URL.)'}`,
       ].join('\n');
-      const remaining = group.maximumCharacters - usedCharacters;
+      const remaining = Math.min(
+        group.maximumCharacters - usedCharacters,
+        maxTotalCharacters - totalUsedCharacters,
+      );
       const clipped = source.slice(0, remaining);
       sections.push(clipped);
       usedCharacters += clipped.length;
+      totalUsedCharacters += clipped.length;
       seen.push({ url: candidate.url, title: candidate.title, via: text ? 'page' : 'search' });
       pages.push({ url: candidate.url, text: `${candidate.title}\n${text}` });
     }
@@ -240,6 +285,8 @@ export async function runResearchAgent(input: RunResearchInput): Promise<Researc
     store,
   );
   const plan = planResearch(brief, target.id, projectId, memory);
+  const sourcePrefs = resolveResearchSourcePreferences(brief);
+  const caps = searchProvider.capabilities();
   const n = normalizeName(seed.name);
   const known = memory.prospect_context.find((p) => [p.name, ...p.aliases].some((a) => normalizeName(a) === n)) ?? null;
   const relationship = known ? memory.relationship_context.find((r) => r.prospect_id === known.prospect_id) ?? null : null;
@@ -250,20 +297,49 @@ export async function runResearchAgent(input: RunResearchInput): Promise<Researc
   // ---------- 2. Web research ----------
   progress('researching', `Searching the web for ${seed.name}`);
   const query = buildSearchQuery(brief, plan, seed);
-  let search;
+  const primaryCategory = target.entity_kind === 'organisation' ? ('company' as const) : undefined;
+  const extraSourceSearches: SearchResponse[] = [];
+  const extraSourceWarnings: string[] = [];
+
+  let search: SearchResponse;
   try {
-    search = await searchProvider.search({
+    const primaryPromise = searchProvider.search({
       query,
-      resultLimit: Math.min(10, searchProvider.capabilities().maximumResults),
+      resultLimit: Math.min(10, caps.maximumResults),
       includeDomains: [],
-      excludeDomains: [],
-      category: target.entity_kind === 'organisation' ? 'company' : undefined, // Remove 'people' category constraint so it finds personal websites instead of just LinkedIn
+      excludeDomains: !primaryCategory && caps.supportsDomainFilters ? sourcePrefs.excludedDomains : [],
+      category: primaryCategory, // Remove 'people' category constraint so it finds personal websites instead of just LinkedIn
     });
+
+    if (caps.supportsDomainFilters && sourcePrefs.extraSourceDomains.length > 0) {
+      const extraQuery = buildRequestedSourcesQuery(plan, seed);
+      const [primaryResult, extraResult] = await Promise.all([
+        primaryPromise,
+        searchProvider
+          .search({
+            query: extraQuery,
+            resultLimit: Math.min(8, caps.maximumResults),
+            includeDomains: sourcePrefs.extraSourceDomains,
+            excludeDomains: sourcePrefs.excludedDomains,
+            category: undefined,
+          })
+          .catch((err: unknown) => {
+            extraSourceWarnings.push(
+              `Requested source search failed: ${(err as Error)?.message ?? 'unknown error'}`,
+            );
+            return null;
+          }),
+      ]);
+      search = primaryResult;
+      if (extraResult) extraSourceSearches.push(extraResult);
+    } else {
+      search = await primaryPromise;
+    }
   } catch (e) {
     // Never fabricate to compensate for unavailable search.
     throw new Error(`Web search unavailable: ${(e as Error).message}`);
   }
-  if (!search.candidates.length) {
+  if (!search.candidates.length && !extraSourceSearches.some((r) => r.candidates.length > 0)) {
     progress('validating', 'Web search returned no sources');
   }
 
@@ -276,21 +352,22 @@ export async function runResearchAgent(input: RunResearchInput): Promise<Researc
     contactRoles = await suggestContactRoles(brief, target, llmProvider);
     progress('researching', `Looking for the right people to contact at ${seed.name}`);
     const queries = buildContactQueries(seed, contactRoles);
-    const limit = Math.min(8, searchProvider.capabilities().maximumResults);
+    const limit = Math.min(8, caps.maximumResults);
     const domain = domainOf(seed.website ?? search.candidates[0]?.url);
+    const peopleCategory = caps.supportsCategory ? ('people' as const) : undefined;
     const settled = await Promise.allSettled([
       searchProvider.search({
         query: queries.team,
         resultLimit: limit,
-        includeDomains: domain && searchProvider.capabilities().supportsDomainFilters ? [domain] : [],
-        excludeDomains: [],
+        includeDomains: domain && caps.supportsDomainFilters ? [domain] : [],
+        excludeDomains: caps.supportsDomainFilters ? sourcePrefs.excludedDomains : [],
       }),
       searchProvider.search({
         query: queries.people,
         resultLimit: limit,
         includeDomains: [],
-        excludeDomains: [],
-        category: searchProvider.capabilities().supportsCategory ? 'people' : undefined,
+        excludeDomains: !peopleCategory && caps.supportsDomainFilters ? sourcePrefs.excludedDomains : [],
+        category: peopleCategory,
       }),
     ]);
     for (const result of settled) {
@@ -299,13 +376,32 @@ export async function runResearchAgent(input: RunResearchInput): Promise<Researc
     }
   }
 
+  const extraSourceCandidates = extraSourceSearches.flatMap((response) => response.candidates);
   const contactCandidates = contactSearches.flatMap((response) => response.candidates);
-  const evidence = buildEvidence([
-    { candidates: search.candidates, maximumCharacters: contactCandidates.length ? 7_000 : 8_000 },
-    { candidates: contactCandidates, maximumCharacters: 5_000 },
-  ]);
+  const hasContacts = contactCandidates.length > 0;
+  const hasExtra = extraSourceCandidates.length > 0;
+  const evidence = buildEvidence(
+    [
+      {
+        candidates: search.candidates,
+        maximumCharacters: hasContacts && hasExtra ? 4_000 : hasContacts ? 5_200 : hasExtra ? 6_000 : 8_000,
+        perCandidateCharacters: hasContacts || hasExtra ? 1_800 : 2_200,
+      },
+      {
+        candidates: extraSourceCandidates,
+        maximumCharacters: 1_800,
+        perCandidateCharacters: 750,
+      },
+      {
+        candidates: contactCandidates,
+        maximumCharacters: 2_800,
+        perCandidateCharacters: 1_100,
+      },
+    ],
+    sourcePrefs.excludedDomains,
+  );
   const system = loadResearchEvidencePrompt();
-  const user = buildUserPrompt(brief, plan, seed, memoryNote, evidence.bundle, contactRoles);
+  const user = buildUserPrompt(brief, plan, seed, memoryNote, evidence.bundle, contactRoles, sourcePrefs);
 
   // ---------- 3. Normalise + QA ----------
   progress('validating', 'Validating sources and evidence');
@@ -320,8 +416,8 @@ export async function runResearchAgent(input: RunResearchInput): Promise<Researc
     progress('validating', 'Repairing the research structure');
     const text = await llmProvider.complete({
       system: NORMALIZER_SYSTEM,
-      user: `INVALID OUTPUT:\n${rawCompletion.slice(0, 10_000)}\n\nSUPPLIED EVIDENCE:\n${evidence.bundle.slice(0, 12_000)}`,
-      maxTokens: 2_500,
+      user: `INVALID OUTPUT:\n${rawCompletion.slice(0, 4_500)}\n\nSUPPLIED EVIDENCE:\n${evidence.bundle.slice(0, 6_000)}`,
+      maxTokens: 2_200,
     });
     draft = extractJson(text);
   }
@@ -338,6 +434,9 @@ export async function runResearchAgent(input: RunResearchInput): Promise<Researc
     relationshipStatus: relationship?.status ?? null,
   });
 
+  const auxSearches = [...extraSourceSearches, ...contactSearches];
+  const allSearches = [search, ...auxSearches];
+
   return {
     record,
     seed,
@@ -345,19 +444,21 @@ export async function runResearchAgent(input: RunResearchInput): Promise<Researc
     relationship_status: relationship?.status ?? null,
     model: llmProvider.model ?? llmProvider.name,
     ai_provider: llmProvider.name,
-    searches: [search.query, ...contactSearches.map((response) => response.query)],
+    searches: allSearches.map((response) => response.query),
     search_provider: search.providerKey,
-    search_request_ids: [search, ...contactSearches]
+    search_request_ids: allSearches
       .map((response) => response.providerRequestId)
       .filter((id): id is string => Boolean(id)),
     search_usage: {
-      requests: [search, ...contactSearches].reduce((total, response) => total + response.usage.requests, 0),
-      estimated_cost_usd: [search, ...contactSearches].reduce((total, response) => total + (response.usage.estimatedCostUsd ?? 0), 0),
-      latency_ms: search.latencyMs + Math.max(0, ...contactSearches.map((response) => response.latencyMs)),
+      requests: allSearches.reduce((total, response) => total + response.usage.requests, 0),
+      estimated_cost_usd: allSearches.reduce((total, response) => total + (response.usage.estimatedCostUsd ?? 0), 0),
+      latency_ms: search.latencyMs + Math.max(0, ...auxSearches.map((response) => response.latencyMs)),
     },
-    search_warnings: [...search.warnings, ...contactSearches.flatMap((response) => response.warnings), ...contactWarnings],
+    search_warnings: [
+      ...search.warnings,
+      ...auxSearches.flatMap((response) => response.warnings),
+      ...extraSourceWarnings,
+      ...contactWarnings,
+    ],
   };
 }
-
-
-

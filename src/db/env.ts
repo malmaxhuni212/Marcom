@@ -37,7 +37,17 @@ export function getApplicationDatabaseUrl(
   resolveNetlifyConnection: () => string = getNetlifyConnectionString,
 ): string {
   if (isEnabledFlag(environment.NETLIFY)) {
-    return getDatabaseUrl({ NETLIFY_DB_URL: resolveNetlifyConnection() });
+    try {
+      const runtimeConnection = resolveNetlifyConnection();
+      if (runtimeConnection) {
+        return getDatabaseUrl({ NETLIFY_DB_URL: runtimeConnection });
+      }
+    } catch (error) {
+      if (environment.DATABASE_URL || environment.NETLIFY_DB_URL) {
+        return getDatabaseUrl(environment);
+      }
+      throw error;
+    }
   }
 
   return getDatabaseUrl(environment);

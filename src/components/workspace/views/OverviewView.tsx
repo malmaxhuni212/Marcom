@@ -403,6 +403,42 @@ function OverviewBody() {
               )}
 
               <span className="mt-2 text-xs font-semibold tracking-[0.12em] text-[#8A909C]">
+                PREFERRED WEBSITES / DOMAINS
+              </span>
+              {searchSettings?.preferred_domains?.length ? (
+                <div className="flex flex-wrap gap-1.5">
+                  {searchSettings.preferred_domains.map((dom) => (
+                    <span
+                      key={dom}
+                      className="rounded-lg border border-[#2E6B75] bg-[#12313A] px-2.5 py-1 text-xs text-[#9BE6EE]"
+                    >
+                      {dom}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <span className="text-sm text-[#8A909C]">Open web + selected source platforms</span>
+              )}
+
+              <span className="mt-2 text-xs font-semibold tracking-[0.12em] text-[#8A909C]">
+                EXCLUDED WEBSITES / DOMAINS
+              </span>
+              {searchSettings?.excluded_domains?.length ? (
+                <div className="flex flex-wrap gap-1.5">
+                  {searchSettings.excluded_domains.map((dom) => (
+                    <span
+                      key={dom}
+                      className="rounded-lg border border-[#3A303A] bg-[#1C1517] px-2.5 py-1 text-xs text-[#F28B82]"
+                    >
+                      {dom}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <span className="text-sm text-[#8A909C]">None specified</span>
+              )}
+
+              <span className="mt-2 text-xs font-semibold tracking-[0.12em] text-[#8A909C]">
                 DEFAULT BATCH SIZE
               </span>
               <span className="text-sm font-semibold text-[#F1F2F4]">

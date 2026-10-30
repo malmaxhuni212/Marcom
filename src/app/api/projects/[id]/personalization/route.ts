@@ -34,6 +34,7 @@ import {
 import { runPersonalizationAgent } from '@/marcom/agents/personalization/agent';
 import { PersonalizationSettingsSchema } from '@/marcom/schemas/personalization';
 import type { EvaluatedRoute, PersonalizationEntry } from '@/marcom/schemas/personalization';
+import type { ResearchEntry } from '@/marcom/schemas/research-record';
 import { GeneratePersonalizationRequestSchema } from '@/marcom/personalization/request-contract';
 
 export const runtime = 'nodejs';
@@ -41,33 +42,10 @@ export const maxDuration = 300;
 
 type RouteCtx = { params: Promise<{ id: string }> };
 
-export async function GET(req: Request, { params }: RouteCtx) {
-  const access = await authorizeApiRequest(req);
-  if (!access.ok) return access.response;
-  const { id: projectId } = await params;
-  const store = await createServerMemoryStore(access.actor, access.allowFileFallback);
-  const actor = access.actor;
-  const isDb = isDatabaseConfigured();
-  const project = store.projects().find((p) => p.project_id === projectId);
-  if (!project) return NextResponse.json({ error: 'Project not found' }, { status: 404 });
-
-  const url = new URL(req.url);
-  const recordId = url.searchParams.get('recordId');
-  const batch = url.searchParams.get('batch');
-  const status = url.searchParams.get('status');
-
-  const settings = isDb
-    ? await getDbPersonalizationSettings(actor, projectId)
-    : getFilePersonalizationSettings(projectId);
-  const allEntries = isDb
-    ? await listDbPersonalizations(actor, projectId)
-    : listFilePersonalizations(projectId);
-  const allResearch = isDb
-    ? await listDbResearch(actor, projectId)
-    : listFileResearch(projectId);
+function createEntryEnricher(allResearch: ResearchEntry[]) {
   const researchMap = new Map(allResearch.map((r) => [r.record.record_id, r.record]));
 
-  const enrichEntry = (e: PersonalizationEntry): PersonalizationEntry => {
+  return (e: PersonalizationEntry): PersonalizationEntry => {
     const rec = researchMap.get(e.record_id);
     const keyPeople = rec?.key_contacts ?? [];
     const emails = [
@@ -94,22 +72,36 @@ export async function GET(req: Request, { params }: RouteCtx) {
         ].filter(Boolean),
       ),
     ];
-    const websites = (rec?.websites?.map((w) => w.url).filter(Boolean) || []);
+    const seenSocialUrls = new Set<string>();
+    const social_profiles = (rec?.social_profiles ?? [])
+      .filter((s) => s.platform !== 'linkedin' && Boolean(s.profile_url))
+      .filter((s) => {
+        const key = s.profile_url.trim().toLowerCase();
+        if (seenSocialUrls.has(key)) return false;
+        seenSocialUrls.add(key);
+        return true;
+      })
+      .map((s) => ({ platform: s.platform, url: s.profile_url }));
+    const websites = rec?.websites?.map((w) => w.url).filter(Boolean) || [];
 
     const candidate_contacts = {
       emails,
       linkedin_urls,
       websites,
       phones,
+      social_profiles,
     };
 
     let strategy = e.strategy;
     if (strategy && !strategy.contact_audit) {
       const recChannel = strategy.recommended_channel;
+      const matchingSocial = social_profiles.find((s) => s.platform === recChannel);
       let primaryTarget = 'No direct contact found';
 
       if (recChannel === 'linkedin' && linkedin_urls.length > 0) {
         primaryTarget = linkedin_urls.find((u) => u.includes('/in/')) || linkedin_urls[0];
+      } else if (matchingSocial) {
+        primaryTarget = matchingSocial.url;
       } else if (recChannel === 'phone' && phones.length > 0) {
         primaryTarget = phones[0];
       } else if (recChannel === 'email' && emails.length > 0) {
@@ -119,6 +111,7 @@ export async function GET(req: Request, { params }: RouteCtx) {
           linkedin_urls.find((u) => u.includes('/in/')) ||
           emails[0] ||
           linkedin_urls[0] ||
+          social_profiles[0]?.url ||
           phones[0] ||
           websites[0] ||
           'No direct contact found';
@@ -126,8 +119,9 @@ export async function GET(req: Request, { params }: RouteCtx) {
 
       const isEmail = primaryTarget.includes('@');
       const isLinkedIn = primaryTarget.includes('linkedin');
+      const matchedExtraSocial = social_profiles.find((s) => s.url === primaryTarget);
       const isPhone = primaryTarget.startsWith('+') || /^[0-9\s-()]+$/.test(primaryTarget);
-      const isForm = primaryTarget.startsWith('http') && !isLinkedIn;
+      const isForm = primaryTarget.startsWith('http') && !isLinkedIn && !matchedExtraSocial;
 
       const evaluated_routes: EvaluatedRoute[] = [
         ...emails.map((em): EvaluatedRoute => {
@@ -150,6 +144,16 @@ export async function GET(req: Request, { params }: RouteCtx) {
             value: li,
             verdict: isRecommended ? 'recommended' : isPersonal ? 'viable_backup' : 'generic_gatekeeper',
             quality_assessment: isPersonal ? 'Personal LinkedIn profile (direct 1-to-1 route)' : 'Company LinkedIn page',
+            priority: isRecommended ? 1 : 2,
+          };
+        }),
+        ...social_profiles.map((sp): EvaluatedRoute => {
+          const isRecommended = sp.url === primaryTarget;
+          return {
+            channel: sp.platform,
+            value: sp.url,
+            verdict: isRecommended ? 'recommended' : 'viable_backup',
+            quality_assessment: `Verified public ${sp.platform} profile for direct outreach`,
             priority: isRecommended ? 1 : 2,
           };
         }),
@@ -178,18 +182,36 @@ export async function GET(req: Request, { params }: RouteCtx) {
       strategy = {
         ...strategy,
         contact_audit: {
-          best_channel: isEmail ? 'email' : isLinkedIn ? 'linkedin' : isPhone ? 'phone' : isForm ? 'contact_form' : 'other',
+          best_channel: isEmail
+            ? 'email'
+            : isLinkedIn
+            ? 'linkedin'
+            : matchedExtraSocial
+            ? matchedExtraSocial.platform
+            : isPhone
+            ? 'phone'
+            : isForm
+            ? 'contact_form'
+            : 'other',
           best_contact_target: primaryTarget,
           why_best_route: isLinkedIn
             ? 'Personal LinkedIn profile offers highest engagement for direct 1-to-1 outreach, bypassing gatekeepers.'
+            : matchedExtraSocial
+            ? `Public ${matchedExtraSocial.platform} profile discovered in research dossier for direct outreach.`
             : isPhone
             ? 'Direct telephone line discovered in research dossier; immediate direct route.'
             : isEmail
             ? 'Verified email address discovered in research dossier.'
             : 'Website destination discovered in research dossier.',
-          is_direct_contact: Boolean(isLinkedIn && primaryTarget.includes('/in/')) || (isEmail && !/^(info|contact|admin)@/i.test(primaryTarget)),
+          is_direct_contact:
+            Boolean(isLinkedIn && primaryTarget.includes('/in/')) ||
+            Boolean(matchedExtraSocial) ||
+            (isEmail && !/^(info|contact|admin)@/i.test(primaryTarget)),
           email_status: emails.length > 0 ? (/^(info|contact|admin)@/i.test(emails[0]) ? 'generic_inbox' : 'verified_direct') : 'not_available',
-          backup_route: (isLinkedIn ? emails[0] : linkedin_urls[0]) || websites[0] || null,
+          backup_route:
+            (isLinkedIn ? emails[0] || social_profiles[0]?.url : linkedin_urls[0] || social_profiles[0]?.url) ||
+            websites[0] ||
+            null,
           evaluated_routes,
         },
       };
@@ -201,7 +223,34 @@ export async function GET(req: Request, { params }: RouteCtx) {
       candidate_contacts,
     };
   };
+}
 
+export async function GET(req: Request, { params }: RouteCtx) {
+  const access = await authorizeApiRequest(req);
+  if (!access.ok) return access.response;
+  const { id: projectId } = await params;
+  const store = await createServerMemoryStore(access.actor, access.allowFileFallback);
+  const actor = access.actor;
+  const isDb = isDatabaseConfigured();
+  const project = store.projects().find((p) => p.project_id === projectId);
+  if (!project) return NextResponse.json({ error: 'Project not found' }, { status: 404 });
+
+  const url = new URL(req.url);
+  const recordId = url.searchParams.get('recordId');
+  const batch = url.searchParams.get('batch');
+  const status = url.searchParams.get('status');
+
+  const settings = isDb
+    ? await getDbPersonalizationSettings(actor, projectId)
+    : getFilePersonalizationSettings(projectId);
+  const allEntries = isDb
+    ? await listDbPersonalizations(actor, projectId)
+    : listFilePersonalizations(projectId);
+  const allResearch = isDb
+    ? await listDbResearch(actor, projectId)
+    : listFileResearch(projectId);
+
+  const enrichEntry = createEntryEnricher(allResearch);
   const enrichedEntries = allEntries.map(enrichEntry);
 
   if (recordId) {
@@ -346,6 +395,8 @@ export async function POST(req: Request, { params }: RouteCtx) {
     );
   }
 
+  const enrichEntry = createEntryEnricher(allResearch);
+  const enrichedResults = results.map(enrichEntry);
   const allUpdated = isDb
     ? await listDbPersonalizations(actor, projectId)
     : listFilePersonalizations(projectId);
@@ -353,10 +404,10 @@ export async function POST(req: Request, { params }: RouteCtx) {
 
   return NextResponse.json({
     success: true,
-    processed: results.length,
+    processed: enrichedResults.length,
     errors,
-    results,
-    items: results,
+    results: enrichedResults,
+    items: enrichedResults,
     summary,
   });
 }
@@ -389,9 +440,16 @@ export async function PATCH(req: Request, { params }: RouteCtx) {
       : updateFilePersonalizationStatus(projectId, recordId, status, reviewer_note);
   }
 
-  return updated
-    ? NextResponse.json({ success: true, item: updated, items: [updated] })
-    : NextResponse.json({ error: 'Personalization entry not found' }, { status: 404 });
+  if (!updated) {
+    return NextResponse.json({ error: 'Personalization entry not found' }, { status: 404 });
+  }
+
+  const allResearch = isDb
+    ? await listDbResearch(access.actor, projectId)
+    : listFileResearch(projectId);
+  const enriched = createEntryEnricher(allResearch)(updated);
+
+  return NextResponse.json({ success: true, item: enriched, items: [enriched] });
 }
 
 /** Save campaign outreach settings (sender info, campaign facts, etc.) */
