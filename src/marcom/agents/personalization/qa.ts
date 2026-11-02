@@ -16,13 +16,14 @@
 
 import type { ResearchRecord } from '../../schemas/research-record';
 import type { StructuredBrief } from '../../schemas/structured-brief';
-import type {
-  LeadPersonalizationSettings,
-  OutreachCopy,
-  PersonalizationQA,
-  PersonalizationQAIssue,
-  PersonalizationSettings,
-  StrategyDossier,
+import {
+  getProjectCategoryTemplates,
+  type LeadPersonalizationSettings,
+  type OutreachCopy,
+  type PersonalizationQA,
+  type PersonalizationQAIssue,
+  type PersonalizationSettings,
+  type StrategyDossier,
 } from '../../schemas/personalization';
 
 export interface PersonalizationQAContext {
@@ -149,7 +150,8 @@ const BANNED_PATTERNS: { regex: RegExp; code: string; message: string; severity:
   },
 ];
 
-const PLACEHOLDER_REGEX = /(\[[A-Z0-9_\s]{2,30}\]|\{[a-z0-9_]{2,30}\}|<[A-Za-z0-9_\s]{2,30}>)/i;
+const PLACEHOLDER_REGEX =
+  /(\[[^\][\n]{2,140}\]|\{[a-z0-9_\s]{2,60}\}|<[A-Za-z0-9_\s]{2,60}>|\((?:specific|personalised|personalized|insert|enter|add|describe|mention|highlight)\s+[^()\n]{3,140}\))/i;
 
 const GENERIC_STOPWORDS = new Set([
   'about', 'above', 'across', 'after', 'again', 'against', 'along', 'also', 'although', 'always',
@@ -280,7 +282,7 @@ export function validatePersonalizationCopy(
   const emailWords = countWords(copy.email_body);
   const lengthPref = context?.leadSettings?.message_length;
   const minWords = lengthPref === 'very_short' ? 28 : lengthPref === 'short' ? 40 : 45;
-  const maxWords = lengthPref === 'very_short' ? 85 : lengthPref === 'short' ? 125 : lengthPref === 'detailed' ? 210 : 185;
+  const maxWords = lengthPref === 'very_short' ? 95 : lengthPref === 'short' ? 175 : lengthPref === 'detailed' ? 230 : 195;
   if (emailWords < minWords) {
     issues.push({
       severity: 'warning',
@@ -446,14 +448,22 @@ export function validatePersonalizationCopy(
   const briefText = context?.brief
     ? JSON.stringify(context.brief)
     : '';
-  const settingsFactsText = context?.settings
-    ? [
-        ...(context.settings.campaign_facts ?? []),
-        context.settings.extra_guidance ?? '',
-        context.settings.call_to_action_link ?? '',
-        context.settings.organisation ?? '',
-      ].join(' ')
-    : '';
+  const resolvedTemplatesList = context?.brief
+    ? getProjectCategoryTemplates(context.brief, context.settings)
+    : Object.values(context?.settings?.category_templates ?? {});
+  const categoryTemplatesText = [
+    ...resolvedTemplatesList.map((t) => `${t?.subject_line ?? ''} ${t?.body ?? ''}`),
+    ...Object.values(context?.settings?.category_templates ?? {}).map(
+      (t) => `${t?.subject_line ?? ''} ${t?.body ?? ''}`,
+    ),
+  ].join(' ');
+  const settingsFactsText = [
+    ...(context?.settings?.campaign_facts ?? []),
+    context?.settings?.extra_guidance ?? '',
+    context?.settings?.call_to_action_link ?? '',
+    context?.settings?.organisation ?? '',
+    categoryTemplatesText,
+  ].join(' ');
   const allowedCorpus = [
     recordFullText,
     briefText,

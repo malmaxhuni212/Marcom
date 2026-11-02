@@ -36,8 +36,11 @@ import {
   runPersonalizationAgent,
 } from '@/marcom/agents/personalization/agent';
 import {
+  CategoryOutreachTemplateSchema,
   defaultLeadPersonalizationSettings,
+  FeedbackScopeSchema,
   LeadPersonalizationSettingsSchema,
+  normalizeCategoryKey,
   PERSONALIZATION_VERSION,
   PersonalizationSettingsSchema,
 } from '@/marcom/schemas/personalization';
@@ -47,6 +50,7 @@ import type {
   OutreachCopy,
   PersonalizationDraftVersion,
   PersonalizationEntry,
+  PersonalizationFeedback,
   PersonalizationSettings,
   PersonalizationStatus,
   StrategyDossier,
@@ -54,6 +58,13 @@ import type {
 import type { ResearchEntry } from '@/marcom/schemas/research-record';
 import type { StructuredBrief } from '@/marcom/schemas/structured-brief';
 import { GeneratePersonalizationRequestSchema } from '@/marcom/personalization/request-contract';
+import { appendFeedback, createFeedbackItem } from '@/marcom/personalization/feedback';
+import { z } from 'zod';
+
+const FeedbackInputSchema = z.strictObject({
+  text: z.string().trim().min(2, 'Write a little feedback first.').max(1_000),
+  scope: FeedbackScopeSchema.default('project'),
+});
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
@@ -675,7 +686,25 @@ export async function POST(req: Request, { params }: RouteCtx) {
   const forceRegenerate = Boolean(body.forceRegenerate || body.force);
 
   const allResearch = await safeListResearch(actor, projectId, access.allowFileFallback);
-  const settings = await safeGetSettings(actor, projectId, access.allowFileFallback);
+  let settings = await safeGetSettings(actor, projectId, access.allowFileFallback);
+
+  // Reviewer feedback: remember it for future drafts, then apply it to this rewrite
+  const rewriteFeedback = body.feedback?.text?.trim() || null;
+  let savedFeedback: PersonalizationFeedback | null = null;
+  if (body.feedback && recordId) {
+    const feedbackRecord = allResearch.find((r) => r.record.record_id === recordId)?.record ?? null;
+    savedFeedback = createFeedbackItem({
+      text: body.feedback.text,
+      scope: body.feedback.scope,
+      record: feedbackRecord,
+    });
+    settings = await safeSaveSettings(
+      actor,
+      projectId,
+      { feedback_memory: appendFeedback(settings.feedback_memory, savedFeedback) },
+      access.allowFileFallback,
+    );
+  }
 
   // Targets to personalize
   let candidates = allResearch;
@@ -783,6 +812,8 @@ export async function POST(req: Request, { params }: RouteCtx) {
         leadSettings: resolvedLeadSettings,
         store,
         force: true,
+        rewriteFeedback,
+        previousCopy: existing?.copy ?? null,
       });
 
       // Guarantee that every personalized lead has full 5-channel outreach drafts
@@ -794,6 +825,7 @@ export async function POST(req: Request, { params }: RouteCtx) {
           settings: currentSettings,
           leadSettings: resolvedLeadSettings,
           existing: generated,
+          rewriteFeedback,
         });
       }
 
@@ -828,6 +860,7 @@ export async function POST(req: Request, { params }: RouteCtx) {
           settings: currentSettings,
           leadSettings: resolvedLeadSettings,
           existing,
+          rewriteFeedback,
         }),
         lead_settings: resolvedLeadSettings,
         previous_versions: previousVersions,
@@ -867,10 +900,11 @@ export async function POST(req: Request, { params }: RouteCtx) {
     items: enrichedResults,
     settings: currentSettings,
     summary,
+    feedback: savedFeedback,
   });
 }
 
-/** Human review decisions, draft edits, and per-lead personalization settings */
+/** Human review decisions, draft edits, category templates, and per-lead personalization settings */
 export async function PATCH(req: Request, { params }: RouteCtx) {
   const access = await authorizeApiRequest(req);
   if (!access.ok) return access.response;
@@ -879,6 +913,97 @@ export async function PATCH(req: Request, { params }: RouteCtx) {
   const recordId = typeof body.recordId === 'string' ? body.recordId : body.record_id;
   const { copy, status, reviewer_note } = body;
   const rawLeadSettings = body.leadSettings ?? body.lead_settings;
+  const rawCategoryTemplate = body.categoryTemplate ?? body.category_template;
+  const resetCategoryTargetId =
+    typeof body.resetCategoryTemplateTargetId === 'string'
+      ? body.resetCategoryTemplateTargetId.trim()
+      : '';
+  const removeFeedbackId = typeof body.removeFeedbackId === 'string' ? body.removeFeedbackId.trim() : '';
+
+  // Remove a learned feedback item from memory
+  if (removeFeedbackId) {
+    const currentSettings = await safeGetSettings(access.actor, projectId, access.allowFileFallback);
+    const updatedSettings = await safeSaveSettings(
+      access.actor,
+      projectId,
+      { feedback_memory: (currentSettings.feedback_memory ?? []).filter((f) => f.id !== removeFeedbackId) },
+      access.allowFileFallback,
+    );
+    return NextResponse.json({ success: true, settings: updatedSettings });
+  }
+
+  // Save reviewer feedback to learning memory (without rewriting)
+  if (body.feedback) {
+    const parsedFeedback = FeedbackInputSchema.safeParse(body.feedback);
+    if (!parsedFeedback.success) {
+      return NextResponse.json(
+        { error: parsedFeedback.error.issues[0]?.message ?? 'Invalid feedback.' },
+        { status: 400 },
+      );
+    }
+    const allResearch = await safeListResearch(access.actor, projectId, access.allowFileFallback);
+    const feedbackRecord = recordId
+      ? allResearch.find((r) => r.record.record_id === recordId)?.record ?? null
+      : null;
+    if (parsedFeedback.data.scope !== 'project' && !feedbackRecord) {
+      return NextResponse.json({ error: 'recordId is required for lead or category feedback.' }, { status: 400 });
+    }
+    const item = createFeedbackItem({ ...parsedFeedback.data, record: feedbackRecord });
+    const currentSettings = await safeGetSettings(access.actor, projectId, access.allowFileFallback);
+    const updatedSettings = await safeSaveSettings(
+      access.actor,
+      projectId,
+      { feedback_memory: appendFeedback(currentSettings.feedback_memory, item) },
+      access.allowFileFallback,
+    );
+    return NextResponse.json({ success: true, feedback: item, settings: updatedSettings });
+  }
+
+  // Handle saving or resetting a project-specific category outreach template
+  if (rawCategoryTemplate || resetCategoryTargetId) {
+    const currentSettings = await safeGetSettings(access.actor, projectId, access.allowFileFallback);
+    const nextCategoryTemplates = { ...(currentSettings.category_templates ?? {}) };
+
+    if (resetCategoryTargetId) {
+      delete nextCategoryTemplates[resetCategoryTargetId];
+      delete nextCategoryTemplates[normalizeCategoryKey(resetCategoryTargetId)];
+      const updatedSettings = await safeSaveSettings(
+        access.actor,
+        projectId,
+        { category_templates: nextCategoryTemplates },
+        access.allowFileFallback,
+      );
+      return NextResponse.json({
+        success: true,
+        settings: updatedSettings,
+      });
+    }
+
+    const parsedTemplate = CategoryOutreachTemplateSchema.safeParse({
+      ...rawCategoryTemplate,
+      is_custom: true,
+      updated_at: new Date().toISOString(),
+    });
+    if (!parsedTemplate.success) {
+      return NextResponse.json(
+        { error: parsedTemplate.error.issues[0]?.message ?? 'Invalid category template.' },
+        { status: 400 },
+      );
+    }
+
+    nextCategoryTemplates[parsedTemplate.data.target_id] = parsedTemplate.data;
+    const updatedSettings = await safeSaveSettings(
+      access.actor,
+      projectId,
+      { category_templates: nextCategoryTemplates },
+      access.allowFileFallback,
+    );
+    return NextResponse.json({
+      success: true,
+      categoryTemplate: parsedTemplate.data,
+      settings: updatedSettings,
+    });
+  }
 
   if (!recordId) {
     return NextResponse.json({ error: 'recordId is required' }, { status: 400 });

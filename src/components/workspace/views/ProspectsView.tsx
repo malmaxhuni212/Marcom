@@ -516,6 +516,7 @@ function ProspectsBody({ initialTab }: { initialTab?: TabId }) {
     updateResearchReview,
     setSettings,
     openResearch,
+    startResearch,
     globalSearch,
     setGlobalSearch,
   } = useWorkspace();
@@ -1013,6 +1014,27 @@ function ProspectsBody({ initialTab }: { initialTab?: TabId }) {
     }
   };
 
+  const handleRunResearchForLead = async (entry: ResearchEntry, instructions?: string) => {
+    const leadName = prospectName(entry);
+    const target = targetFor(brief, entry);
+    setActionNotice(`Starting research for ${leadName}…`);
+    try {
+      await startResearch({
+        targetId: entry.record.brief_target_id || target?.id || 'target-1',
+        targetLabel: entry.record.target_type || 'Prospect',
+        count: 1,
+        name: leadName,
+        force: true,
+        notes: instructions || entry.review?.note || undefined,
+        organisation: entry.record.organisation || undefined,
+        role: entry.record.role || undefined,
+        website: entry.record.websites?.[0]?.url || entry.seed.website || undefined,
+      });
+    } catch (err) {
+      setActionError((err as Error).message);
+    }
+  };
+
   const cycleTypeFilter = () => {
     setFilters((curr) => ({
       ...curr,
@@ -1213,6 +1235,30 @@ function ProspectsBody({ initialTab }: { initialTab?: TabId }) {
                     View personalized
                   </button>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* Banner for More Research Tab */}
+          {tab === 'enrichment_requested' && (
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-[14px] border border-[#2E6B75] bg-[#12313A] py-3 pl-4 pr-3.5">
+              <div className="flex min-w-0 flex-1 items-center gap-2.5">
+                <Icon name="search" size={17} className="text-[#5ED3DF]" />
+                <span className="text-sm text-[#B5D9DE]">
+                  <strong className="text-[#F1F2F4]">{counts.enrichment_requested} {counts.enrichment_requested === 1 ? 'lead' : 'leads'} flagged for more research.</strong> Click any lead to see instructions or run live research.
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Banner for Rejected Tab */}
+          {tab === 'rejected' && (
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-[14px] border border-[#5A3A38] bg-[#1C1517] py-3 pl-4 pr-3.5">
+              <div className="flex min-w-0 flex-1 items-center gap-2.5">
+                <Icon name="x" size={17} className="text-[#F28B82]" />
+                <span className="text-sm text-[#E5B5B2]">
+                  <strong className="text-[#F1F2F4]">{counts.rejected} {counts.rejected === 1 ? 'lead' : 'leads'} rejected.</strong> These leads are kept on record with your notes and excluded from outreach.
+                </span>
               </div>
             </div>
           )}
@@ -1661,8 +1707,10 @@ function ProspectsBody({ initialTab }: { initialTab?: TabId }) {
           }}
           onDecisionOptimistic={(nextStatus, nextNote) => {
             updateResearchReview(selectedEntry.record.record_id, nextStatus, nextNote);
-            void reload();
           }}
+          onReloadBundle={reload}
+          onRunResearch={(instructions) => void handleRunResearchForLead(selectedEntry, instructions)}
+          onDecisionNotice={(msg) => setActionNotice(msg)}
           onDraftUpdated={(updated) => {
             updateDraft(updated);
             void reload();
@@ -1771,6 +1819,9 @@ function ProspectDetailPanel({
   onClose,
   onNavigate,
   onDecisionOptimistic,
+  onReloadBundle,
+  onRunResearch,
+  onDecisionNotice,
   onDraftUpdated,
   onSettingsUpdated,
   onPersonalise,
@@ -1793,6 +1844,9 @@ function ProspectDetailPanel({
   onClose: () => void;
   onNavigate: (delta: -1 | 1) => void;
   onDecisionOptimistic: (status: ReviewStatus, note: string | null) => void;
+  onReloadBundle?: () => Promise<void>;
+  onRunResearch?: (instructions: string) => void;
+  onDecisionNotice?: (msg: string) => void;
   onDraftUpdated: (entry: PersonalizationEntry) => void;
   onSettingsUpdated: (settings: PersonalizationSettings) => void;
   onPersonalise: (leadCfg?: LeadPersonalizationSettings) => void;
@@ -2046,21 +2100,24 @@ function ProspectDetailPanel({
   ].filter(Boolean);
 
   const commitDecision = async (nextStatus: ReviewStatus, customNote?: string) => {
-    const finalNote = customNote !== undefined ? customNote : note;
-    if (nextStatus === 'rejected' && !finalNote.trim()) {
-      setError('Add a short note before rejecting so your team knows why.');
-      return;
-    }
+    const finalNote = (customNote !== undefined ? customNote : note).trim();
+    const noteToSave = finalNote || (nextStatus === 'rejected' ? 'Rejected by user' : null);
     setSaving(true);
     setError(null);
     // Optimistically update in place so the user never loses their position
-    onDecisionOptimistic(nextStatus, finalNote.trim() || null);
+    onDecisionOptimistic(nextStatus, noteToSave);
     try {
-      await saveDecision(projectId, entry.record.record_id, nextStatus, finalNote);
+      await saveDecision(projectId, entry.record.record_id, nextStatus, noteToSave);
       setNoteSaved(true);
       setMoreResearchOpen(false);
-      // When a prospect is Approved, automatically personalise it right away so Approved = Personalised
-      if (nextStatus === 'shortlisted' && !hasDraft) {
+      if (onReloadBundle) {
+        await onReloadBundle();
+      }
+      if (nextStatus === 'rejected') {
+        onDecisionNotice?.(`Moved ${name} to the Rejected tab.`);
+      } else if (nextStatus === 'enrichment_requested') {
+        onDecisionNotice?.(`Moved ${name} to the More research tab.`);
+      } else if (nextStatus === 'shortlisted' && !hasDraft) {
         onPersonalise(leadSettings);
       }
     } catch (err) {
@@ -2649,6 +2706,59 @@ function ProspectDetailPanel({
             )}
           </div>
         </div>
+
+        {/* Prominent banner if more research is requested */}
+        {status === 'enrichment_requested' && (
+          <div className="flex flex-col gap-2.5 rounded-2xl border border-[#2E6B75] bg-[#12313A] p-4 shadow-sm">
+            <div className="flex items-center justify-between gap-2">
+              <span className="flex items-center gap-2 text-sm font-semibold text-[#9BE6EE]">
+                <Icon name="search" size={17} className="text-[#5ED3DF]" />
+                More research requested
+              </span>
+              {onRunResearch && (
+                <button
+                  type="button"
+                  onClick={() => onRunResearch(entry.review?.note || 'Find verified contact and fit')}
+                  className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-[#5ED3DF] px-3 text-xs font-bold text-[#0E1014] hover:bg-[#82E0EB]"
+                >
+                  <Icon name="sparkle" size={13} stroke={2.2} /> Run research now
+                </button>
+              )}
+            </div>
+            {entry.review?.note && (
+              <p className="m-0 text-xs text-[#D5D8DE] leading-relaxed">
+                <strong className="text-[#9BE6EE]">What to check:</strong> {entry.review.note}
+              </p>
+            )}
+            <div className="text-[11px] text-[#A7ADB8]">
+              This lead is saved in the <strong>More research</strong> tab and kept out of active outreach drafts until verified.
+            </div>
+          </div>
+        )}
+
+        {/* Prominent banner if rejected */}
+        {status === 'rejected' && (
+          <div className="flex flex-col gap-2 rounded-2xl border border-[#5A3A38] bg-[#1C1517] p-4 shadow-sm">
+            <div className="flex items-center justify-between gap-2">
+              <span className="flex items-center gap-2 text-sm font-semibold text-[#F7B1AA]">
+                <Icon name="x" size={17} className="text-[#F28B82]" />
+                Lead Rejected
+              </span>
+              <button
+                type="button"
+                onClick={() => void commitDecision('needs_review', '')}
+                className="inline-flex h-7 items-center gap-1 rounded-lg border border-[#5A3A38] bg-[#2A1D20] px-2.5 text-xs font-semibold text-[#F7B1AA] hover:bg-[#38272B]"
+              >
+                Restore to Review
+              </button>
+            </div>
+            {entry.review?.note && entry.review.note !== 'Rejected by user' && (
+              <p className="m-0 text-xs text-[#D5D8DE]">
+                <strong className="text-[#F7B1AA]">Reason:</strong> {entry.review.note}
+              </p>
+            )}
+          </div>
+        )}
 
         <VerificationCard entry={entry} brief={brief} />
 
@@ -3245,7 +3355,7 @@ function ProspectDetailPanel({
         <label className="flex flex-col gap-2">
           <span className="flex items-center justify-between gap-2 text-[13px] font-semibold text-[#A7ADB8]">
             <span>
-              Your note <span className="font-normal text-[#8A909C]">· for your team, required when rejecting</span>
+              Your note <span className="font-normal text-[#8A909C]">· for your team, optional for review, rejection or research</span>
             </span>
             {noteSaved && (
               <span className="inline-flex items-center gap-1 font-medium text-[#5BD69A]">
@@ -3260,7 +3370,7 @@ function ProspectDetailPanel({
               setNoteSaved(false);
               if (error) setError(null);
             }}
-            placeholder="Notes save with your decision. They don't start any research."
+            placeholder="Add an optional note explaining why you approved, rejected or asked for more research."
             className="h-[72px] resize-none rounded-xl border border-[#2A2F39] bg-[#171A20] px-3 py-2.5 text-sm text-[#F1F2F4] outline-none placeholder:text-[#5C616B] focus:border-[#2E6B75]"
           />
         </label>
@@ -3332,6 +3442,12 @@ function ProspectDetailPanel({
           error={error}
           onCancel={() => setMoreResearchOpen(false)}
           onSubmit={(instructions) => void commitDecision('enrichment_requested', instructions)}
+          onResearchNow={(instructions) => {
+            void commitDecision('enrichment_requested', instructions);
+            if (onRunResearch) {
+              void onRunResearch(instructions);
+            }
+          }}
         />
       )}
     </aside>

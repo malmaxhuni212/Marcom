@@ -21,7 +21,11 @@ import { extractJson, type LLMProvider } from '../../llm/provider';
 import { GroqProvider } from '../../llm/groq-provider';
 import { loadPersonalizationPrompts } from '../prompt-loader';
 import {
+  buildContextualTemplateValues,
+  type CategoryOutreachTemplate,
+  decideTemplateUsageMode,
   defaultLeadPersonalizationSettings,
+  extractTemplateDirectives,
   LEAD_APPROACH_LABELS,
   LEAD_CTA_LABELS,
   LEAD_DEPTH_LABELS,
@@ -35,14 +39,24 @@ import {
   type PersonalizationConfidence,
   type PersonalizationEntry,
   type PersonalizationSettings,
+  resolveCategoryTemplateForProspect,
+  resolveTemplateDirectivesInText,
   type StrategyDossier,
   StrategyDossierSchema,
+  TEMPLATE_USAGE_MODE_LABELS,
+  type TemplateUsageMode,
 } from '../../schemas/personalization';
 import { validatePersonalizationCopy } from './qa';
 import type { StructuredBrief } from '../../schemas/structured-brief';
 import type { ResearchEntry, ResearchRecord } from '../../schemas/research-record';
 import type { MemoryStore } from '../../memory/store';
 import { retrieveMemoryContext } from '../../memory/retrieval';
+import {
+  applyFeedbackTextRules,
+  applyFeedbackToLeadSettings,
+  formatFeedbackPromptBlock,
+  getRelevantFeedback,
+} from '../../personalization/feedback';
 
 export interface RunPersonalizationOptions {
   projectId: string;
@@ -56,6 +70,10 @@ export interface RunPersonalizationOptions {
   strategistProvider?: LLMProvider;
   writerProvider?: LLMProvider;
   force?: boolean;
+  /** Reviewer feedback on the previous draft that this rewrite must apply. */
+  rewriteFeedback?: string | null;
+  /** The draft the rewrite feedback refers to. */
+  previousCopy?: OutreachCopy | null;
 }
 
 export function formatLeadSettingsPromptBlock(
@@ -93,6 +111,67 @@ export function formatLeadSettingsPromptBlock(
     .join('\n');
 }
 
+export function formatCategoryTemplatePromptBlock(
+  resolved: ReturnType<typeof resolveCategoryTemplateForProspect>,
+  decision: { mode: TemplateUsageMode; reason: string },
+  record: ResearchRecord,
+  brief?: StructuredBrief,
+  settings?: PersonalizationSettings,
+): string {
+  const prospectName = record.identity.name || record.organisation || 'this prospect';
+  if (!resolved) {
+    return [
+      `\n=== PROJECT-SPECIFIC CATEGORY OUTREACH TEMPLATE ===`,
+      `- No template exists for category "${record.target_type}". Generate a genuinely personalised message using the project brief and available research.`,
+    ].join('\n');
+  }
+
+  const { template, isCustom } = resolved;
+  const modeInfo = TEMPLATE_USAGE_MODE_LABELS[decision.mode];
+  const contextualValues = buildContextualTemplateValues(record, brief, settings, template);
+  const directives = extractTemplateDirectives(template.body, contextualValues);
+  const resolvedPreview = resolveTemplateDirectivesInText(
+    template.body,
+    record,
+    brief,
+    settings,
+    template,
+  );
+
+  const directivesSection =
+    directives.length > 0
+      ? [
+          `\n=== CONTEXTUAL CUES INSIDE THE TEMPLATE (Understand the Intent in Context — Never Leave Raw Brackets/Parentheses) ===`,
+          `The template contains bracketed [...] or parenthetical (...) guidance cues. Understand what each cue is asking for in the context of ${prospectName} and resolve it naturally:`,
+          ...directives.map(
+            (d) =>
+              `- ${d.rawToken} -> Understand context (${d.kind.replace(/_/g, ' ')}): ${d.explanation}`,
+          ),
+          `\n=== TEMPLATE RESOLVED FOR ${prospectName.toUpperCase()} (Use This Structure & Wording for "use" / "adapt") ===\n${resolvedPreview}`,
+        ].join('\n')
+      : '';
+
+  return [
+    `\n=== PROJECT-SPECIFIC CATEGORY OUTREACH TEMPLATE (Category: ${template.target_type}) ===`,
+    `Template Source: ${isCustom ? 'Edited & Saved by Project Team' : 'Pre-Built from Project Brief'}`,
+    template.subject_line ? `Reference Subject Line: ${template.subject_line}` : '',
+    `Reference Message Template:\n${template.body}`,
+    directivesSection,
+    `\n=== HOW TO USE THIS CATEGORY TEMPLATE FOR ${prospectName.toUpperCase()} ===`,
+    `- Primary Reference Framework (NOT Mail-Merge): This template establishes consistent messaging, positioning, and outreach objectives for ${template.target_type}.`,
+    `- Recommended Decision for ${prospectName}: ${modeInfo.label.toUpperCase()} (${decision.mode}) — ${decision.reason}`,
+    `- CRITICAL WHEN MODE IS "use" OR "adapt": You MUST follow the Reference Message Template's paragraphs, key facts (prizes, dates, links), and structure closely, filling in the contextual cues ([Name], [specific detail...], [specific collaboration...], [personalised benefit...]) with natural, prospect-specific details grounded in verified research. Do NOT replace the template with a generic 2-paragraph summary.`,
+    `- You retain freedom to choose between:`,
+    `  * "use" (Use the template): Follow its structure and messaging while adding meaningful, verified personalisation and resolving any contextual cues naturally.`,
+    `  * "adapt" (Adapt the template): Preserve the template's core paragraphs, facts, dates, and URL while adapting the research connection and benefit phrasing to weave in the prospect's multiple works or achievements.`,
+    `  * "inspiration" (Use it as inspiration): Take the core positioning and objectives, but write a substantially different message.`,
+    `  * "ignore" (Ignore the template): Write an entirely original message when the template would produce an irrelevant, unnatural, or less effective result.`,
+    `- Never sacrifice message quality or genuine personalisation simply to follow the template.`,
+  ]
+    .filter(Boolean)
+    .join('\n');
+}
+
 function hasUsableContactRoute(record: ResearchRecord, strategy: StrategyDossier): boolean {
   if (
     strategy.contact_audit &&
@@ -124,6 +203,7 @@ export function normalizeStrategyDossier(
   record: ResearchRecord,
   brief: StructuredBrief,
   leadSettings?: LeadPersonalizationSettings,
+  settings?: PersonalizationSettings,
 ): StrategyDossier {
   const strategy: StrategyDossier = {
     ...rawStrategy,
@@ -134,6 +214,26 @@ export function normalizeStrategyDossier(
     human_checks: [...rawStrategy.human_checks],
     hooks: [...rawStrategy.hooks],
   };
+
+  // Resolve category outreach template & evaluate usage mode for this prospect
+  const resolvedTemplate = resolveCategoryTemplateForProspect(record, brief, settings);
+  const templateDecision = decideTemplateUsageMode(
+    record,
+    brief,
+    resolvedTemplate?.template,
+    leadSettings,
+  );
+  if (
+    !rawStrategy.template_usage_reason ||
+    rawStrategy.template_usage_reason.trim().length < 5 ||
+    templateDecision.mode === 'ignore'
+  ) {
+    strategy.template_usage_mode = templateDecision.mode;
+    strategy.template_usage_reason = templateDecision.reason;
+  } else {
+    strategy.template_usage_mode = rawStrategy.template_usage_mode ?? templateDecision.mode;
+    strategy.template_usage_reason = rawStrategy.template_usage_reason;
+  }
 
   if (leadSettings) {
     if (leadSettings.personalization_depth === 'light' && strategy.hooks.length > 1) {
@@ -263,6 +363,7 @@ export function buildStrategistUserPrompt(
   settings: PersonalizationSettings,
   memoryNote: string,
   leadSettings?: LeadPersonalizationSettings,
+  rewriteFeedback?: string | null,
 ): string {
   const r = research.record;
   const resolvedLeadSettings = leadSettings ?? settings.lead_settings?.[r.record_id];
@@ -397,7 +498,20 @@ export function buildStrategistUserPrompt(
     `3. Rigorously evaluate every contact route and populate 'contact_audit' completely.`,
 
     memoryNote ? `\n=== MEMORY CONTEXT & RELATIONSHIP HISTORY ===\n${memoryNote}` : '',
+    formatCategoryTemplatePromptBlock(
+      resolveCategoryTemplateForProspect(r, brief, settings),
+      decideTemplateUsageMode(
+        r,
+        brief,
+        resolveCategoryTemplateForProspect(r, brief, settings)?.template,
+        resolvedLeadSettings,
+      ),
+      r,
+      brief,
+      settings,
+    ),
     resolvedLeadSettings ? formatLeadSettingsPromptBlock(resolvedLeadSettings, r) : '',
+    formatFeedbackPromptBlock(getRelevantFeedback(settings, r), { rewriteFeedback }),
 
     `\nAnalyze this prospect thoroughly. Output the JSON StrategyDossier object only.`,
   ]
@@ -412,6 +526,8 @@ export function buildWriterUserPrompt(
   prospectName: string,
   brief?: StructuredBrief,
   leadSettings?: LeadPersonalizationSettings,
+  rewriteFeedback?: string | null,
+  previousCopy?: OutreachCopy | null,
 ): string {
   const resolvedLeadSettings = leadSettings ?? settings.lead_settings?.[research.record.record_id];
   const hooksFormatted = strategy.hooks
@@ -494,7 +610,35 @@ export function buildWriterUserPrompt(
     strategy.human_checks.length
       ? `Limitations / Reviewer Notes:\n${strategy.human_checks.map((c) => `- ${c}`).join('\n')}`
       : '',
+    formatCategoryTemplatePromptBlock(
+      resolveCategoryTemplateForProspect(research.record, brief, settings),
+      {
+        mode:
+          strategy.template_usage_mode ??
+          decideTemplateUsageMode(
+            research.record,
+            brief,
+            resolveCategoryTemplateForProspect(research.record, brief, settings)?.template,
+            resolvedLeadSettings,
+          ).mode,
+        reason:
+          strategy.template_usage_reason ||
+          decideTemplateUsageMode(
+            research.record,
+            brief,
+            resolveCategoryTemplateForProspect(research.record, brief, settings)?.template,
+            resolvedLeadSettings,
+          ).reason,
+      },
+      research.record,
+      brief,
+      settings,
+    ),
     resolvedLeadSettings ? formatLeadSettingsPromptBlock(resolvedLeadSettings, research.record) : '',
+    formatFeedbackPromptBlock(getRelevantFeedback(settings, research.record), {
+      rewriteFeedback,
+      previousCopy,
+    }),
 
     `\n=== WRITING STYLE & CONVERSION REQUIREMENTS ===`,
     `1. Greeting & Opening: Start with "${recommendedGreeting}". Match your opening sentence to the prospect's Communication Approach (${resolvedLeadSettings ? LEAD_APPROACH_LABELS[resolvedLeadSettings.communication_approach].label : 'warm and natural'}): if Relationship-first or Friendly, open with a warm human check-in and connection; if Direct or Opportunity-first, lead immediately with the relevant point or opportunity without filler.`,
@@ -512,9 +656,12 @@ export function normalizeOutreachCopy(
   record: ResearchRecord,
   prospectName: string,
   leadSettings?: LeadPersonalizationSettings,
+  brief?: StructuredBrief,
+  settings?: PersonalizationSettings,
 ): OutreachCopy {
+  const activeTemplate = resolveCategoryTemplateForProspect(record, brief, settings)?.template ?? null;
   const cleanText = (text: string) =>
-    text
+    resolveTemplateDirectivesInText(text, record, brief, settings, activeTemplate)
       .replace(/\*+([^*\n]+)\*+/g, '$1')
       // Replace non-breaking hyphens with normal hyphens
       .replace(/\u2011/g, '-')
@@ -541,10 +688,15 @@ export function normalizeOutreachCopy(
       ? `Hi ${prospectName} team,`
       : `Hi ${cleanFirstName},`;
 
-  const shouldEnsureWarmCheckIn = leadSettings
-    ? (leadSettings.communication_approach === 'relationship_first' || leadSettings.tone === 'friendly') &&
-      leadSettings.message_length !== 'very_short'
+  const templateHasWarmStart = activeTemplate
+    ? /\b(?:i hope\b|hope\s+(?:you|your)\b)/i.test(activeTemplate.body)
     : true;
+  const shouldEnsureWarmCheckIn = activeTemplate
+    ? templateHasWarmStart
+    : leadSettings
+      ? (leadSettings.communication_approach === 'relationship_first' || leadSettings.tone === 'friendly') &&
+        leadSettings.message_length !== 'very_short'
+      : true;
 
   const fixGreetingAndWarmth = (body: string, ensureWarmStart: boolean): string => {
     let cleaned = cleanText(body);
@@ -562,7 +714,7 @@ export function normalizeOutreachCopy(
     const parts = cleaned.split(/\n\s*\n/);
     if (parts.length >= 2 && /^(?:hi|hello|dear)\b/i.test(parts[0]!.trim())) {
       const firstPara = parts[1]!.trim();
-      const hasWarmStart = /^(?:i hope\b|hope\s+(?:you|your|things|all)\b|wishing\s+you\b|thank\s+you\b|thanks\s+for\b|it'?s\s+great\b|great\s+to\b)/i.test(
+      const hasWarmStart = /^(?:i hope\b|hope\s+(?:you|your|things|all)\b|wishing\s+you\b|thank\s+you\b|thanks\s+for\b|it'?s\s+great\b|great\s+to\b|i\s+came\s+across\b)/i.test(
         firstPara,
       );
       if (!hasWarmStart) {
@@ -607,6 +759,7 @@ export async function runPersonalizationAgent(options: RunPersonalizationOptions
   const record = entry.record;
   const prospectName = record.identity.name || entry.seed.name;
   const resolvedLeadSettings = leadSettings ?? settings.lead_settings?.[record.record_id];
+  const learnedFeedback = getRelevantFeedback(settings, record);
 
   // Retrieve project and relationship memory
   const memoryContext = retrieveMemoryContext(
@@ -639,6 +792,7 @@ export async function runPersonalizationAgent(options: RunPersonalizationOptions
     settings,
     memoryNotes.join('\n'),
     resolvedLeadSettings,
+    options.rewriteFeedback,
   );
 
   let strategy: StrategyDossier | null = null;
@@ -655,7 +809,7 @@ export async function runPersonalizationAgent(options: RunPersonalizationOptions
     );
     const parsed = extractJson(rawStrategy);
     const parsedStrategy = StrategyDossierSchema.parse(parsed);
-    strategy = normalizeStrategyDossier(parsedStrategy, record, brief, resolvedLeadSettings);
+    strategy = normalizeStrategyDossier(parsedStrategy, record, brief, resolvedLeadSettings, settings);
   } catch (error) {
     console.error(`Personalization Strategist failed for ${prospectName}:`, error);
     return {
@@ -726,6 +880,8 @@ export async function runPersonalizationAgent(options: RunPersonalizationOptions
     prospectName,
     brief,
     resolvedLeadSettings,
+    options.rewriteFeedback,
+    options.previousCopy,
   );
 
   let copy: OutreachCopy | null = null;
@@ -747,7 +903,82 @@ export async function runPersonalizationAgent(options: RunPersonalizationOptions
       );
 
       const parsed = extractJson(rawCopy);
-      copy = normalizeOutreachCopy(OutreachCopySchema.parse(parsed), record, prospectName, resolvedLeadSettings);
+      copy = normalizeOutreachCopy(
+        OutreachCopySchema.parse(parsed),
+        record,
+        prospectName,
+        resolvedLeadSettings,
+        brief,
+        settings,
+      );
+
+      // Enforce Category Template fidelity when mode is "use" or "adapt" and the template has contextual directives
+      // so the LLM never discards the configured template structure/facts in favour of a generic 2-paragraph summary.
+      const activeCategoryTemplate = resolveCategoryTemplateForProspect(record, brief, settings);
+      const effectiveTemplateMode =
+        strategy.template_usage_mode ??
+        decideTemplateUsageMode(record, brief, activeCategoryTemplate?.template, resolvedLeadSettings).mode;
+      if (
+        activeCategoryTemplate &&
+        activeCategoryTemplate.isCustom &&
+        (effectiveTemplateMode === 'use' || effectiveTemplateMode === 'adapt')
+      ) {
+        const ctxValues = buildContextualTemplateValues(
+          record,
+          brief,
+          settings,
+          activeCategoryTemplate.template,
+        );
+        const tplDirectives = extractTemplateDirectives(
+          activeCategoryTemplate.template.body,
+          ctxValues,
+        );
+        // Check if the template has static anchor phrases (e.g. non-directive body sentences) that the LLM dropped
+        const staticAnchors = activeCategoryTemplate.template.body
+          .split(/\n\s*\n/)
+          .map((p) => p.trim())
+          .filter(
+            (p) =>
+              p.length > 25 &&
+              !/\[[^\]]+\]/.test(p) &&
+              !/^(?:hi|hello|dear|best|warm|regards|sincerely)\b/i.test(p),
+          )
+          .map((p) => p.slice(0, 36).toLowerCase());
+        const emailLower = copy.email_body.toLowerCase();
+        const missingStaticAnchors =
+          staticAnchors.length > 0 &&
+          staticAnchors.filter((anchor) => emailLower.includes(anchor)).length <
+            Math.ceil(staticAnchors.length * 0.6);
+
+        if (tplDirectives.length > 0 && missingStaticAnchors) {
+          const templateAligned = buildAdaptivePersonalizationEntry({
+            projectId,
+            researchEntry: entry,
+            brief,
+            settings,
+            leadSettings: resolvedLeadSettings,
+            rewriteFeedback: options.rewriteFeedback,
+          });
+          if (templateAligned.copy) {
+            copy = {
+              ...copy,
+              email_body: templateAligned.copy.email_body,
+              subject_lines: templateAligned.copy.subject_lines,
+              follow_up_body: templateAligned.copy.follow_up_body,
+              linkedin_message: templateAligned.copy.linkedin_message,
+            };
+          }
+        }
+      }
+
+      // Safety net: enforce concrete wording-level reviewer feedback (e.g. "don't mention X", drop check-ins)
+      if (learnedFeedback.length > 0) {
+        copy = {
+          ...copy,
+          email_body: applyFeedbackTextRules(copy.email_body, learnedFeedback),
+          follow_up_body: applyFeedbackTextRules(copy.follow_up_body, learnedFeedback),
+        };
+      }
 
       // Run deterministic QA with full project brief, confirmed campaign facts & individual lead settings
       qaResult = validatePersonalizationCopy(strategy, copy, record, {
@@ -845,14 +1076,36 @@ export function buildAdaptivePersonalizationEntry(params: {
   settings: PersonalizationSettings;
   leadSettings?: LeadPersonalizationSettings | null;
   existing?: PersonalizationEntry | null;
+  /** Reviewer feedback on the previous draft that this rewrite must apply. */
+  rewriteFeedback?: string | null;
 }): PersonalizationEntry {
   const { projectId, researchEntry, brief, settings, existing } = params;
   const rec = researchEntry.record;
-  const leadCfg =
+  const storedLeadCfg =
     params.leadSettings ??
     settings.lead_settings?.[rec.record_id] ??
     existing?.lead_settings ??
     defaultLeadPersonalizationSettings(rec);
+
+  // Learned reviewer feedback (project / category / this lead) + the current rewrite request
+  const learnedFeedback = getRelevantFeedback(settings, rec);
+  const rewriteText = params.rewriteFeedback?.trim();
+  const activeFeedback = rewriteText && !learnedFeedback.some((f) => f.text.trim() === rewriteText)
+    ? [
+        {
+          id: 'rewrite',
+          text: rewriteText,
+          scope: 'lead' as const,
+          record_id: rec.record_id,
+          prospect_name: rec.identity.name ?? null,
+          target_type: rec.target_type ?? null,
+          target_id: rec.brief_target_id ?? null,
+          created_at: new Date().toISOString(),
+        },
+        ...learnedFeedback,
+      ]
+    : learnedFeedback;
+  const leadCfg = applyFeedbackToLeadSettings(storedLeadCfg, activeFeedback);
 
   const strip = (text: string) => text.replace(/\s*[—–]\s*/g, ', ').replace(/,\s*,/g, ',').trim();
   const prospectName = rec.identity.name || researchEntry.seed.name || 'Prospect';
@@ -1012,9 +1265,133 @@ export function buildAdaptivePersonalizationEntry(params: {
     ? strip(leadCfg.additional_instructions.trim())
     : '';
 
-  // Assemble Email Body calibrated to Message Length (very_short / short / balanced / detailed)
+  // Resolve project-specific category outreach template & decide how to apply it
+  const resolvedTemplate = resolveCategoryTemplateForProspect(rec, brief, settings);
+  const templateDecision = decideTemplateUsageMode(
+    rec,
+    brief,
+    resolvedTemplate?.template,
+    leadCfg,
+  );
+  const contextualValues = buildContextualTemplateValues(
+    rec,
+    brief,
+    settings,
+    resolvedTemplate?.template,
+  );
+  const templateDirectives = resolvedTemplate
+    ? extractTemplateDirectives(resolvedTemplate.template.body, contextualValues)
+    : [];
+
+  const resolvedFullTemplateBody = resolvedTemplate
+    ? strip(
+        resolveTemplateDirectivesInText(
+          resolvedTemplate.template.body,
+          rec,
+          brief,
+          settings,
+          resolvedTemplate.template,
+        ),
+      )
+    : '';
+
+  const templateCoreParas = resolvedFullTemplateBody
+    .split(/\n\s*\n/)
+    .map((p) => strip(p))
+    .filter(
+      (p) =>
+        p.length > 15 &&
+        !/^(?:hi|hello|dear)\b/i.test(p) &&
+        !/^(?:warmly|best|regards|sincerely|yours|cheers|thank you|thanks)[,\n]/i.test(p),
+    );
+
+  // Extract a concise core positioning sentence from the category template when available
+  const templatePositioningPara =
+    templateCoreParas.find((p) => !p.endsWith('?') && !/^i hope your week/i.test(p)) ||
+    templateCoreParas[0] ||
+    '';
+  const templateCtaPara = templateCoreParas.find((p) => p.includes('?')) || '';
+
+  // Assemble Email Body calibrated to Message Length AND Category Template Decision (use / adapt / inspiration / ignore)
   let emailParagraphs: string[];
-  if (leadCfg.message_length === 'very_short') {
+  const templateBodyHasWarmCheckIn = resolvedTemplate
+    ? /\b(?:i hope\b|hope\s+(?:you|your)\b)/i.test(resolvedTemplate.template.body)
+    : false;
+  if (templateDecision.mode === 'use' && templateDirectives.length > 0 && resolvedFullTemplateBody) {
+    // Template uses contextual cues like [Name], [specific detail...], [personalised benefit...]
+    const resolvedParas = resolvedFullTemplateBody
+      .split(/\n\s*\n/)
+      .map((p) => strip(p))
+      .filter(Boolean);
+    if (resolvedParas.length > 0 && /^(?:hi|hello|dear)\b/i.test(resolvedParas[0]!)) {
+      resolvedParas[0] = greeting;
+    } else {
+      resolvedParas.unshift(greeting);
+    }
+    if (
+      templateBodyHasWarmCheckIn &&
+      warmCheckIn &&
+      resolvedParas.length > 1 &&
+      !/^(?:i hope\b|hope\s+(?:you|your)\b)/i.test(resolvedParas[1]!)
+    ) {
+      resolvedParas[1] = `${warmCheckIn}${resolvedParas[1]}`;
+    }
+    emailParagraphs = resolvedParas;
+  } else if (
+    templateDecision.mode === 'adapt' &&
+    templateDirectives.length > 0 &&
+    resolvedFullTemplateBody
+  ) {
+    // Template uses contextual cues, adapted with the prospect's multi-faceted verified research (work2 / achievement1)
+    const resolvedParas = resolvedFullTemplateBody
+      .split(/\n\s*\n/)
+      .map((p) => strip(p))
+      .filter(Boolean);
+    if (resolvedParas.length > 0 && /^(?:hi|hello|dear)\b/i.test(resolvedParas[0]!)) {
+      resolvedParas[0] = greeting;
+    } else {
+      resolvedParas.unshift(greeting);
+    }
+    if (
+      resolvedParas.length > 1 &&
+      contextualValues.secondaryWorkDetail &&
+      resolvedParas[1]!.includes(contextualValues.verifiedWorkDetail)
+    ) {
+      let cleanSecondary = contextualValues.secondaryWorkDetail.replace(/^your\s+/i, '');
+      if (rec.organisation && contextualValues.verifiedWorkDetail.includes(rec.organisation)) {
+        cleanSecondary = cleanSecondary.replace(
+          new RegExp(`\\s+at\\s+${rec.organisation.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&')}`, 'gi'),
+          '',
+        );
+      }
+      resolvedParas[1] = resolvedParas[1]!.replace(
+        contextualValues.verifiedWorkDetail,
+        `${contextualValues.verifiedWorkDetail} and ${cleanSecondary}`,
+      );
+    }
+    emailParagraphs = resolvedParas;
+  } else if (templateDecision.mode === 'use' && templatePositioningPara) {
+    const templateMiddle =
+      templatePositioningPara.toLowerCase().includes(recipientBenefit.slice(0, 20).toLowerCase())
+        ? `${templatePositioningPara} Specifically for ${isOrg ? prospectName : 'you'}, this connects directly with ${work1}.`
+        : `${templatePositioningPara} For ${isOrg ? prospectName : 'you'}, this offers ${recipientBenefit}.`;
+    const resolvedCta = templateCtaPara || ctaSentence;
+    emailParagraphs = [
+      greeting,
+      openingParagraph,
+      templateMiddle,
+      `${resolvedCta}\n\n${signoffClosing}\n${senderSignoff}`,
+    ];
+  } else if (templateDecision.mode === 'adapt' && templatePositioningPara) {
+    const firstTemplateSentence = strip(templatePositioningPara.split(/(?<=\.)\s+/)[0] || templatePositioningPara);
+    const adaptedExplanation = `${firstTemplateSentence} ${explanationBlock}`;
+    emailParagraphs = [
+      greeting,
+      openingParagraph,
+      adaptedExplanation,
+      `${ctaSentence}\n\n${signoffClosing}\n${senderSignoff}`,
+    ];
+  } else if (leadCfg.message_length === 'very_short') {
     emailParagraphs = [
       greeting,
       `${openingParagraph} ${leadCfg.explanation_level === 'minimal' ? `Through ${campaignName}, ${recipientBenefit}.` : explanationBlock}`,
@@ -1049,7 +1426,7 @@ export function buildAdaptivePersonalizationEntry(params: {
     ];
   }
 
-  const emailBody = strip(emailParagraphs.join('\n\n'));
+  const emailBody = applyFeedbackTextRules(strip(emailParagraphs.join('\n\n')), activeFeedback);
 
   const linkedinMessage = strip(
     `${greeting} ${work1.slice(0, 85)} caught our attention for ${campaignName} (${recipientBenefit.slice(0, 80)}). ${
@@ -1061,8 +1438,11 @@ export function buildAdaptivePersonalizationEntry(params: {
     }`,
   ).slice(0, 280);
 
-  const followUpBody = strip(
-    `${greeting}\n\nFollowing up briefly on my note regarding ${campaignName} and how it connects to ${work1}. ${ctaSentence}\n\n${signoffClosing}\n${senderSignoff}`,
+  const followUpBody = applyFeedbackTextRules(
+    strip(
+      `${greeting}\n\nFollowing up briefly on my note regarding ${campaignName} and how it connects to ${work1}. ${ctaSentence}\n\n${signoffClosing}\n${senderSignoff}`,
+    ),
+    activeFeedback,
   );
 
   const hasEmail =
@@ -1137,7 +1517,14 @@ export function buildAdaptivePersonalizationEntry(params: {
     avoid: ['Avoid unverified claims or generic AI clichés'],
     human_checks: [],
     confidence: rec.identity.identity_verified ? 'high' : 'medium',
+    template_usage_mode: templateDecision.mode,
+    template_usage_reason: templateDecision.reason,
   };
+
+  const templateSubject =
+    templateDecision.mode !== 'ignore' && resolvedTemplate?.template.subject_line?.trim()
+      ? strip(resolvedTemplate.template.subject_line).slice(0, 58)
+      : null;
 
   const copy: OutreachCopy = {
     subject_lines: [
@@ -1146,7 +1533,9 @@ export function buildAdaptivePersonalizationEntry(params: {
         style: 'direct',
       },
       {
-        text: strip(`${campaignName}: opportunity for ${isOrg ? prospectName : cleanFirstName}`).slice(0, 58),
+        text:
+          templateSubject ||
+          strip(`${campaignName}: opportunity for ${isOrg ? prospectName : cleanFirstName}`).slice(0, 58),
         style: 'value',
       },
       {
@@ -1162,7 +1551,7 @@ export function buildAdaptivePersonalizationEntry(params: {
     linkedin_message: linkedinMessage,
     follow_up_body: followUpBody,
     hook_usage: strip(
-      `Applied ${LEAD_TONE_LABELS[leadCfg.tone]} tone, ${LEAD_LENGTH_LABELS[leadCfg.message_length]} length, ${LEAD_DEPTH_LABELS[leadCfg.personalization_depth].label} depth, and ${LEAD_APPROACH_LABELS[leadCfg.communication_approach].label} approach referencing ${work1.slice(0, 80)}.`,
+      `Template decision: ${TEMPLATE_USAGE_MODE_LABELS[templateDecision.mode].label} (${templateDecision.mode}). Applied ${LEAD_TONE_LABELS[leadCfg.tone]} tone, ${LEAD_LENGTH_LABELS[leadCfg.message_length]} length, ${LEAD_DEPTH_LABELS[leadCfg.personalization_depth].label} depth, and ${LEAD_APPROACH_LABELS[leadCfg.communication_approach].label} approach referencing ${work1.slice(0, 80)}.`,
     ),
   };
 
@@ -1188,7 +1577,7 @@ export function buildAdaptivePersonalizationEntry(params: {
     edited_by_human: false,
     qa,
     auto_revisions: existing?.auto_revisions ?? 0,
-    lead_settings: leadCfg,
+    lead_settings: storedLeadCfg,
     previous_versions: existing?.previous_versions,
     models: existing?.models ?? { strategist: 'openai/gpt-oss-20b', writer: 'openai/gpt-oss-20b' },
     timings_ms: existing?.timings_ms ?? { strategist: 0, writer: 0 },

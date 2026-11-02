@@ -40,6 +40,11 @@ export interface StartResearchInput {
   targetLabel: string;
   count: number;
   name?: string;
+  force?: boolean;
+  notes?: string;
+  organisation?: string;
+  role?: string;
+  website?: string;
 }
 
 interface WorkspaceValue {
@@ -344,7 +349,8 @@ function WorkspaceProviderRoot({ children }: { children: ReactNode }) {
   );
 
   const startResearch = useCallback(
-    async ({ targetId, targetLabel, count, name }: StartResearchInput) => {
+    async (input: StartResearchInput) => {
+      const { targetId, targetLabel, count, name, force, notes, organisation, role, website } = input;
       const projectId = activeIdRef.current;
       if (!projectId) return;
       clearPoll();
@@ -408,7 +414,16 @@ function WorkspaceProviderRoot({ children }: { children: ReactNode }) {
         const response = await authenticatedFetch(`/api/projects/${projectId}/research`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: name?.trim() ?? '', target_id: targetId, entity_kind: 'unknown' }),
+          body: JSON.stringify({
+            name: name?.trim() ?? '',
+            target_id: targetId,
+            entity_kind: 'unknown',
+            force: force ?? Boolean(name?.trim()),
+            notes: notes?.trim() || undefined,
+            organisation: organisation?.trim() || undefined,
+            role: role?.trim() || undefined,
+            website: website?.trim() || undefined,
+          }),
         });
         if (!response.ok || !response.body) {
           const data = await response.json().catch(() => ({}));

@@ -35,8 +35,16 @@ Depending on the situation, the recipient's incentive might involve commercial v
 - Determine the relevant incentive from the actual project and available evidence — never hardcode campaign assumptions.
 - When a concrete benefit exists, specify it clearly. When the benefit is uncertain, instruct the copywriter to present the opportunity honestly rather than promising an outcome.
 
-## 4. Choose an Adaptive, Recipient-Led Flow (`narrative_approach`) & Honour Individual Lead Settings
-Do NOT impose a rigid or formulaic message structure. Every lead should receive an approach that reflects their research, role, organisation, potential incentives, the project's objective, and their **Individual Personalization Settings** (when provided):
+## 4. Choose an Adaptive, Recipient-Led Flow (`narrative_approach`), Evaluate Category Templates (`template_usage_mode`), & Honour Individual Lead Settings
+Do NOT impose a rigid or formulaic mail-merge structure. Every lead should receive an approach that reflects their research, role, organisation, potential incentives, the project's objective, their **Category Outreach Template** (when provided), and their **Individual Personalization Settings**:
+- **How to Use Project-Specific Category Templates (`template_usage_mode` & `template_usage_reason`):**
+  - When a **Category Outreach Template** is provided for the prospect's lead category, treat it as a **primary reference point and starting framework, NOT a rigid mail-merge format**.
+  - Analyse the prospect's research, background, interests, and potential connection to the project, then decide how much of the template is relevant to this specific prospect and set `template_usage_mode` to one of:
+    * `"use"` (**Use the template**): Follow the template's structure and core messaging while weaving in meaningful, verified personalisation for this prospect.
+    * `"adapt"` (**Adapt the template**): Reuse relevant sections, phrases, or messaging from the template while restructuring the message around the prospect's verified work and priorities.
+    * `"inspiration"` (**Use it as inspiration**): Take the template's core positioning and objectives, but write a substantially different message suited to the prospect's unique profile, seniority, or communication style.
+    * `"ignore"` (**Ignore the template**): Write an entirely original message when following the category template would produce an irrelevant, unnatural, or less effective result for this prospect.
+  - Record a concise 1-sentence explanation in `template_usage_reason`. Never sacrifice message quality simply to follow the template.
 - **Honour Individual Personalization Settings with Good Judgment:**
   - Combine **Project Brief + Research Record + Relevant Memory + Individual Personalization Settings** (`Tone`, `Message Length`, `Personalization Depth`, `Communication Approach`, `Explanation Level`, `Call to Action`, and `Additional Instructions`).
   - Let the settings actively shape `tone`, `narrative_approach`, `hooks` selection depth (`light` = 1 focused detail; `moderate` = 1–2 connected details; `deep` = strongest multi-faceted research synthesis), and `call_to_action`.
@@ -84,6 +92,11 @@ Evaluate every candidate contact route in the research record (direct emails, ke
 Understand what the project needs from this recipient (exploring an opportunity, sharing guidelines/information, introducing the right contact, joining a programme, considering a sponsorship/partnership proposal, or another project-specific action).
 - Choose a request that is simple, natural, and easy to reply to in one sentence.
 - Do **not** push for a `"15-minute virtual coffee"` or `"schedule a call next week"` on cold outreach when offering to share a short overview/guidelines or asking who best to send them to is much warmer and more natural.
+
+## 9. Learn from Reviewer Feedback & Rewrite Requests
+When `=== LEARNED REVIEWER PREFERENCES ===` or `=== REWRITE REQUEST ===` is provided in the prompt:
+- Treat those instructions as standing preferences learned from the human reviewer (e.g. tone adjustments, length preferences, things to avoid mentioning, or specific value points to emphasize).
+- Reflect them directly in `tone.guidance`, `narrative_approach`, `call_to_action`, and `avoid` so the Copywriter applies them faithfully on this and every future draft.
 
 ## Hard Rules
 - NEVER invent facts, titles, awards, metrics, dates, emails, URLs, or relationships.
@@ -139,6 +152,8 @@ Understand what the project needs from this recipient (exploring an opportunity,
     ]
   },
   "call_to_action": "One clear, proportionate, natural next step matched to the project objective and relationship",
+  "template_usage_mode": "use | adapt | inspiration | ignore",
+  "template_usage_reason": "Why this template usage mode was chosen for this specific prospect",
   "avoid": ["string"],
   "human_checks": ["string"]
 }

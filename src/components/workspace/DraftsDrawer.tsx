@@ -26,7 +26,7 @@ export default function DraftsDrawer({
   onBackToDetails?: () => void;
   initialChannel?: DraftChannel;
 }) {
-  const { bundle, updateDraft, reload } = useWorkspace();
+  const { bundle, updateDraft, setSettings, reload } = useWorkspace();
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -87,6 +87,9 @@ export default function DraftsDrawer({
               onUpdated={(entry) => {
                 updateDraft(entry);
                 void reload();
+              }}
+              onSettingsUpdated={(updated) => {
+                setSettings(updated);
               }}
             />
           )}
