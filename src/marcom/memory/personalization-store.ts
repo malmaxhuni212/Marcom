@@ -134,6 +134,8 @@ export function deletePersonalization(projectId: string, recordId: string): bool
 export function deleteProjectPersonalizations(projectId: string): void {
   const f = fileFor(projectId);
   if (existsSync(f)) unlinkSync(f);
+  const sf = settingsFileFor(projectId);
+  if (existsSync(sf)) unlinkSync(sf);
 }
 
 /* ------------------------------------------------------------------ */

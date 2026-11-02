@@ -298,24 +298,30 @@ export function MoreResearchDialog({
   error,
   onCancel,
   onSubmit,
+  onResearchNow,
 }: {
   prospect: string;
   saving: boolean;
   error: string | null;
   onCancel: () => void;
   onSubmit: (note: string) => void;
+  onResearchNow?: (note: string) => void;
 }) {
   const [selected, setSelected] = useState<Record<string, boolean>>({ contact: true, fit: true, location: false, activity: false });
   const [details, setDetails] = useState('');
   const chosen = CHECK_OPTIONS.filter(([key]) => selected[key]).map(([, label]) => label);
 
-  const submit = () => {
+  const getInstructions = () => {
     const parts = [chosen.length ? `Check: ${chosen.join(', ')}.` : null, details.trim() || null].filter(Boolean);
-    onSubmit(parts.join(' ') || 'More research requested.');
+    return parts.join(' ') || 'More research requested.';
+  };
+
+  const submit = () => {
+    onSubmit(getInstructions());
   };
 
   return (
-    <Dialog label={`More research for ${prospect}`} onClose={onCancel} width={600}>
+    <Dialog label={`More research for ${prospect}`} onClose={onCancel} width={620}>
       <div className="flex items-start justify-between gap-4 px-7 pb-2 pt-6">
         <div className="flex flex-col gap-1.5">
           <span className="text-[13px] text-[#A7ADB8]">{prospect}</span>
@@ -342,21 +348,39 @@ export function MoreResearchDialog({
           })}
         </div>
         <label className="flex flex-col gap-2">
-          <span className="text-[13px] font-semibold text-[#A7ADB8]">Anything specific? <span className="font-normal text-[#8A909C]">· optional</span></span>
-          <textarea value={details} onChange={(event) => setDetails(event.target.value)} placeholder="e.g. Check whether they run programmes outside London" className="h-[90px] resize-none rounded-[14px] border border-[#2A2F39] bg-[#0E1014] px-3.5 py-3 text-sm leading-relaxed text-[#F1F2F4] outline-none placeholder:text-[#5C616B] focus:border-[#2E6B75]" />
+          <span className="text-[13px] font-semibold text-[#A7ADB8]">Anything specific? <span className="font-normal text-[#8A909C]">· optional instructions for research</span></span>
+          <textarea value={details} onChange={(event) => setDetails(event.target.value)} placeholder="e.g. Find their literary agent or direct submission email" className="h-[90px] resize-none rounded-[14px] border border-[#2A2F39] bg-[#0E1014] px-3.5 py-3 text-sm leading-relaxed text-[#F1F2F4] outline-none placeholder:text-[#5C616B] focus:border-[#2E6B75]" />
         </label>
         <div className="flex gap-2.5 rounded-xl border border-[#22262E] bg-[#0E1014] px-3.5 py-3 text-[13px] leading-snug text-[#A7ADB8]">
-          <Icon name="info" size={16} className="mt-px text-[#8A909C]" />
-          <span>This moves the prospect to <span className="text-[#F1F2F4]">More research</span> with your instructions saved as the review note, so it stays out of outreach until it&apos;s checked.</span>
+          <Icon name="info" size={16} className="mt-px text-[#5ED3DF]" />
+          <span>
+            You can <strong className="text-[#F1F2F4]">save to the More Research tab</strong> to differentiate and track this lead, or click <strong className="text-[#5ED3DF]">Research now</strong> to have the agent immediately run live web research.
+          </span>
         </div>
         {error && <p role="alert" className="m-0 text-[13px] text-[#F7B1AA]">{error}</p>}
       </div>
-      <div className="flex flex-wrap items-center gap-2.5 border-t border-[#2A2F39] px-7 pb-6 pt-4">
-        <span className="min-w-[180px] flex-1 text-xs text-[#8A909C]">{chosen.length ? `Checking ${plural(chosen.length, 'item')}` : 'Choose what to check'}</span>
-        <button type="button" onClick={onCancel} className={`${btnSecondary} h-[46px]`}>Cancel</button>
-        <button type="button" disabled={saving} onClick={submit} className={`${btnPrimary} h-[46px]`}>
-          <Icon name="search" size={16} stroke={2.2} /> {saving ? 'Saving…' : 'Request more research'}
-        </button>
+      <div className="flex flex-wrap items-center justify-between gap-2.5 border-t border-[#2A2F39] px-7 pb-6 pt-4">
+        <button type="button" onClick={onCancel} className={`${btnSecondary} h-[44px] px-3 text-[13px]`}>Cancel</button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            disabled={saving}
+            onClick={submit}
+            className={`${btnSecondary} h-[44px] border-[#2E6B75] bg-[#12313A] px-4 text-[13px] font-semibold text-[#9BE6EE] hover:bg-[#183D48]`}
+          >
+            <Icon name="search" size={14} stroke={2} /> {saving ? 'Saving…' : 'Move to More research tab'}
+          </button>
+          {onResearchNow && (
+            <button
+              type="button"
+              disabled={saving}
+              onClick={() => onResearchNow(getInstructions())}
+              className={`${btnPrimary} h-[44px] px-4 text-[13px] font-semibold`}
+            >
+              <Icon name="sparkle" size={15} stroke={2.2} /> Research now
+            </button>
+          )}
+        </div>
       </div>
     </Dialog>
   );

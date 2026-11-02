@@ -15,6 +15,352 @@ export const PERSONALIZATION_VERSION = '1.0' as const;
 const nonEmpty = z.string().trim().min(1);
 
 /* ------------------------------------------------------------------ */
+/* Per-Lead Personalization Settings (individual prospect controls)    */
+/* ------------------------------------------------------------------ */
+
+export const LeadToneSchema = z.enum([
+  'professional',
+  'friendly',
+  'conversational',
+  'confident',
+  'persuasive',
+  'formal',
+]);
+export type LeadTone = z.infer<typeof LeadToneSchema>;
+
+export const LeadMessageLengthSchema = z.enum([
+  'very_short',
+  'short',
+  'balanced',
+  'detailed',
+]);
+export type LeadMessageLength = z.infer<typeof LeadMessageLengthSchema>;
+
+export const LeadPersonalizationDepthSchema = z.enum([
+  'light',
+  'moderate',
+  'deep',
+]);
+export type LeadPersonalizationDepth = z.infer<typeof LeadPersonalizationDepthSchema>;
+
+export const LeadCommunicationApproachSchema = z.enum([
+  'relationship_first',
+  'opportunity_first',
+  'incentive_driven',
+  'direct',
+  'consultative',
+]);
+export type LeadCommunicationApproach = z.infer<typeof LeadCommunicationApproachSchema>;
+
+export const LeadExplanationLevelSchema = z.enum([
+  'minimal',
+  'balanced',
+  'detailed',
+]);
+export type LeadExplanationLevel = z.infer<typeof LeadExplanationLevelSchema>;
+
+export const LeadCallToActionSchema = z.enum([
+  'soft',
+  'further_discussion',
+  'specific_request',
+  'direct',
+]);
+export type LeadCallToAction = z.infer<typeof LeadCallToActionSchema>;
+
+export const LeadPersonalizationSettingsSchema = z.strictObject({
+  tone: LeadToneSchema.default('professional'),
+  message_length: LeadMessageLengthSchema.default('short'),
+  personalization_depth: LeadPersonalizationDepthSchema.default('deep'),
+  communication_approach: LeadCommunicationApproachSchema.default('incentive_driven'),
+  explanation_level: LeadExplanationLevelSchema.default('balanced'),
+  call_to_action: LeadCallToActionSchema.default('soft'),
+  additional_instructions: z.string().trim().max(1_000).default(''),
+  updated_at: z.string().nullable().optional().default(null),
+});
+export type LeadPersonalizationSettings = z.infer<typeof LeadPersonalizationSettingsSchema>;
+
+export const LEAD_TONE_LABELS: Record<LeadTone, string> = {
+  professional: 'Professional',
+  friendly: 'Friendly',
+  conversational: 'Conversational',
+  confident: 'Confident',
+  persuasive: 'Persuasive',
+  formal: 'Formal',
+};
+
+export const LEAD_LENGTH_LABELS: Record<LeadMessageLength, string> = {
+  very_short: 'Very Short',
+  short: 'Short',
+  balanced: 'Balanced',
+  detailed: 'Detailed',
+};
+
+export const LEAD_DEPTH_LABELS: Record<LeadPersonalizationDepth, { label: string; description: string }> = {
+  light: { label: 'Light', description: 'Mention one relevant detail' },
+  moderate: { label: 'Moderate', description: 'Connect several relevant details to the opportunity' },
+  deep: { label: 'Deep', description: 'Use strongest research for a highly individualised approach' },
+};
+
+export const LEAD_APPROACH_LABELS: Record<LeadCommunicationApproach, { label: string; description: string }> = {
+  relationship_first: { label: 'Relationship-first', description: 'Establish a natural connection before introducing the opportunity' },
+  opportunity_first: { label: 'Opportunity-first', description: 'Quickly introduce something valuable to the recipient' },
+  incentive_driven: { label: 'Incentive-driven', description: 'Emphasise what the recipient could gain' },
+  direct: { label: 'Direct', description: 'Get to the point with minimal introduction' },
+  consultative: { label: 'Consultative', description: 'Present the opportunity as a relevant discussion' },
+};
+
+export const LEAD_EXPLANATION_LABELS: Record<LeadExplanationLevel, { label: string; description: string }> = {
+  minimal: { label: 'Minimal', description: 'Explain only what is necessary' },
+  balanced: { label: 'Balanced', description: 'Communicate the opportunity and its value clearly' },
+  detailed: { label: 'Detailed', description: 'Provide additional context and explain thoroughly' },
+};
+
+export const LEAD_CTA_LABELS: Record<LeadCallToAction, { label: string; description: string }> = {
+  soft: { label: 'Soft', description: 'Soft and low-pressure' },
+  further_discussion: { label: 'Further Discussion', description: 'Invite further discussion' },
+  specific_request: { label: 'Specific Request', description: 'Request a specific action' },
+  direct: { label: 'Direct', description: 'Directly ask for participation' },
+};
+
+export interface LeadPersonalizationRecommendation {
+  settings: LeadPersonalizationSettings;
+  rationale: string;
+  highlights: string[];
+}
+
+export function recommendLeadPersonalization(record?: {
+  target_type?: string | null;
+  role?: string | null;
+  organisation?: string | null;
+  summary?: string | null;
+  reason_for_relevance?: string | null;
+  work_and_projects?: string[] | null;
+  achievements?: string[] | null;
+  background?: string[] | null;
+  industry_activity?: string[] | null;
+  research_confidence?: string | null;
+  public_contact?: Array<{ kind?: string; value?: string }> | null;
+  key_contacts?: Array<{ name?: string; role?: string | null; email?: string | null }> | null;
+  identity?: { name?: string | null; entity_kind?: string | null; identity_verified?: boolean } | null;
+} | null): LeadPersonalizationRecommendation {
+  if (!record) {
+    return {
+      settings: LeadPersonalizationSettingsSchema.parse({}),
+      rationale: 'Balanced professional defaults selected.',
+      highlights: ['Standard profile defaults'],
+    };
+  }
+
+  const name = record.identity?.name || record.organisation || 'this prospect';
+  const targetHaystack = `${record.target_type ?? ''} ${record.role ?? ''} ${record.organisation ?? ''} ${record.summary ?? ''}`.toLowerCase();
+  const isOrg = record.identity?.entity_kind === 'organisation';
+  const worksCount = (record.work_and_projects?.length ?? 0) + (record.achievements?.length ?? 0);
+  const totalFacts =
+    worksCount + (record.background?.length ?? 0) + (record.industry_activity?.length ?? 0);
+  const topFact =
+    record.work_and_projects?.[0] ||
+    record.achievements?.[0] ||
+    record.industry_activity?.[0] ||
+    null;
+  const shortenedFact = topFact
+    ? topFact.length > 65
+      ? `${topFact.slice(0, 62).trim()}…`
+      : topFact
+    : null;
+
+  const isSparse = record.research_confidence === 'low' || totalFacts === 0;
+  const isRich = worksCount >= 2 || totalFacts >= 3;
+
+  // 1. Individual Author / Writer / Creative
+  if (/\b(?:author|writer|novelist|poet|illustrator|creator|artist|journalist|essayist)\b/.test(targetHaystack)) {
+    const depth: LeadPersonalizationDepth = isSparse ? 'light' : 'deep';
+    return {
+      settings: {
+        tone: 'friendly',
+        message_length: 'short',
+        personalization_depth: depth,
+        communication_approach: 'relationship_first',
+        explanation_level: 'balanced',
+        call_to_action: 'soft',
+        additional_instructions: '',
+        updated_at: null,
+      },
+      rationale: `${name} is an author, so a warm, friendly message that connects to their writing and ends with a low-pressure invite works best.`,
+      highlights: [
+        'Author → Friendly tone',
+        isSparse ? 'Limited research → Light depth' : 'Strong research → Deep depth',
+        'Low-pressure ask',
+      ],
+    };
+  }
+
+  // 2. Corporate Sponsor / Funder / Foundation
+  if (/\b(?:sponsor|sponsorship|corporate|foundation|grant|funder|investor|philanthrop|b-corp)\b/.test(targetHaystack)) {
+    const depth: LeadPersonalizationDepth = isSparse ? 'light' : 'moderate';
+    return {
+      settings: {
+        tone: 'professional',
+        message_length: 'balanced',
+        personalization_depth: depth,
+        communication_approach: 'incentive_driven',
+        explanation_level: 'balanced',
+        call_to_action: 'further_discussion',
+        additional_instructions: '',
+        updated_at: null,
+      },
+      rationale: `${name} is a potential sponsor, so a professional message that focuses on what they gain and invites a quick chat works best.`,
+      highlights: [
+        'Sponsor → Professional tone',
+        'Focus on what they gain',
+        'Invite a quick chat',
+      ],
+    };
+  }
+
+  // 3. Senior Executive / Managing Director / Founder
+  if (/\b(?:ceo|chief|managing director|president|vp|vice president|founder|chair|director general)\b/.test(targetHaystack)) {
+    const depth: LeadPersonalizationDepth = isSparse ? 'light' : 'moderate';
+    return {
+      settings: {
+        tone: 'confident',
+        message_length: 'very_short',
+        personalization_depth: depth,
+        communication_approach: 'opportunity_first',
+        explanation_level: 'minimal',
+        call_to_action: 'soft',
+        additional_instructions: '',
+        updated_at: null,
+      },
+      rationale: `Busy decision-makers read fast, so a very short, confident message for ${name} that gets straight to the point works best.`,
+      highlights: [
+        'Executive → Very short',
+        'Lead with the opportunity',
+        'Low-pressure ask',
+      ],
+    };
+  }
+
+  // 4. Literary / Publishing / Industry Organisation
+  if (isOrg) {
+    const depth: LeadPersonalizationDepth = isSparse ? 'light' : 'moderate';
+    return {
+      settings: {
+        tone: 'professional',
+        message_length: 'short',
+        personalization_depth: depth,
+        communication_approach: 'incentive_driven',
+        explanation_level: 'balanced',
+        call_to_action: 'specific_request',
+        additional_instructions: '',
+        updated_at: null,
+      },
+      rationale: `${name} is an organisation, so a short, professional message that explains the benefit for their authors and asks for the right contact works best.`,
+      highlights: [
+        'Organisation → Professional tone',
+        'Focus on author/member benefit',
+        'Ask for the right contact',
+      ],
+    };
+  }
+
+  // 5. General Individual Professional / Editor / Partner
+  const depth: LeadPersonalizationDepth = isSparse ? 'light' : isRich ? 'deep' : 'moderate';
+  return {
+    settings: {
+      tone: 'professional',
+      message_length: 'short',
+      personalization_depth: depth,
+      communication_approach: 'incentive_driven',
+      explanation_level: 'balanced',
+      call_to_action: 'soft',
+      additional_instructions: '',
+      updated_at: null,
+    },
+    rationale: `A short, professional message for ${name} that highlights what they gain and keeps the ask low-pressure.`,
+    highlights: [
+      'Professional tone',
+      isSparse ? 'Limited research → Light depth' : 'Strong research → Deep depth',
+      'Low-pressure ask',
+    ],
+  };
+}
+
+export function defaultLeadPersonalizationSettings(record?: Parameters<typeof recommendLeadPersonalization>[0]): LeadPersonalizationSettings {
+  return recommendLeadPersonalization(record).settings;
+}
+
+/* ------------------------------------------------------------------ */
+/* Project-Specific Category Outreach Templates                        */
+/* ------------------------------------------------------------------ */
+
+export const TemplateUsageModeSchema = z
+  .string()
+  .trim()
+  .transform((val) => {
+    const s = val.toLowerCase().replace(/[\s_-]+/g, '');
+    if (s.includes('ignore') || s.includes('skip') || s.includes('original') || s.includes('none')) return 'ignore' as const;
+    if (s.includes('inspir')) return 'inspiration' as const;
+    if (s.includes('adapt') || s.includes('modify') || s.includes('restruct')) return 'adapt' as const;
+    return 'use' as const;
+  });
+export type TemplateUsageMode = z.infer<typeof TemplateUsageModeSchema>;
+
+export const TEMPLATE_USAGE_MODE_LABELS: Record<TemplateUsageMode, { label: string; description: string }> = {
+  use: {
+    label: 'Use template',
+    description: 'Follow the category template structure and messaging while adding meaningful personalisation.',
+  },
+  adapt: {
+    label: 'Adapt template',
+    description: 'Reuse relevant sections, phrases, or messaging while restructuring the message to suit the prospect.',
+  },
+  inspiration: {
+    label: 'Use as inspiration',
+    description: 'Take the core positioning and objectives from the template but write a substantially different message.',
+  },
+  ignore: {
+    label: 'Ignore template',
+    description: 'Write an entirely original message when the template would produce an irrelevant, unnatural, or less effective result.',
+  },
+};
+
+export const CategoryOutreachTemplateSchema = z.strictObject({
+  target_id: z.string().trim().min(1),
+  target_type: z.string().trim().min(1),
+  subject_line: z.string().trim().max(300).default(''),
+  body: z.string().trim().min(1).max(6_000),
+  is_custom: z.boolean().optional().default(false),
+  updated_at: z.string().nullable().optional().default(null),
+});
+export type CategoryOutreachTemplate = z.infer<typeof CategoryOutreachTemplateSchema>;
+
+/* ------------------------------------------------------------------ */
+/* Reviewer feedback memory (learned preferences for future drafts)    */
+/* ------------------------------------------------------------------ */
+
+/** How widely a piece of reviewer feedback should apply to future drafts. */
+export const FeedbackScopeSchema = z.enum(['project', 'category', 'lead']);
+export type FeedbackScope = z.infer<typeof FeedbackScopeSchema>;
+
+export const FEEDBACK_SCOPE_LABELS: Record<FeedbackScope, { label: string; description: string }> = {
+  project: { label: 'All future messages', description: 'Applies to every lead in this project.' },
+  category: { label: 'This lead category', description: 'Applies to every lead in the same category.' },
+  lead: { label: 'Only this lead', description: 'Applies only when writing to this prospect.' },
+};
+
+export const PersonalizationFeedbackSchema = z.strictObject({
+  id: z.string().trim().min(1).max(80),
+  text: z.string().trim().min(2).max(1_000),
+  scope: FeedbackScopeSchema.default('project'),
+  record_id: z.string().trim().max(255).nullable().default(null),
+  prospect_name: z.string().trim().max(200).nullable().default(null),
+  target_type: z.string().trim().max(200).nullable().default(null),
+  target_id: z.string().trim().max(200).nullable().default(null),
+  created_at: z.string(),
+});
+export type PersonalizationFeedback = z.infer<typeof PersonalizationFeedbackSchema>;
+
+/* ------------------------------------------------------------------ */
 /* Campaign settings (human-provided, the only campaign facts allowed) */
 /* ------------------------------------------------------------------ */
 
@@ -28,6 +374,12 @@ export const PersonalizationSettingsSchema = z.strictObject({
   signature: z.string().trim().max(500).nullable().default(null),
   /** Free-form extra guidance from the team (e.g. "UK spelling", "never mention fees"). */
   extra_guidance: z.string().trim().max(1_000).default(''),
+  /** Individual per-lead personalization configurations indexed by record_id. */
+  lead_settings: z.record(z.string(), LeadPersonalizationSettingsSchema).optional(),
+  /** Project-specific category outreach templates indexed by target_id or normalized target_type. */
+  category_templates: z.record(z.string(), CategoryOutreachTemplateSchema).optional(),
+  /** Reviewer feedback the agent learns from for all future drafts (newest last). */
+  feedback_memory: z.array(PersonalizationFeedbackSchema).max(200).optional(),
   updated_at: z.string().nullable().default(null),
 });
 export type PersonalizationSettings = z.infer<typeof PersonalizationSettingsSchema>;
@@ -189,6 +541,15 @@ export const StrategyDossierSchema = z.strictObject({
   confidence: PersonalizationConfidenceSchema.default('medium').describe(
     'High, medium or low, reflecting the quality of the supporting research and the strength of the personalisation.',
   ),
+  template_usage_mode: TemplateUsageModeSchema.default('adapt').optional().describe(
+    'How the Personalization Agent decided to use the category outreach template for this prospect: use, adapt, inspiration, or ignore.',
+  ),
+  template_usage_reason: z
+    .string()
+    .trim()
+    .default('')
+    .optional()
+    .describe('Why this template usage mode was chosen for this specific prospect.'),
 });
 export type Hook = z.infer<typeof HookSchema>;
 export type StrategyDossier = z.infer<typeof StrategyDossierSchema>;
@@ -254,6 +615,13 @@ export interface PersonalizationQA {
 export const PersonalizationStatusSchema = z.enum(['draft', 'approved', 'rejected', 'needs_more_research', 'failed']);
 export type PersonalizationStatus = z.infer<typeof PersonalizationStatusSchema>;
 
+export interface PersonalizationDraftVersion {
+  version: number;
+  generated_at: string;
+  copy: OutreachCopy;
+  lead_settings?: LeadPersonalizationSettings | null;
+}
+
 export interface PersonalizationEntry {
   personalization_version: typeof PERSONALIZATION_VERSION;
   record_id: string;
@@ -274,6 +642,11 @@ export interface PersonalizationEntry {
   /** How many automatic self-correction passes the copywriter needed. */
   auto_revisions: number;
 
+  /** Individual per-lead personalization settings applied to generate this draft. */
+  lead_settings?: LeadPersonalizationSettings | null;
+  /** Previous draft versions preserved when regenerating with updated settings. */
+  previous_versions?: PersonalizationDraftVersion[];
+
   models: { strategist: string; writer: string };
   timings_ms: { strategist: number; writer: number };
   generated_at: string;
@@ -288,4 +661,940 @@ export interface PersonalizationEntry {
     phones: string[];
     social_profiles?: { platform: string; url: string }[];
   };
+}
+
+/* ------------------------------------------------------------------ */
+/* Category Outreach Template Helpers                                  */
+/* ------------------------------------------------------------------ */
+
+export interface CategoryTemplateBriefInput {
+  project: {
+    name: string | null;
+    description: string;
+    primary_objective: string;
+    secondary_objectives?: string[];
+    success_metrics?: string[];
+  };
+  targets: Array<{
+    id: string;
+    target_type: string;
+    entity_kind: 'person' | 'organisation' | 'either' | 'unknown';
+    description: string;
+    geography?: string[];
+    qualification_criteria?: Array<{ text: string }>;
+    priority?: string;
+  }>;
+  personalization?: {
+    allowed?: string[];
+    preferred_details?: string[];
+    tone?: string[];
+    avoid?: string[];
+  };
+  outreach?: {
+    objectives?: string[];
+    channels?: string[];
+    tone?: string[];
+  };
+}
+
+export function normalizeCategoryKey(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[\u2010-\u2015]/g, '-')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+/**
+ * Automatically creates a pre-built, fully editable outreach template for a lead category
+ * based on the project's brief, objectives, target audience, and outreach goals.
+ */
+export function buildDefaultCategoryTemplate(
+  brief: CategoryTemplateBriefInput | null | undefined,
+  target: {
+    id: string;
+    target_type: string;
+    entity_kind?: 'person' | 'organisation' | 'either' | 'unknown';
+    description?: string;
+    qualification_criteria?: Array<{ text: string }>;
+  },
+  settings?: Partial<PersonalizationSettings> | null,
+): CategoryOutreachTemplate {
+  const clean = (s: string) => s.replace(/\s*[\u2014\u2013]\s*/g, ', ').replace(/,\s*,/g, ',').trim();
+
+  const projectName = clean(brief?.project?.name || settings?.organisation || 'our project');
+  const projectDesc = clean(
+    brief?.project?.description ||
+      brief?.project?.primary_objective ||
+      'a curated initiative connecting standout work with relevant audiences and partners',
+  ).replace(/\.$/, '');
+  const primaryObjective = clean(
+    brief?.project?.primary_objective ||
+      brief?.outreach?.objectives?.[0] ||
+      'connect relevant participants with this opportunity',
+  ).replace(/\.$/, '');
+  const secondaryObjectives = (brief?.project?.secondary_objectives ?? []).map((o) => clean(o).replace(/\.$/, ''));
+  const targetName = clean(target.target_type);
+  const targetDesc = clean(target.description || targetName).replace(/\.$/, '');
+
+  const senderSignoff =
+    settings?.signature?.trim() ||
+    [
+      settings?.sender_name?.trim() || 'The Campaign Team',
+      [settings?.sender_role?.trim(), settings?.organisation?.trim() || projectName].filter(Boolean).join(', '),
+    ]
+      .filter(Boolean)
+      .join('\n');
+
+  const linkClause = settings?.call_to_action_link ? ` (${settings.call_to_action_link})` : '';
+  const confirmedFact = settings?.campaign_facts?.[0] ? clean(settings.campaign_facts[0]).replace(/\.$/, '') : '';
+
+  const haystack = `${target.target_type} ${target.description ?? ''}`.toLowerCase();
+  const isMayaProject = /\bmaya\b/i.test(`${projectName} ${projectDesc}`);
+  const isAuthorOrCreative = /\b(?:author|writer|novelist|poet|illustrator|creator|artist|literary creator)\b/.test(
+    haystack,
+  ) && !/\b(?:sponsor|investor|funder)\b/.test(haystack);
+  const isSponsorOrInvestor = /\b(?:sponsor|sponsorship|investor|funder|foundation|grant|funding|supporter)\b/.test(
+    haystack,
+  );
+  const isCommunityOrOrg =
+    target.entity_kind === 'organisation' ||
+    /\b(?:communit|organisation|organization|publisher|universit|education|society|association|group|magazine|network|institution)\b/.test(
+      haystack,
+    );
+
+  if (isMayaProject) {
+    const mayaDisplayTitle = /awards/i.test(projectName) ? projectName : 'Maya Poetry Book Awards';
+    const mayaSenderName = settings?.sender_name?.trim() || '[Name]';
+    const subjectLine = isSponsorOrInvestor
+      ? `Partnership & Sponsorship: ${mayaDisplayTitle}`
+      : isCommunityOrOrg
+        ? `Collaboration with ${mayaDisplayTitle} for ${targetName}`
+        : `${mayaDisplayTitle}: Connecting around your poetry & writing`;
+
+    const body = [
+      `Hi [Name],`,
+      `I came across [specific detail about their work or organisation] and thought there could be an interesting connection with the ${mayaDisplayTitle}.`,
+      `Maya is an international poetry book competition for indie writers, self-published poets and books from small, truly independent presses. With £7,000 in prizes, including a £3,000 top prize, it offers authors an opportunity for recognition and greater visibility.`,
+      `We're reaching out to explore [specific collaboration or request] because [personalised benefit or reason it could be valuable to them].`,
+      `Next year's competition opens on 4 January 2027. You can find out more at https://poetrybookawards.co.uk.`,
+      `Would you be open to exploring this further? We'd be happy to share more details.`,
+      `Best,\n\n${mayaSenderName}\n\n${mayaDisplayTitle}`,
+    ].join('\n\n');
+
+    return {
+      target_id: target.id,
+      target_type: target.target_type,
+      subject_line: subjectLine,
+      body,
+      is_custom: false,
+      updated_at: null,
+    };
+  }
+
+  if (isAuthorOrCreative) {
+    const communityGoal =
+      secondaryObjectives.find((o) => /community|awareness|author|submission/i.test(o)) ||
+      primaryObjective;
+    const subjectLine = `${projectName}: Connecting around your writing`;
+    const body = [
+      `Hi [Name],`,
+      `I came across [specific detail about their work or organisation] and thought there could be an interesting connection with ${projectName}.`,
+      `We are currently running ${projectName}, ${projectDesc.charAt(0).toLowerCase() + projectDesc.slice(1)}. Our focus with ${targetName.toLowerCase()} is to ${primaryObjective.charAt(0).toLowerCase() + primaryObjective.slice(1)}, while helping participating authors gain wider reader discovery, industry recognition, and connection to ${communityGoal.charAt(0).toLowerCase() + communityGoal.slice(1)}.${confirmedFact ? ` ${confirmedFact}.` : ''}`,
+      `We're reaching out to explore [specific collaboration or request] because [personalised benefit or reason it could be valuable to them].`,
+      `Would it be useful if I sent over a short one-page overview with the submission details and timeline${linkClause} so you can see if it is of interest?`,
+      `Warmly,\n${senderSignoff}`,
+    ].join('\n\n');
+
+    return {
+      target_id: target.id,
+      target_type: target.target_type,
+      subject_line: subjectLine,
+      body,
+      is_custom: false,
+      updated_at: null,
+    };
+  }
+
+  if (isSponsorOrInvestor) {
+    const sponsorObjective =
+      secondaryObjectives.find((o) => /sponsor|partner|investor|supporter/i.test(o)) ||
+      brief?.outreach?.objectives?.find((o) => /sponsor|partner/i.test(o)) ||
+      primaryObjective;
+    const subjectLine = `Strategic sponsorship & partnership opportunity: ${projectName}`;
+    const body = [
+      `Hi [Name],`,
+      `I came across [specific detail about their work or organisation] and thought there could be an interesting connection with ${projectName}.`,
+      `${projectName} is ${projectDesc.charAt(0).toLowerCase() + projectDesc.slice(1)}. As we ${sponsorObjective.charAt(0).toLowerCase() + sponsorObjective.slice(1)}, we are partnering with a select group of sponsors and strategic supporters who want direct visibility and meaningful alignment with our community.${confirmedFact ? ` ${confirmedFact}.` : ''}`,
+      `We're reaching out to explore [specific collaboration or request] because [personalised benefit or reason it could be valuable to them].`,
+      `Would you be open to a brief conversation, or would it be helpful if I sent over our concise sponsorship overview${linkClause} first?`,
+      `Best regards,\n${senderSignoff}`,
+    ].join('\n\n');
+
+    return {
+      target_id: target.id,
+      target_type: target.target_type,
+      subject_line: subjectLine,
+      body,
+      is_custom: false,
+      updated_at: null,
+    };
+  }
+
+  if (isCommunityOrOrg) {
+    const partnerObjective =
+      secondaryObjectives.find((o) => /partner|community|awareness|database|network/i.test(o)) ||
+      primaryObjective;
+    const subjectLine = `Collaboration opportunity with ${projectName} for ${targetName}`;
+    const body = [
+      `Hi [Name],`,
+      `I came across [specific detail about their work or organisation] and thought there could be an interesting connection with ${projectName}.`,
+      `We are organising ${projectName}, ${projectDesc.charAt(0).toLowerCase() + projectDesc.slice(1)}. A core part of this initiative is working alongside respected ${targetName.toLowerCase()} to ${partnerObjective.charAt(0).toLowerCase() + partnerObjective.slice(1)}.${confirmedFact ? ` ${confirmedFact}.` : ''}`,
+      `We're reaching out to explore [specific collaboration or request] because [personalised benefit or reason it could be valuable to them].`,
+      `Could you let me know if I may share a short partner overview${linkClause}, or point me to the best person on your team who handles community partnerships?`,
+      `Best regards,\n${senderSignoff}`,
+    ].join('\n\n');
+
+    return {
+      target_id: target.id,
+      target_type: target.target_type,
+      subject_line: subjectLine,
+      body,
+      is_custom: false,
+      updated_at: null,
+    };
+  }
+
+  // General fallback for any other lead category
+  const subjectLine = `${projectName}: Opportunity for ${targetName}`;
+  const body = [
+    `Hi [Name],`,
+    `I came across [specific detail about their work or organisation] and thought there could be an interesting connection with ${projectName}.`,
+    `${projectName} is ${projectDesc.charAt(0).toLowerCase() + projectDesc.slice(1)}, with the primary goal to ${primaryObjective.charAt(0).toLowerCase() + primaryObjective.slice(1)}.${confirmedFact ? ` ${confirmedFact}.` : ''}`,
+    `We're reaching out to explore [specific collaboration or request] because [personalised benefit or reason it could be valuable to them].`,
+    `Would it be useful if I shared a short one-page overview${linkClause} so you can see if it fits your priorities?`,
+    `Best regards,\n${senderSignoff}`,
+  ].join('\n\n');
+
+  return {
+    target_id: target.id,
+    target_type: target.target_type,
+    subject_line: subjectLine,
+    body,
+    is_custom: false,
+    updated_at: null,
+  };
+}
+
+/**
+ * Dynamically returns all lead categories from the project's configuration (`brief.targets`)
+ * paired with their current template (saved custom template if edited, otherwise the pre-built default).
+ */
+export function getProjectCategoryTemplates(
+  brief: CategoryTemplateBriefInput | null | undefined,
+  settings?: Partial<PersonalizationSettings> | null,
+): CategoryOutreachTemplate[] {
+  if (!brief?.targets?.length) return [];
+  const savedMap = settings?.category_templates ?? {};
+
+  return brief.targets.map((target) => {
+    const byId = savedMap[target.id];
+    const byNormType = savedMap[normalizeCategoryKey(target.target_type)];
+    const byRawType = savedMap[target.target_type];
+    const saved = byId ?? byNormType ?? byRawType;
+
+    if (saved && saved.body.trim().length > 0) {
+      return {
+        ...saved,
+        target_id: target.id,
+        target_type: target.target_type,
+        is_custom: true,
+      };
+    }
+
+    return buildDefaultCategoryTemplate(brief, target, settings);
+  });
+}
+
+/**
+ * Identifies a prospect's lead category and retrieves the corresponding project-specific template.
+ */
+export function resolveCategoryTemplateForProspect(
+  record: {
+    brief_target_id?: string | null;
+    target_type?: string | null;
+    role?: string | null;
+    organisation?: string | null;
+    identity?: { entity_kind?: string | null } | null;
+  },
+  brief: CategoryTemplateBriefInput | null | undefined,
+  settings?: Partial<PersonalizationSettings> | null,
+): {
+  template: CategoryOutreachTemplate;
+  target: CategoryTemplateBriefInput['targets'][number] | null;
+  isCustom: boolean;
+} | null {
+  const savedMap = settings?.category_templates ?? {};
+  const targets = brief?.targets ?? [];
+  const recTargetId = record.brief_target_id?.trim() || '';
+  const recTargetType = record.target_type?.trim() || '';
+  const normRecType = normalizeCategoryKey(recTargetType);
+
+  // 1. Match target in brief.targets by id, exact/normalized target_type, or token overlap
+  let matchedTarget =
+    (recTargetId ? targets.find((t) => t.id === recTargetId) : undefined) ??
+    (normRecType
+      ? targets.find((t) => normalizeCategoryKey(t.target_type) === normRecType)
+      : undefined);
+
+  if (!matchedTarget && normRecType) {
+    const recTokens = normRecType.split('-').filter((w) => w.length >= 3);
+    matchedTarget = targets.find((t) => {
+      const tNorm = normalizeCategoryKey(t.target_type);
+      if (tNorm.includes(normRecType) || normRecType.includes(tNorm)) return true;
+      return recTokens.some((tok) => {
+        const stem = tok.replace(/s$/, '');
+        return stem.length >= 4 && tNorm.includes(stem);
+      });
+    });
+  }
+
+  // 2. Check saved custom templates first (by matchedTarget.id, recTargetId, or normalized target_type)
+  const candidateKeys = [
+    matchedTarget?.id,
+    recTargetId,
+    matchedTarget ? normalizeCategoryKey(matchedTarget.target_type) : undefined,
+    matchedTarget?.target_type,
+    normRecType,
+    recTargetType,
+  ].filter((k): k is string => Boolean(k && k.trim()));
+
+  for (const key of candidateKeys) {
+    const saved = savedMap[key];
+    if (saved && saved.body.trim().length > 0) {
+      return {
+        template: {
+          ...saved,
+          target_id: matchedTarget?.id || saved.target_id,
+          target_type: matchedTarget?.target_type || saved.target_type,
+          is_custom: true,
+        },
+        target: matchedTarget ?? null,
+        isCustom: true,
+      };
+    }
+  }
+
+  // Also check if any saved template's target_type matches the prospect's target_type via token stem
+  if (normRecType) {
+    const recTokens = normRecType.split('-').filter((w) => w.length >= 3);
+    for (const saved of Object.values(savedMap)) {
+      if (!saved?.body?.trim()) continue;
+      const savedNorm = normalizeCategoryKey(saved.target_type);
+      const isMatch =
+        savedNorm === normRecType ||
+        savedNorm.includes(normRecType) ||
+        normRecType.includes(savedNorm) ||
+        recTokens.some((tok) => {
+          const stem = tok.replace(/s$/, '');
+          return stem.length >= 4 && savedNorm.includes(stem);
+        });
+      if (isMatch) {
+        return {
+          template: { ...saved, is_custom: true },
+          target: matchedTarget ?? null,
+          isCustom: true,
+        };
+      }
+    }
+  }
+
+  // 3. If no custom saved template exists, build the default template for the matched target category
+  if (matchedTarget && brief) {
+    return {
+      template: buildDefaultCategoryTemplate(brief, matchedTarget, settings),
+      target: matchedTarget,
+      isCustom: false,
+    };
+  }
+
+  return null;
+}
+
+/**
+ * Evaluates a prospect's research, background, interests, and project connection against
+ * their category outreach template and decides whether to:
+ * - 'use': Follow the template's structure and messaging while adding meaningful personalisation.
+ * - 'adapt': Reuse relevant sections, phrases, or messaging while restructuring the message to suit the prospect.
+ * - 'inspiration': Take the core positioning and objectives from the template but write a substantially different message.
+ * - 'ignore': Write an entirely original message when the template would produce an irrelevant, unnatural, or less effective result.
+ */
+export function decideTemplateUsageMode(
+  record: {
+    target_type?: string | null;
+    role?: string | null;
+    organisation?: string | null;
+    summary?: string | null;
+    reason_for_relevance?: string | null;
+    work_and_projects?: string[] | null;
+    achievements?: string[] | null;
+    background?: string[] | null;
+    industry_activity?: string[] | null;
+    contradictions?: string[] | null;
+    research_confidence?: string | null;
+    identity?: { name?: string | null; entity_kind?: string | null } | null;
+  },
+  brief: CategoryTemplateBriefInput | null | undefined,
+  template: CategoryOutreachTemplate | null | undefined,
+  leadSettings?: LeadPersonalizationSettings | null,
+): { mode: TemplateUsageMode; reason: string } {
+  if (!template || !template.body || template.body.trim().length < 20) {
+    return {
+      mode: 'ignore',
+      reason: 'No category template available for this lead category; generating an original message from the project brief and prospect research.',
+    };
+  }
+
+  const prospectName = record.identity?.name || record.organisation || 'this prospect';
+  const extraInstr = (leadSettings?.additional_instructions ?? '').toLowerCase();
+  const summaryAndRelevance = `${record.summary ?? ''} ${record.reason_for_relevance ?? ''} ${(record.contradictions ?? []).join(' ')}`.toLowerCase();
+  const templateText = `${template.subject_line} ${template.body}`.toLowerCase();
+
+  // 1. Check when the template should be IGNORED ('ignore'):
+  // - Explicit user instruction to ignore template / write from scratch
+  // - Contradictions or research notes indicating the standard category pitch is inappropriate or off-limits
+  // - Severe mismatch between what the template pitches and the prospect's actual profile/remit
+  if (
+    /\b(?:ignore template|do not use template|original message|bespoke angle|custom pitch only)\b/i.test(extraInstr)
+  ) {
+    return {
+      mode: 'ignore',
+      reason: `Ignoring the ${template.target_type} template because per-lead instructions request a bespoke original message for ${prospectName}.`,
+    };
+  }
+
+  if (
+    (record.contradictions?.length ?? 0) > 0 ||
+    /\b(?:no longer accepts|paused submissions|paused sponsorship|closed to unsolicited|does not sponsor|retired from|conflict with standard)\b/i.test(
+      summaryAndRelevance,
+    )
+  ) {
+    return {
+      mode: 'ignore',
+      reason: `Ignoring the standard ${template.target_type} template because ${prospectName}'s research contains constraints or contradictions that make the standard category framing unsuitable.`,
+    };
+  }
+
+  // Check if the template pitches an unrelated category angle (e.g. template talks exclusively about book submissions to a corporate sponsor, or vice versa)
+  const recordHaystack = `${record.target_type ?? ''} ${record.role ?? ''} ${record.summary ?? ''}`.toLowerCase();
+  const templatePitchesSponsorshipOnly =
+    /\b(?:sponsorship package|sponsor tier|financial sponsor|brand sponsorship)\b/i.test(templateText) &&
+    !/\b(?:author|submission|book|community)\b/i.test(templateText);
+  const prospectIsPureAuthor =
+    /\b(?:poet|novelist|author|writer)\b/i.test(recordHaystack) &&
+    !/\b(?:sponsor|funder|foundation|investor|director)\b/i.test(recordHaystack);
+  if (templatePitchesSponsorshipOnly && prospectIsPureAuthor) {
+    return {
+      mode: 'ignore',
+      reason: `Ignoring the template because its sponsorship-only framing does not fit ${prospectName}'s profile as an individual author/writer.`,
+    };
+  }
+
+  // 2. Check when the template should be used as INSPIRATION ('inspiration'):
+  // - Very short executive messages or direct/consultative approaches where a multi-paragraph category template structure would feel too long or rigid
+  // - High-profile / deeply researched outlier prospects with custom angle instructions where taking the core positioning but writing a fresh structure works best
+  const worksCount = (record.work_and_projects?.length ?? 0) + (record.achievements?.length ?? 0);
+  const totalFacts =
+    worksCount + (record.background?.length ?? 0) + (record.industry_activity?.length ?? 0);
+
+  if (
+    leadSettings?.message_length === 'very_short' ||
+    leadSettings?.communication_approach === 'consultative' ||
+    leadSettings?.communication_approach === 'direct' ||
+    Boolean(extraInstr && extraInstr.length > 15)
+  ) {
+    return {
+      mode: 'inspiration',
+      reason: `Using the ${template.target_type} template as inspiration: keeping its core positioning and objective while writing a substantially different structure tailored to ${prospectName}'s ${leadSettings?.message_length === 'very_short' ? 'concise executive format' : 'specific communication style and research'}.`,
+    };
+  }
+
+  // 3. Decide between USE ('use') and ADAPT ('adapt'):
+  // - If the prospect has rich multi-work research (worksCount >= 2 or totalFacts >= 4) or deep personalisation depth with non-default structure needs, ADAPT the template so their specific works/initiatives drive the narrative structure while reusing key template messaging.
+  // - If the template fits the prospect's category and research cleanly (e.g., standard/moderate research or well-aligned category profile), USE the template structure while weaving in meaningful personalisation.
+  if (worksCount >= 2 || totalFacts >= 4) {
+    return {
+      mode: 'adapt',
+      reason: `Adapting the ${template.target_type} template for ${prospectName}: reusing its core messaging and value proposition while restructuring the narrative around their verified work (${record.work_and_projects?.[0] || record.achievements?.[0] || 'key initiatives'}).`,
+    };
+  }
+
+  return {
+    mode: 'use',
+    reason: `Using the ${template.target_type} template as the structural framework for ${prospectName}, enriched with verified details (${record.work_and_projects?.[0] || record.organisation || record.role || 'their profile'}) and a tailored value exchange.`,
+  };
+}
+
+/* ------------------------------------------------------------------ */
+/* Contextual Directive Understanding ([...] and (...) Cues)           */
+/* ------------------------------------------------------------------ */
+
+export interface ContextualTemplateValues {
+  recipientFirstName: string;
+  senderName: string;
+  verifiedWorkDetail: string;
+  secondaryWorkDetail: string;
+  specificCollaborationRequest: string;
+  personalisedBenefitClause: string;
+}
+
+export interface ParsedTemplateDirective {
+  rawToken: string;
+  innerText: string;
+  kind:
+    | 'recipient_name'
+    | 'sender_name'
+    | 'verified_work_detail'
+    | 'specific_collaboration_or_request'
+    | 'personalised_benefit'
+    | 'custom_contextual_cue';
+  resolvedValue: string;
+  explanation: string;
+}
+
+function formatWorkFactAsNaturalNounPhrase(
+  rawFact: string,
+  organisation?: string | null,
+  role?: string | null,
+): string {
+  let cleaned = rawFact
+    // Remove trailing or inline source citations like (S1), (S2,S4,S5)
+    .replace(/\s*\(S\d+(?:\s*,\s*S\d+)*\)\.?\s*/gi, ' ')
+    .replace(/\s*[\u2014\u2013]\s*/g, ', ')
+    .replace(/\*+/g, '')
+    .replace(/\.$/, '')
+    .trim();
+  if (
+    !cleaned ||
+    /^(?:no evidence|no legitimate|all required criteria|unverified|none|n\/a|unknown)\b/i.test(cleaned)
+  ) {
+    if (role && /\b(?:author|writer|novelist|poet)\b/i.test(role)) {
+      return `your writing as a ${role.toLowerCase()}`;
+    }
+    if (organisation) {
+      return `your work at ${organisation}`;
+    }
+    if (role) {
+      return `your work as ${role}`;
+    }
+    return 'your writing and published work';
+  }
+
+  // If the string is a semicolon-separated list of titles (e.g. "Thrown for a Loop; The New Guy; Him; Brooklynaire")
+  const semiParts = cleaned.split(/\s*;\s*/).filter(Boolean);
+  if (semiParts.length >= 2) {
+    const looksLikeTitleList =
+      semiParts.length >= 3 &&
+      semiParts.slice(0, 3).every((p) => p.split(/\s+/).length <= 7 && !/^(?:teaches|offers|runs|founded)/i.test(p));
+    if (looksLikeTitleList) {
+      cleaned = `books including ${semiParts.slice(0, 2).join(' and ')}`;
+    } else {
+      cleaned = semiParts[0]!;
+    }
+  }
+
+  // If a colon introduces a long comma-separated list of titles (e.g. "Author of ten novels: Joyride, Divorce Towers, Take My Husband...")
+  const colonMatch = cleaned.match(/^([^:]{3,50}):\s*(.+)$/);
+  if (colonMatch) {
+    const prefix = colonMatch[1]!.trim();
+    const items = colonMatch[2]!
+      .split(/\s*,\s*/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (items.length >= 3) {
+      cleaned = `${prefix}, including ${items.slice(0, 2).join(' and ')}`;
+    }
+  }
+
+  // If a comma-separated list is still very long (> 120 chars and 4+ commas), trim to first 2-3 items
+  if (cleaned.length > 120) {
+    const commaParts = cleaned.split(/\s*,\s*/).filter(Boolean);
+    if (commaParts.length >= 4) {
+      cleaned = `${commaParts.slice(0, 2).join(', ')} and ${commaParts[2]}`;
+    }
+  }
+
+  // Convert leading past/present action verbs or role prefixes into natural possessive noun phrases
+  const verbConversions: Array<[RegExp, string]> = [
+    [/^author\s+of\s+/i, 'your work as author of '],
+    [/^founder\s+and\s+host\s+of\s+/i, 'your work as founder and host of '],
+    [/^founder\s+of\s+/i, 'your work as founder of '],
+    [/^published\s+books\s*[,:]\s*/i, 'your published books, '],
+    [/^published\s+(?:the\s+)?/i, 'your published work, '],
+    [/^authored\s+(?:the\s+)?/i, 'your work on '],
+    [/^wrote\s+(?:the\s+)?/i, 'your writing on '],
+    [/^writes\s+for\s+/i, 'your writing for '],
+    [/^co-edited\s+(?:the\s+)?/i, 'your editorial work on '],
+    [/^edited\s+(?:the\s+)?/i, 'your editorial work on '],
+    [/^organi[sz]es\s+(?:the\s+)?/i, 'your work organising the '],
+    [/^runs\s+(?:the\s+)?/i, 'your work running the '],
+    [/^hosts\s+(?:the\s+)?/i, 'your work hosting the '],
+    [/^publishes\s+(?:the\s+)?/i, 'your publishing work with the '],
+    [/^funded\s+(?:the\s+)?/i, 'your support for the '],
+    [/^sponsored\s+(?:the\s+)?/i, 'your sponsorship of the '],
+    [/^partnered\s+with\s+(?:the\s+)?/i, 'your partnership with the '],
+    [/^launched\s+(?:the\s+)?/i, 'your launch of the '],
+    [/^won\s+(?:the\s+)?/i, 'your recognition with the '],
+    [/^shortlisted\s+for\s+(?:the\s+)?/i, 'your shortlisted work for the '],
+    [/^selected\s+for\s+(?:the\s+)?/i, 'your selection for the '],
+    [/^nominated\s+for\s+(?:the\s+)?/i, 'your nomination for the '],
+    [/^judged\s+(?:competitions\s+such\s+as\s+)?/i, 'your judging of competitions including '],
+    [/^judges\s+(?:competitions\s+such\s+as\s+)?/i, 'your judging of competitions including '],
+    [/^imprints\s+include\s+/i, 'your publishing work across imprints including '],
+    [/^facilitates\s+/i, 'your work facilitating '],
+    [/^provides\s+/i, 'your work providing '],
+  ];
+
+  for (const [pattern, replacement] of verbConversions) {
+    if (pattern.test(cleaned)) {
+      const converted = cleaned.replace(pattern, replacement);
+      return organisation && !converted.toLowerCase().includes(organisation.toLowerCase())
+        ? `${converted} at ${organisation}`
+        : converted;
+    }
+  }
+
+  if (/^your\b/i.test(cleaned)) return cleaned;
+  return `your work on ${cleaned}${
+    organisation && !cleaned.toLowerCase().includes(organisation.toLowerCase())
+      ? ` at ${organisation}`
+      : ''
+  }`;
+}
+
+/**
+ * Synthesizes context-aware values for bracketed `[...]` or parenthetical `(...)` cues
+ * based on the prospect's verified research, category, and the project brief/template.
+ */
+export function buildContextualTemplateValues(
+  record: {
+    target_type?: string | null;
+    role?: string | null;
+    organisation?: string | null;
+    summary?: string | null;
+    reason_for_relevance?: string | null;
+    work_and_projects?: string[] | null;
+    achievements?: string[] | null;
+    industry_activity?: string[] | null;
+    key_contacts?: Array<{ name?: string | null }> | null;
+    identity?: { name?: string | null; entity_kind?: string | null } | null;
+  },
+  brief?: CategoryTemplateBriefInput | null,
+  settings?: Partial<PersonalizationSettings> | null,
+  template?: CategoryOutreachTemplate | null,
+): ContextualTemplateValues {
+  const strip = (s: string) => s.replace(/\s*[\u2014\u2013]\s*/g, ', ').replace(/\*+/g, '').trim();
+  const prospectName = strip(record.identity?.name || record.organisation || 'there');
+  const isOrg = record.identity?.entity_kind === 'organisation';
+  const keyPersonFirst = record.key_contacts?.[0]?.name?.trim().split(/\s+/)[0];
+  const recipientFirstName = isOrg
+    ? keyPersonFirst || `${prospectName} team`
+    : prospectName
+        .replace(/^(?:dr|prof|mr|ms|mrs|miss)\.?\s+/i, '')
+        .replace(/\([^)]*\)/g, '')
+        .trim()
+        .split(/\s+/)[0] || prospectName;
+
+  const senderName = strip(
+    settings?.sender_name?.trim() ||
+      settings?.signature?.trim().split(/\r?\n/)[0] ||
+      'The Campaign Team',
+  );
+
+  const rawWork1 =
+    record.work_and_projects?.[0] ||
+    record.achievements?.[0] ||
+    record.industry_activity?.[0] ||
+    record.reason_for_relevance ||
+    '';
+  const rawWork2 =
+    record.work_and_projects?.[1] ||
+    record.achievements?.[0] ||
+    record.industry_activity?.[0] ||
+    '';
+
+  const verifiedWorkDetail = formatWorkFactAsNaturalNounPhrase(
+    rawWork1,
+    record.organisation,
+    record.role,
+  );
+  const secondaryWorkDetail =
+    rawWork2 && rawWork2 !== rawWork1
+      ? formatWorkFactAsNaturalNounPhrase(rawWork2, record.organisation, record.role)
+      : '';
+
+  const projectName = strip(brief?.project?.name || settings?.organisation || 'our project');
+  const primaryObjective = strip(
+    brief?.project?.primary_objective ||
+      brief?.outreach?.objectives?.[0] ||
+      'connect relevant participants with this opportunity',
+  ).replace(/\.$/, '');
+  const confirmedFact = settings?.campaign_facts?.[0]
+    ? strip(settings.campaign_facts[0]).replace(/\.$/, '')
+    : '';
+
+  const templateText = `${template?.subject_line ?? ''} ${template?.body ?? ''}`.toLowerCase();
+  const hasMayaPrizes =
+    templateText.includes('£7,000') ||
+    templateText.includes('£3,000') ||
+    /\bmaya\b/i.test(projectName);
+
+  const haystack = `${record.target_type ?? ''} ${template?.target_type ?? ''} ${record.role ?? ''} ${record.organisation ?? ''}`.toLowerCase();
+  const isAuthor =
+    /\b(?:author|writer|novelist|poet)\b/.test(haystack) &&
+    !/\b(?:sponsor|investor|funder|foundation)\b/.test(haystack);
+  const isSponsor = /\b(?:sponsor|sponsorship|investor|funder|foundation|grant|patron|supporter)\b/.test(
+    haystack,
+  );
+  const isPublisher = /\b(?:publisher|press|bookseller|magazine|journal)\b/.test(haystack);
+  const isUniversity = /\b(?:universit|education|faculty|department|student|college|mfa)\b/.test(
+    haystack,
+  );
+  const isCreator = /\b(?:creator|influencer|booktok|bookstagram|podcast)\b/.test(haystack);
+  const isCommunityOrOrg =
+    isOrg || /\b(?:communit|organisation|organization|society|association|group|collective|trust|network)\b/.test(haystack);
+
+  const orgOrName = strip(record.organisation || prospectName);
+
+  let specificCollaborationRequest = '';
+  let personalisedBenefitClause = '';
+
+  if (isAuthor) {
+    specificCollaborationRequest = `entering your collection in the upcoming ${projectName}`;
+    personalisedBenefitClause = hasMayaPrizes
+      ? `it gives independent poets a respected international platform to compete for the £7,000 prize fund, build wider reader and press visibility around ${verifiedWorkDetail}, and connect with our international literary community`
+      : `it connects ${verifiedWorkDetail} with wider reader discovery, industry recognition, and ${confirmedFact || primaryObjective.charAt(0).toLowerCase() + primaryObjective.slice(1)}`;
+  } else if (isSponsor) {
+    specificCollaborationRequest = `a sponsorship or patronage partnership with ${orgOrName} for ${projectName}`;
+    personalisedBenefitClause = hasMayaPrizes
+      ? `it gives ${orgOrName} prominent brand alignment and year-round visibility across an international community of indie poets, small presses, and literary readers that shares the values behind ${verifiedWorkDetail}`
+      : `it provides ${orgOrName} with direct brand visibility and meaningful alignment alongside vetted participants in ${projectName}, building on ${verifiedWorkDetail}`;
+  } else if (isPublisher) {
+    specificCollaborationRequest = `an independent publishing collaboration to showcase eligible titles and poets from ${orgOrName}`;
+    personalisedBenefitClause = hasMayaPrizes
+      ? `it gives poets and titles published through ${orgOrName} access to £7,000 in prizes, international reader discovery, and wider recognition for your list alongside ${verifiedWorkDetail}`
+      : `it spotlights titles and talent from ${orgOrName} around ${verifiedWorkDetail} while ${confirmedFact || primaryObjective.charAt(0).toLowerCase() + primaryObjective.slice(1)}`;
+  } else if (isUniversity) {
+    specificCollaborationRequest = `sharing ${projectName} with the creative writing students, alumni, and poets at ${orgOrName}`;
+    personalisedBenefitClause = hasMayaPrizes
+      ? `it gives emerging poets and alumni connected to ${verifiedWorkDetail} at ${orgOrName} an accessible international platform with £7,000 in prizes and publication visibility`
+      : `it gives writers and students connected to ${verifiedWorkDetail} at ${orgOrName} a practical pathway for recognition and community connection`;
+  } else if (isCreator) {
+    specificCollaborationRequest = `a creator collaboration spotlighting standout titles and stories from ${projectName} with your audience`;
+    personalisedBenefitClause = `it gives your audience around ${verifiedWorkDetail} engaging literary stories, shortlisted title previews, and reciprocal visibility across ${projectName}`;
+  } else if (isCommunityOrOrg) {
+    specificCollaborationRequest = `a community partnership to share ${projectName} with your writers and members at ${orgOrName}`;
+    personalisedBenefitClause = hasMayaPrizes
+      ? `it gives the poets and writers connected to ${verifiedWorkDetail} a valuable opportunity to compete for £7,000 in prizes and gain wider visibility, while we also spotlight ${orgOrName} as a partner organisation`
+      : `it offers members and participants connected to ${verifiedWorkDetail} a curated opportunity and wider visibility (${confirmedFact || primaryObjective.charAt(0).toLowerCase() + primaryObjective.slice(1)}), while spotlighting ${orgOrName}`;
+  } else {
+    specificCollaborationRequest = `how ${orgOrName} and ${projectName} could collaborate around ${verifiedWorkDetail}`;
+    personalisedBenefitClause = `it connects ${verifiedWorkDetail} directly with ${confirmedFact || primaryObjective.charAt(0).toLowerCase() + primaryObjective.slice(1)} and offers clear visibility and value for ${orgOrName}`;
+  }
+
+  return {
+    recipientFirstName,
+    senderName,
+    verifiedWorkDetail,
+    secondaryWorkDetail,
+    specificCollaborationRequest,
+    personalisedBenefitClause,
+  };
+}
+
+const INSTRUCTIONAL_PAREN_KEYWORDS =
+  /\b(?:specific|personalised|personalized|custom|tailored|individual|insert|mention|reference|explain|describe|highlight|detail\s+about|reason\s+it|benefit|collaboration\s+or\s+request|their\s+work|their\s+organisation|their\s+organization|their\s+role|their\s+book|their\s+audience|prospect|recipient|lead|sender\s+name|first\s+name|placeholder|value\s+for\s+them|why\s+it\s+matters)\b/i;
+
+function classifyDirectiveInnerText(
+  innerText: string,
+  offsetInText: number,
+  fullTextLength: number,
+  values: ContextualTemplateValues,
+): {
+  kind: ParsedTemplateDirective['kind'];
+  resolvedValue: string;
+  explanation: string;
+} {
+  const lower = innerText.toLowerCase().trim();
+
+  // 1. Name cue ([Name], [First Name], [Sender Name], etc.)
+  if (/^(?:your\s+name|sender(?:\s+name)?|my\s+name|sign[\s-]?off\s+name)$/i.test(lower)) {
+    return {
+      kind: 'sender_name',
+      resolvedValue: values.senderName,
+      explanation: `Sender's name (${values.senderName})`,
+    };
+  }
+  if (/^(?:recipient(?:\s+name)?|first\s+name|prospect(?:\s+name)?|lead(?:\s+name)?)$/i.test(lower)) {
+    return {
+      kind: 'recipient_name',
+      resolvedValue: values.recipientFirstName,
+      explanation: `Recipient's name (${values.recipientFirstName})`,
+    };
+  }
+  if (lower === 'name') {
+    const isNearEnd = offsetInText > fullTextLength * 0.65 && offsetInText > 80;
+    if (isNearEnd) {
+      return {
+        kind: 'sender_name',
+        resolvedValue: values.senderName,
+        explanation: `Sender's sign-off name (${values.senderName})`,
+      };
+    }
+    return {
+      kind: 'recipient_name',
+      resolvedValue: values.recipientFirstName,
+      explanation: `Recipient's greeting name (${values.recipientFirstName})`,
+    };
+  }
+
+  // 2. Personalised benefit / value / reason cue
+  if (
+    /\b(?:benefit|valuable|value|incentive|gain|why\s+it|reason\s+it|worthwhile|what\s+they\s+get|for\s+them)\b/i.test(
+      lower,
+    )
+  ) {
+    return {
+      kind: 'personalised_benefit',
+      resolvedValue: values.personalisedBenefitClause,
+      explanation: `Personalised benefit explaining why this opportunity is valuable to this specific prospect (${values.personalisedBenefitClause})`,
+    };
+  }
+
+  // 3. Specific collaboration / request / ask / opportunity cue
+  if (
+    /\b(?:collaboration|request|ask|action|opportunity|partnership|proposal|invite|invitation|sponsorship|submission)\b/i.test(
+      lower,
+    ) &&
+    !/\b(?:detail\s+about\s+their|their\s+work)\b/i.test(lower)
+  ) {
+    return {
+      kind: 'specific_collaboration_or_request',
+      resolvedValue: values.specificCollaborationRequest,
+      explanation: `Specific collaboration or request tailored to this prospect's category and remit (${values.specificCollaborationRequest})`,
+    };
+  }
+
+  // 4. Specific detail about their work / organisation / achievement / background
+  if (
+    /\b(?:detail|work|organisation|organization|project|book|title|achievement|award|programme|program|background|research|initiative|activity|role)\b/i.test(
+      lower,
+    )
+  ) {
+    return {
+      kind: 'verified_work_detail',
+      resolvedValue: values.verifiedWorkDetail,
+      explanation: `Verified research detail about the prospect's work or organisation (${values.verifiedWorkDetail})`,
+    };
+  }
+
+  // 5. Fallback for any other custom bracketed/parenthetical instruction
+  return {
+    kind: 'custom_contextual_cue',
+    resolvedValue: `${values.verifiedWorkDetail}, as ${values.personalisedBenefitClause}`,
+    explanation: `Contextual guidance "${innerText}" resolved using the prospect's verified work and personalised benefit`,
+  };
+}
+
+/**
+ * Extracts all bracketed `[...]` and instructional parenthetical `(...)` cues from a template
+ * and maps each one to its contextual meaning and resolved prospect-specific value.
+ */
+export function extractTemplateDirectives(
+  templateText: string,
+  values: ContextualTemplateValues,
+): ParsedTemplateDirective[] {
+  const directives: ParsedTemplateDirective[] = [];
+  const regex = /\[([^\][\n]{2,140})\]|\(([^()\n]{3,140})\)/g;
+  let match: RegExpExecArray | null;
+
+  while ((match = regex.exec(templateText)) !== null) {
+    const rawToken = match[0];
+    const bracketInner = match[1];
+    const parenInner = match[2];
+
+    if (parenInner !== undefined) {
+      // Only treat (...) as a directive if it contains instructional/contextual guidance words
+      const trimmedParen = parenInner.trim();
+      const isNameParen = /^(?:name|first\s+name|sender\s+name|recipient\s+name)$/i.test(trimmedParen);
+      if (!isNameParen && !INSTRUCTIONAL_PAREN_KEYWORDS.test(trimmedParen)) {
+        continue;
+      }
+    }
+
+    const innerText = (bracketInner ?? parenInner ?? '').trim();
+    if (!innerText) continue;
+
+    const classified = classifyDirectiveInnerText(
+      innerText,
+      match.index,
+      templateText.length,
+      values,
+    );
+
+    directives.push({
+      rawToken,
+      innerText,
+      ...classified,
+    });
+  }
+
+  return directives;
+}
+
+/**
+ * Replaces all bracketed `[...]` and instructional parenthetical `(...)` cues in `text`
+ * with context-aware, grammatically smooth phrases tailored to the prospect.
+ */
+export function resolveTemplateDirectivesInText(
+  text: string,
+  record: Parameters<typeof buildContextualTemplateValues>[0],
+  brief?: CategoryTemplateBriefInput | null,
+  settings?: Partial<PersonalizationSettings> | null,
+  template?: CategoryOutreachTemplate | null,
+): string {
+  const values = buildContextualTemplateValues(record, brief, settings, template);
+  const regex = /\[([^\][\n]{2,140})\]|\(([^()\n]{3,140})\)/g;
+
+  return text.replace(regex, (fullMatch, bracketInner: string | undefined, parenInner: string | undefined, offset: number) => {
+    if (parenInner !== undefined) {
+      const trimmedParen = parenInner.trim();
+      const isNameParen = /^(?:name|first\s+name|sender\s+name|recipient\s+name)$/i.test(trimmedParen);
+      if (!isNameParen && !INSTRUCTIONAL_PAREN_KEYWORDS.test(trimmedParen)) {
+        return fullMatch;
+      }
+    }
+
+    const innerText = (bracketInner ?? parenInner ?? '').trim();
+    if (!innerText) return fullMatch;
+
+    const classified = classifyDirectiveInnerText(innerText, offset, text.length, values);
+    let replacement = classified.resolvedValue;
+
+    // Smooth surrounding grammar (e.g. avoid "because because ...", "your your ...", or "the your ...")
+    const precedingSlice = text.slice(Math.max(0, offset - 18), offset).toLowerCase();
+    if (/\bbecause\s+$/.test(precedingSlice) && /^because\s+/i.test(replacement)) {
+      replacement = replacement.replace(/^because\s+/i, '');
+    }
+    if (/\byour\s+$/.test(precedingSlice) && /^your\s+/i.test(replacement)) {
+      replacement = replacement.replace(/^your\s+/i, '');
+    }
+    if (/\b(?:the|a|an)\s+$/.test(precedingSlice) && /^your\s+/i.test(replacement)) {
+      replacement = replacement.replace(/^your\s+/i, '');
+    }
+
+    return replacement;
+  })
+    .replace(/\b(your|because|the|a|an)\s+\1\b/gi, '$1')
+    .replace(/[^\S\r\n]{2,}/g, ' ');
 }

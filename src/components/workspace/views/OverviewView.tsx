@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { authenticatedFetch } from '@/auth/client';
 import CampaignConfigurationForm from '@/components/campaign/CampaignConfigurationForm';
+import PersonalisedTemplatesTab from '@/components/personalization/PersonalisedTemplatesTab';
 import type { StructuredBrief } from '@/marcom/schemas/structured-brief';
 import { PageFrame, ProjectGate } from '../AppShell';
 import { useWorkspace } from '../WorkspaceContext';
@@ -13,14 +14,13 @@ import {
   Icon,
   Pill,
   ProjectArt,
-  btnPrimary,
   btnSecondary,
   card,
   serif,
 } from '../ui';
 import { entriesForTarget, longDate, plural, prospectGoal, shortDate } from '../format';
 
-type OverviewTab = 'overview' | 'research' | 'fields';
+type OverviewTab = 'overview' | 'research' | 'fields' | 'templates';
 
 export default function OverviewView() {
   return (
@@ -31,7 +31,7 @@ export default function OverviewView() {
 }
 
 function OverviewBody() {
-  const { bundle, activeProject, reload, openResearch } = useWorkspace();
+  const { bundle, activeProject, reload, openResearch, setSettings } = useWorkspace();
   const [tab, setTab] = useState<OverviewTab>('overview');
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -137,13 +137,14 @@ function OverviewBody() {
       <div
         role="tablist"
         aria-label="Project sections"
-        className="flex gap-1 border-b border-[#22262E]"
+        className="flex flex-wrap gap-1 border-b border-[#22262E]"
       >
         {(
           [
             ['overview', 'Overview'],
             ['research', 'Research settings'],
             ['fields', 'Prospect fields'],
+            ['templates', 'Personalised Templates'],
           ] as const
         ).map(([id, label]) => {
           const on = tab === id;
@@ -525,6 +526,18 @@ function OverviewBody() {
             </table>
           </div>
         </div>
+      )}
+
+      {/* TAB 4: Personalised Templates */}
+      {tab === 'templates' && (
+        <PersonalisedTemplatesTab
+          projectId={projectId}
+          brief={brief}
+          research={research}
+          settings={bundle.settings}
+          onSettingsUpdated={(updated) => setSettings(updated)}
+          onEditCategories={() => setEditing(true)}
+        />
       )}
 
       {/* Full Campaign Configuration Editor Modal */}

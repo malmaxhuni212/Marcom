@@ -2,19 +2,36 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { LLMProvider, LLMRequest } from '../../llm/provider';
 import { InMemoryStore, type MemoryStore } from '../../memory/store';
-import type {
-  OutreachCopy,
-  PersonalizationSettings,
-  StrategyDossier,
+import {
+  buildDefaultCategoryTemplate,
+  decideTemplateUsageMode,
+  defaultLeadPersonalizationSettings,
+  getProjectCategoryTemplates,
+  type LeadPersonalizationSettings,
+  type OutreachCopy,
+  type PersonalizationSettings,
+  resolveCategoryTemplateForProspect,
+  type StrategyDossier,
 } from '../../schemas/personalization';
+import {
+  deleteProjectPersonalizations,
+  getPersonalizationSettings as getFilePersonalizationSettings,
+  savePersonalizationSettings as saveFilePersonalizationSettings,
+} from '../../memory/personalization-store';
 import type { ResearchEntry, ResearchRecord } from '../../schemas/research-record';
 import type { StructuredBrief } from '../../schemas/structured-brief';
 import {
+  buildAdaptivePersonalizationEntry,
   buildStrategistUserPrompt,
   buildWriterUserPrompt,
   normalizeStrategyDossier,
   runPersonalizationAgent,
 } from './agent';
+import {
+  appendFeedback,
+  createFeedbackItem,
+  getRelevantFeedback,
+} from '../../personalization/feedback';
 import { validatePersonalizationCopy } from './qa';
 
 function createEmptyStore(): MemoryStore {
@@ -1134,4 +1151,911 @@ Elena Vance`,
     assert.ok((res.strategy?.narrative_approach?.length ?? 0) > 10, `${s.kind} should populate narrative_approach`);
   }
 });
+
+// ============================================================================
+// SCENARIO 14: Per-Lead Personalization Settings across Author, Sponsor, Literary Org & Business Partner
+// ============================================================================
+test('Scenario 14: Per-lead Personalization Settings produce recipient-aware defaults and meaningfully different messages across Author, Sponsor, Literary Organisation, and Business Partnership prospects', () => {
+  const literaryBrief = makeBrief({
+    name: '2026 International Indie Literary Prize & Readers Showcase',
+    description:
+      'Annual literary prize and curated bookshop showcase connecting independent fiction and poetry authors with 85 independent bookshops and festival programmers.',
+    primary_objective:
+      'Invite independent authors, literary organisations, sponsors, and business partners to participate in the 2026 showcase.',
+    outreachObjective:
+      'Highlight concrete reader visibility, curated bookshop distribution, and brand alignment benefits for each participant.',
+  });
+  const campaignSettings = makeSettings({
+    sender_name: 'Clara Mendel',
+    sender_role: 'Programme Director',
+    organisation: 'Indie Literary Showcase',
+    campaign_facts: [
+      'Selected titles and partners are featured across 85 independent bookshops and regional literary festivals in Autumn 2026.',
+    ],
+  });
+
+  // 1. Individual Author
+  const authorEntry = makeResearchEntry({
+    record_id: 'rec-author-1',
+    target_type: 'Independent Fiction Authors',
+    identity: {
+      name: 'Amara Okafor',
+      entity_kind: 'person',
+      identity_verified: true,
+    },
+    role: 'Novelist & Essayist',
+    organisation: null,
+    summary: 'Award-shortlisted literary novelist based in Bristol, author of "The Salt Meridian" (2025).',
+    work_and_projects: ['Published the 2025 literary novel "The Salt Meridian" with Peninsula Press'],
+    achievements: ['Shortlisted for the 2025 Coastal Fiction Prize'],
+    reason_for_relevance: 'Independent literary novelist with an active UK readership and 2025 release.',
+  });
+
+  // 2. Potential Sponsor
+  const sponsorEntry = makeResearchEntry({
+    record_id: 'rec-sponsor-1',
+    target_type: 'Corporate Cultural Sponsors',
+    identity: {
+      name: 'Alder & Finch Paper Co.',
+      entity_kind: 'organisation',
+      identity_verified: true,
+    },
+    role: 'Brand Partnerships Team',
+    organisation: 'Alder & Finch Paper Co.',
+    summary: 'B-Corp archival book-paper manufacturer sponsoring independent publishing and print craft initiatives.',
+    work_and_projects: ['Sponsored the 2025 Northern Small Press Print Bursary'],
+    achievements: ['Supplied FSC-certified archival paper to 40 UK independent publishers in 2025'],
+    reason_for_relevance: 'Active corporate sponsor of independent publishing and literary print awards.',
+  });
+
+  // 3. Literary Organisation
+  const literaryOrgEntry = makeResearchEntry({
+    record_id: 'rec-lit-org-1',
+    target_type: 'Literary Organisations & Writing Centres',
+    identity: {
+      name: 'Scottish Emerging Writers Trust',
+      entity_kind: 'organisation',
+      identity_verified: true,
+    },
+    role: 'Programmes & Mentoring Team',
+    organisation: 'Scottish Emerging Writers Trust',
+    summary: 'Non-profit literary development organisation supporting debut novelists and poets across Scotland.',
+    work_and_projects: ['Runs the annual Highland Debut Fiction Fellowship for 12 emerging authors'],
+    achievements: ['Placed 9 fellowship alumni with independent UK publishers in 2025'],
+    reason_for_relevance: 'Directly supports emerging literary authors who stand to benefit from bookshop showcase visibility.',
+  });
+
+  // 4. Business Partnership Prospect
+  const businessPartnerEntry = makeResearchEntry({
+    record_id: 'rec-partner-1',
+    target_type: 'Business Partnership & Distribution Prospects',
+    identity: {
+      name: 'Julian Mercer',
+      entity_kind: 'person',
+      identity_verified: true,
+    },
+    role: 'Managing Director',
+    organisation: 'Lantern Bookshop Collective',
+    summary: 'Managing Director of Lantern Bookshop Collective, a network of 28 independent bookshops and subscription boxes.',
+    work_and_projects: ['Launched the 2025 Independent Fiction Monthly Curation Box across 28 regional bookshops'],
+    achievements: ['Grew independent press title sales by 34% across member shops in 2025'],
+    reason_for_relevance: 'Commercial distribution and curation partner reaching independent fiction readers.',
+  });
+
+  // Verify sensible recipient-aware defaults differ by archetype
+  const authorDefaults = defaultLeadPersonalizationSettings(authorEntry.record);
+  const sponsorDefaults = defaultLeadPersonalizationSettings(sponsorEntry.record);
+  const litOrgDefaults = defaultLeadPersonalizationSettings(literaryOrgEntry.record);
+  const partnerDefaults = defaultLeadPersonalizationSettings(businessPartnerEntry.record);
+
+  assert.equal(authorDefaults.tone, 'friendly', 'Individual author should default to friendly tone');
+  assert.equal(authorDefaults.communication_approach, 'relationship_first', 'Individual author should default to relationship-first');
+  assert.equal(sponsorDefaults.tone, 'professional', 'Potential sponsor should default to professional tone');
+  assert.equal(sponsorDefaults.communication_approach, 'incentive_driven', 'Potential sponsor should default to incentive-driven');
+  assert.equal(litOrgDefaults.tone, 'professional', 'Literary organisation should default to professional tone');
+  assert.equal(partnerDefaults.message_length, 'very_short', 'Managing Director should default to very_short length');
+  assert.equal(partnerDefaults.communication_approach, 'opportunity_first', 'Managing Director should default to opportunity-first');
+
+  // Verify changing settings produces meaningfully different drafts for the same prospect
+  const warmShortConfig: LeadPersonalizationSettings = {
+    tone: 'friendly',
+    message_length: 'very_short',
+    personalization_depth: 'light',
+    communication_approach: 'direct',
+    explanation_level: 'minimal',
+    call_to_action: 'soft',
+    additional_instructions: 'Keep it warm, avoid sounding promotional, and focus on bookshop visibility.',
+    updated_at: null,
+  };
+
+  const formalDetailedConfig: LeadPersonalizationSettings = {
+    tone: 'formal',
+    message_length: 'detailed',
+    personalization_depth: 'deep',
+    communication_approach: 'incentive_driven',
+    explanation_level: 'detailed',
+    call_to_action: 'direct',
+    additional_instructions: 'Emphasise the 85 independent bookshops and ask directly about submitting The Salt Meridian.',
+    updated_at: null,
+  };
+
+  const draftWarmShort = buildAdaptivePersonalizationEntry({
+    projectId: 'proj-lit',
+    researchEntry: authorEntry,
+    brief: literaryBrief,
+    settings: campaignSettings,
+    leadSettings: warmShortConfig,
+  });
+
+  const draftFormalDetailed = buildAdaptivePersonalizationEntry({
+    projectId: 'proj-lit',
+    researchEntry: authorEntry,
+    brief: literaryBrief,
+    settings: campaignSettings,
+    leadSettings: formalDetailedConfig,
+  });
+
+  assert.notEqual(
+    draftWarmShort.copy?.email_body,
+    draftFormalDetailed.copy?.email_body,
+    'Changing tone, length, depth, approach, explanation, and CTA must produce meaningfully different messages',
+  );
+  assert.ok(
+    draftFormalDetailed.copy!.email_body.startsWith('Dear Amara,'),
+    'Formal tone should use "Dear ..." salutation',
+  );
+  assert.ok(
+    draftWarmShort.copy!.email_body.startsWith('Hi Amara,'),
+    'Friendly tone should use "Hi ..." salutation',
+  );
+  assert.ok(
+    draftFormalDetailed.copy!.email_body.split(/\s+/).length >
+      draftWarmShort.copy!.email_body.split(/\s+/).length + 25,
+    'Detailed message length + detailed explanation must be meaningfully longer than very_short + minimal',
+  );
+  assert.ok(
+    draftFormalDetailed.copy!.email_body.includes('Coastal Fiction Prize'),
+    'Deep personalization must weave in secondary verified achievements (Coastal Fiction Prize)',
+  );
+
+  // Verify Strategist and Writer prompts explicitly include the per-lead settings block
+  const strategistPrompt = buildStrategistUserPrompt(
+    literaryBrief,
+    authorEntry,
+    campaignSettings,
+    '',
+    formalDetailedConfig,
+  );
+  assert.ok(strategistPrompt.includes('INDIVIDUAL LEAD PERSONALIZATION SETTINGS'));
+  assert.ok(strategistPrompt.includes('Tone: Formal'));
+  assert.ok(strategistPrompt.includes('Level of Personalisation: Deep'));
+  assert.ok(strategistPrompt.includes('Emphasise the 85 independent bookshops'));
+
+  const writerPrompt = buildWriterUserPrompt(
+    draftFormalDetailed.strategy!,
+    authorEntry,
+    campaignSettings,
+    'Amara Okafor',
+    literaryBrief,
+    formalDetailedConfig,
+  );
+  assert.ok(writerPrompt.includes('Call to Action Style: Direct'));
+
+  // Verify all 4 archetypes generate accurate, relevant, incentive-driven drafts with zero em-dashes
+  const allFourArchetypes = [
+    { label: 'author', entry: authorEntry, cfg: authorDefaults },
+    { label: 'sponsor', entry: sponsorEntry, cfg: sponsorDefaults },
+    { label: 'literary_org', entry: literaryOrgEntry, cfg: litOrgDefaults },
+    { label: 'business_partner', entry: businessPartnerEntry, cfg: partnerDefaults },
+  ];
+
+  for (const item of allFourArchetypes) {
+    const generated = buildAdaptivePersonalizationEntry({
+      projectId: 'proj-lit',
+      researchEntry: item.entry,
+      brief: literaryBrief,
+      settings: campaignSettings,
+      leadSettings: item.cfg,
+    });
+    assert.ok(generated.copy, `${item.label} should have generated copy`);
+    assert.equal(generated.lead_settings?.tone, item.cfg.tone, `${item.label} should persist its own lead_settings`);
+    assert.ok(
+      !generated.copy!.email_body.includes('—') && !generated.copy!.email_body.includes('–'),
+      `${item.label} email body must not contain em-dashes or en-dashes`,
+    );
+    assert.ok(
+      (generated.strategy?.recipient_incentive?.length ?? 0) > 15,
+      `${item.label} strategy must include a concrete recipient incentive`,
+    );
+  }
+});
+
+// ============================================================================
+// SCENARIO 15: Project-Specific Personalised Outreach Templates (Maya Poetry Book Awards)
+// ============================================================================
+test('Scenario 15: Maya Poetry Book Awards category templates dynamically load, persist edits per project, and guide the Personalization Agent (use, adapt, inspiration, ignore) while preserving genuine personalisation', () => {
+  const mayaProjectId = 'test-maya-poetry-awards-templates';
+  const otherProjectId = 'test-flowpilot-isolation-templates';
+
+  // Build Maya Poetry Book Awards brief with Authors, Sponsors, and Organisations categories
+  const mayaBrief: StructuredBrief = {
+    ...makeBrief({
+      name: 'Maya Poetry Book Awards',
+      description:
+        'An international poetry and literary awards programme celebrating independent and published voices while building a long-term author community.',
+      primary_objective:
+        'Generate 2,000+ quality poetry and book submissions from relevant authors and build recurring community and sponsor partnerships.',
+      secondary_objectives: [
+        'Increase international awareness of Maya Poetry Book Awards.',
+        'Develop recurring partnership and sponsorship opportunities.',
+        'Create a long-term author community and referral network.',
+      ],
+    }),
+    targets: [
+      {
+        id: 'cat-authors',
+        target_type: 'Authors',
+        entity_kind: 'person',
+        description: 'Independent, emerging, and published poets and authors active in literary communities.',
+        geography_mode: 'specified',
+        geography: ['United Kingdom', 'United States'],
+        qualification_criteria: [
+          { text: 'Published a poetry collection or literary work.', origin: 'explicit', needs_operational_definition: false },
+        ],
+        exclusion_criteria: [],
+        priority: 'primary',
+      },
+      {
+        id: 'cat-sponsors',
+        target_type: 'Sponsors',
+        entity_kind: 'organisation',
+        description: 'Cultural foundations, publishing patrons, and brands capable of sponsoring the Maya Poetry Book Awards.',
+        geography_mode: 'specified',
+        geography: ['United Kingdom', 'United States'],
+        qualification_criteria: [
+          { text: 'History of supporting literary or cultural initiatives.', origin: 'explicit', needs_operational_definition: false },
+        ],
+        exclusion_criteria: [],
+        priority: 'secondary',
+      },
+      {
+        id: 'cat-organisations',
+        target_type: 'Organisations',
+        entity_kind: 'organisation',
+        description: 'Writing groups, poetry societies, literary magazines, and independent publisher networks.',
+        geography_mode: 'specified',
+        geography: ['United Kingdom', 'United States'],
+        qualification_criteria: [
+          { text: 'Active membership of poets, authors, or literary readers.', origin: 'explicit', needs_operational_definition: false },
+        ],
+        exclusion_criteria: [],
+        priority: 'secondary',
+      },
+    ],
+  };
+
+  const baseMayaSettings = makeSettings({
+    sender_name: 'Hannah Sterling',
+    sender_role: 'Awards Director',
+    organisation: 'Maya Poetry Book Awards',
+    campaign_facts: [
+      'Shortlisted poets receive international showcase visibility, anthology publication, and trade distribution support.',
+    ],
+  });
+
+  // 1. Dynamically load initial pre-built templates for Authors, Sponsors, and Organisations
+  const initialTemplates = getProjectCategoryTemplates(mayaBrief, baseMayaSettings);
+  assert.equal(initialTemplates.length, 3, 'Should dynamically create templates for all 3 Maya lead categories');
+  assert.deepEqual(
+    initialTemplates.map((t) => t.target_type),
+    ['Authors', 'Sponsors', 'Organisations'],
+  );
+  for (const tpl of initialTemplates) {
+    assert.equal(tpl.is_custom, false, `${tpl.target_type} initial template should be marked pre-built`);
+    assert.ok(tpl.subject_line.includes('Maya Poetry Book Awards'), `${tpl.target_type} subject should reference project`);
+    assert.ok(tpl.body.length > 120, `${tpl.target_type} body should be a complete editable outreach message`);
+    assert.ok(
+      tpl.body.includes('[specific detail about their work or organisation]') &&
+        tpl.body.includes('[specific collaboration or request]') &&
+        tpl.body.includes('[personalised benefit or reason it could be valuable to them]') &&
+        tpl.body.includes('£7,000 in prizes, including a £3,000 top prize') &&
+        tpl.body.includes('4 January 2027') &&
+        tpl.body.includes('https://poetrybookawards.co.uk'),
+      `${tpl.target_type} Maya template should include the contextual cues and Maya award details`,
+    );
+  }
+
+  // Verify dynamic category addition: adding a 4th category ("Universities & Creative Writing Programmes") automatically generates a 4th template
+  const expandedBrief: StructuredBrief = {
+    ...mayaBrief,
+    targets: [
+      ...mayaBrief.targets,
+      {
+        id: 'cat-universities',
+        target_type: 'Universities & Creative Writing Programmes',
+        entity_kind: 'organisation',
+        description: 'MFA programmes and university poetry societies.',
+        geography_mode: 'specified',
+        geography: ['United Kingdom'],
+        qualification_criteria: [],
+        exclusion_criteria: [],
+        priority: 'secondary',
+      },
+    ],
+  };
+  const expandedTemplates = getProjectCategoryTemplates(expandedBrief, baseMayaSettings);
+  assert.equal(expandedTemplates.length, 4, 'Adding a new lead category dynamically adds a corresponding template');
+  assert.equal(expandedTemplates[3]!.target_type, 'Universities & Creative Writing Programmes');
+
+  // 2. Edit each template (Authors, Sponsors, Organisations), save persistently, and confirm changes persist after reload
+  const editedAuthorsTemplate = {
+    target_id: 'cat-authors',
+    target_type: 'Authors',
+    subject_line: 'Maya Poetry Book Awards: Autumn Anthology & Submission Invite',
+    body: [
+      'Hi there,',
+      'I hope your week is going well. We are inviting standout contemporary voices to enter the Maya Poetry Book Awards this season.',
+      'Through the Maya Poetry Book Awards, shortlisted collections are featured in our Autumn Poetry Anthology and presented to 60 partner bookshops and festival curators.',
+      'Would it be useful if I sent over the one-page submission guide and eligibility dates so you can see if it fits your plans?',
+      'Warmly,\nHannah Sterling',
+    ].join('\n\n'),
+    is_custom: true,
+    updated_at: new Date().toISOString(),
+  };
+
+  const editedSponsorsTemplate = {
+    target_id: 'cat-sponsors',
+    target_type: 'Sponsors',
+    subject_line: 'Headline Partner & Patronage: Maya Poetry Book Awards',
+    body: [
+      'Hi there,',
+      'I hope your week is going well. Given your commitment to literary arts patronage, I wanted to share our partnership framework for the Maya Poetry Book Awards.',
+      'We are uniting 2,000+ poets, independent presses, and literary audiences, offering Headline Partners dedicated category naming rights and year-round brand alignment across our anthology and awards gala.',
+      'Would you be open to a brief conversation or reviewing our concise sponsorship deck?',
+      'Best regards,\nHannah Sterling',
+    ].join('\n\n'),
+    is_custom: true,
+    updated_at: new Date().toISOString(),
+  };
+
+  const editedOrgsTemplate = {
+    target_id: 'cat-organisations',
+    target_type: 'Organisations',
+    subject_line: 'Community Partner Invitation: Maya Poetry Book Awards',
+    body: [
+      'Hi team,',
+      'I hope your week is going well. We admire how you champion emerging poets and wanted to invite your community to partner with the Maya Poetry Book Awards.',
+      'Community Partners receive priority showcase slots for their member poets, reciprocal spotlighting in our international newsletter, and a dedicated member entry waiver code.',
+      'Could you let me know if I may share our short Community Partner pack, or point me to the best colleague on your team?',
+      'Best regards,\nHannah Sterling',
+    ].join('\n\n'),
+    is_custom: true,
+    updated_at: new Date().toISOString(),
+  };
+
+  saveFilePersonalizationSettings(mayaProjectId, {
+    ...baseMayaSettings,
+    category_templates: {
+      'cat-authors': editedAuthorsTemplate,
+      'cat-sponsors': editedSponsorsTemplate,
+      'cat-organisations': editedOrgsTemplate,
+    },
+  });
+
+  // Reload from persistent storage and verify edits persisted
+  const reloadedMayaSettings = getFilePersonalizationSettings(mayaProjectId);
+  const reloadedTemplates = getProjectCategoryTemplates(mayaBrief, reloadedMayaSettings);
+  assert.equal(reloadedTemplates.length, 3);
+  assert.ok(reloadedTemplates.every((t) => t.is_custom === true), 'All 3 edited templates should persist as custom');
+  assert.ok(
+    reloadedTemplates.find((t) => t.target_id === 'cat-authors')?.body.includes('Autumn Poetry Anthology'),
+    'Edited Authors template content must persist after reload',
+  );
+  assert.ok(
+    reloadedTemplates.find((t) => t.target_id === 'cat-sponsors')?.body.includes('Headline Partners dedicated category naming rights'),
+    'Edited Sponsors template content must persist after reload',
+  );
+  assert.ok(
+    reloadedTemplates.find((t) => t.target_id === 'cat-organisations')?.body.includes('dedicated member entry waiver code'),
+    'Edited Organisations template content must persist after reload',
+  );
+
+  // 3. Verify project isolation: another project cannot share or overwrite Maya's templates
+  saveFilePersonalizationSettings(otherProjectId, {
+    sender_name: 'Owen Patel',
+    organisation: 'FlowPilot Automation',
+    category_templates: {
+      'cat-authors': {
+        target_id: 'cat-authors',
+        target_type: 'Operations Teams',
+        subject_line: 'FlowPilot workflow automation',
+        body: 'Hi there,\n\nWe help operations teams automate manual invoice processing.\n\nBest,\nOwen',
+        is_custom: true,
+        updated_at: new Date().toISOString(),
+      },
+    },
+  });
+  const mayaAfterOtherSave = getFilePersonalizationSettings(mayaProjectId);
+  const otherReloaded = getFilePersonalizationSettings(otherProjectId);
+  assert.ok(
+    mayaAfterOtherSave.category_templates?.['cat-authors']?.body.includes('Autumn Poetry Anthology'),
+    'Saving templates in another project must never overwrite Maya templates',
+  );
+  assert.ok(
+    otherReloaded.category_templates?.['cat-authors']?.body.includes('automate manual invoice processing'),
+    'Second project retains its own independent templates',
+  );
+
+  // 4. Generate messages for multiple prospects across Authors, Sponsors, and Organisations
+  //    and verify the agent intelligently chooses USE, ADAPT, INSPIRATION, or IGNORE while keeping genuine personalisation!
+
+  // Prospect 1A (Author - 1 primary collection -> USE mode)
+  const authorUseProspect = makeResearchEntry({
+    record_id: 'maya-author-use',
+    brief_target_id: 'cat-authors',
+    target_type: 'Authors',
+    identity: { name: 'Nadia Al-Mansoor', entity_kind: 'person', identity_verified: true },
+    role: 'Poet',
+    organisation: null,
+    summary: 'London-based poet and author of the 2025 collection "Lanterns on the Thames".',
+    work_and_projects: ['Published the 2025 poetry collection "Lanterns on the Thames"'],
+    achievements: [],
+    reason_for_relevance: 'Published contemporary poet with a 2025 collection eligible for the Maya Poetry Book Awards.',
+  });
+
+  // Prospect 1B (Author - multi-work + award -> ADAPT mode)
+  const authorAdaptProspect = makeResearchEntry({
+    record_id: 'maya-author-adapt',
+    brief_target_id: 'cat-authors',
+    target_type: 'Authors',
+    identity: { name: 'Callum MacLeod', entity_kind: 'person', identity_verified: true },
+    role: 'Poet & Pamphlet Editor',
+    organisation: 'Clyde Verse Press',
+    summary: 'Glasgow poet, author of "Tidewrack" and "granite hymns", winner of the 2025 Northern Verse Bursary.',
+    work_and_projects: [
+      'Published the 2025 collection "Tidewrack" exploring Scottish maritime history',
+      'Co-edited the "Granite Hymns" spoken-word anthology in 2024',
+    ],
+    achievements: ['Won the 2025 Northern Verse Bursary'],
+    reason_for_relevance: 'Award-winning poet with two recent works and an active literary following.',
+  });
+
+  // Prospect 1C (Author - research contradiction / closed to standard prize submissions -> IGNORE mode)
+  const authorIgnoreProspect = makeResearchEntry({
+    record_id: 'maya-author-ignore',
+    brief_target_id: 'cat-authors',
+    target_type: 'Authors',
+    identity: { name: 'Prof. Evelyn Thorne', entity_kind: 'person', identity_verified: true },
+    role: 'Poet Laureate & Chair of Judging',
+    organisation: 'Oxford Poetics Forum',
+    summary: 'Senior poet who paused submissions to competitive book awards while chairing the Oxford Poetics Forum.',
+    work_and_projects: ['Edited the 2025 Oxford Lectures on Contemporary Form'],
+    achievements: [],
+    contradictions: ['Publicly stated she no longer enters competitive book prizes as a contestant, focusing on guest lectures and community mentorship.'],
+    reason_for_relevance: 'Influential poetry figure better suited to a bespoke community/referral conversation than a standard entry pitch.',
+  });
+
+  // Prospect 2A (Sponsor - 1 core patronage programme -> USE mode)
+  const sponsorUseProspect = makeResearchEntry({
+    record_id: 'maya-sponsor-use',
+    brief_target_id: 'cat-sponsors',
+    target_type: 'Sponsors',
+    identity: { name: 'Vanguard Literary Foundation', entity_kind: 'organisation', identity_verified: true },
+    role: 'Cultural Grants Team',
+    organisation: 'Vanguard Literary Foundation',
+    summary: 'UK arts foundation funding poetry prizes and independent literary showcases.',
+    work_and_projects: ['Funded the 2025 Regional Poetry Translation Grant'],
+    achievements: [],
+    reason_for_relevance: 'Active philanthropic sponsor of poetry awards and translation initiatives.',
+  });
+
+  // Prospect 2B (Sponsor - busy Managing Director with very_short / opportunity_first settings -> INSPIRATION mode)
+  const sponsorInspirationProspect = makeResearchEntry({
+    record_id: 'maya-sponsor-inspiration',
+    brief_target_id: 'cat-sponsors',
+    target_type: 'Sponsors',
+    identity: { name: 'Sterling & Co. Fine Stationery', entity_kind: 'organisation', identity_verified: true },
+    role: 'CEO & Managing Director',
+    organisation: 'Sterling & Co. Fine Stationery',
+    summary: 'Luxury notebook and pen brand led by CEO Marcus Sterling, sponsoring literary festivals.',
+    work_and_projects: ['Partnered with the 2025 Edinburgh Bookbinders Showcase'],
+    achievements: ['Named 2025 UK Cultural Patron of the Year'],
+    reason_for_relevance: 'High-fit corporate sponsor where the CEO needs a crisp, executive-level pitch.',
+  });
+
+  // Prospect 3A (Organisation - 1 core poetry network -> USE mode)
+  const orgUseProspect = makeResearchEntry({
+    record_id: 'maya-org-use',
+    brief_target_id: 'cat-organisations',
+    target_type: 'Organisations',
+    identity: { name: 'Pennine Poets Collective', entity_kind: 'organisation', identity_verified: true },
+    role: 'Community Coordinator',
+    organisation: 'Pennine Poets Collective',
+    summary: 'Regional poetry society with 350 active poet members across Northern England.',
+    work_and_projects: ['Organises the monthly Pennine Stanza Workshop for 350 member poets'],
+    achievements: [],
+    reason_for_relevance: 'Active poetry community whose members match the Maya Poetry Book Awards.',
+  });
+
+  // Prospect 3B (Organisation - multi-programme literary press & magazine -> ADAPT mode)
+  const orgAdaptProspect = makeResearchEntry({
+    record_id: 'maya-org-adapt',
+    brief_target_id: 'cat-organisations',
+    target_type: 'Organisations',
+    identity: { name: 'Meridian Verse Magazine', entity_kind: 'organisation', identity_verified: true },
+    role: 'Editorial & Partnerships Team',
+    organisation: 'Meridian Verse Magazine',
+    summary: 'Independent poetry journal and small-press network publishing debut pamphlet poets.',
+    work_and_projects: [
+      'Publishes the quarterly Meridian Verse Debut Pamphlet Series',
+      'Hosts the annual London Small Press Poetry Fair',
+    ],
+    achievements: ['Featured 45 debut poets across its 2025 print issues'],
+    reason_for_relevance: 'Leading poetry magazine and event organiser with direct reach to emerging poets.',
+  });
+
+  const draftAuthorUse = buildAdaptivePersonalizationEntry({
+    projectId: mayaProjectId,
+    researchEntry: authorUseProspect,
+    brief: mayaBrief,
+    settings: reloadedMayaSettings,
+  });
+  const draftAuthorAdapt = buildAdaptivePersonalizationEntry({
+    projectId: mayaProjectId,
+    researchEntry: authorAdaptProspect,
+    brief: mayaBrief,
+    settings: reloadedMayaSettings,
+  });
+  const draftAuthorIgnore = buildAdaptivePersonalizationEntry({
+    projectId: mayaProjectId,
+    researchEntry: authorIgnoreProspect,
+    brief: mayaBrief,
+    settings: reloadedMayaSettings,
+  });
+  const draftSponsorUse = buildAdaptivePersonalizationEntry({
+    projectId: mayaProjectId,
+    researchEntry: sponsorUseProspect,
+    brief: mayaBrief,
+    settings: reloadedMayaSettings,
+  });
+  const draftSponsorInspiration = buildAdaptivePersonalizationEntry({
+    projectId: mayaProjectId,
+    researchEntry: sponsorInspirationProspect,
+    brief: mayaBrief,
+    settings: reloadedMayaSettings,
+    leadSettings: defaultLeadPersonalizationSettings(sponsorInspirationProspect.record),
+  });
+  const draftOrgUse = buildAdaptivePersonalizationEntry({
+    projectId: mayaProjectId,
+    researchEntry: orgUseProspect,
+    brief: mayaBrief,
+    settings: reloadedMayaSettings,
+  });
+  const draftOrgAdapt = buildAdaptivePersonalizationEntry({
+    projectId: mayaProjectId,
+    researchEntry: orgAdaptProspect,
+    brief: mayaBrief,
+    settings: reloadedMayaSettings,
+  });
+
+  // Verify intelligent template mode decisions across the prospects
+  assert.equal(draftAuthorUse.strategy?.template_usage_mode, 'use', 'Standard single-work author should USE the Authors template');
+  assert.equal(draftAuthorAdapt.strategy?.template_usage_mode, 'adapt', 'Multi-work award-winning author should ADAPT the Authors template');
+  assert.equal(draftAuthorIgnore.strategy?.template_usage_mode, 'ignore', 'Author with contradiction against prize submissions should IGNORE the standard template');
+  assert.equal(draftSponsorUse.strategy?.template_usage_mode, 'use', 'Standard cultural foundation sponsor should USE the Sponsors template');
+  assert.equal(draftSponsorInspiration.strategy?.template_usage_mode, 'inspiration', 'CEO sponsor with very_short executive settings should use the template as INSPIRATION');
+  assert.equal(draftOrgUse.strategy?.template_usage_mode, 'use', 'Single-programme poetry society should USE the Organisations template');
+  assert.equal(draftOrgAdapt.strategy?.template_usage_mode, 'adapt', 'Multi-programme poetry magazine should ADAPT the Organisations template');
+
+  // Verify edited template phrases appear in USE/ADAPT drafts, while genuine prospect personalisation is preserved
+  assert.ok(
+    draftAuthorUse.copy!.email_body.includes('Autumn Poetry Anthology') &&
+      draftAuthorUse.copy!.email_body.includes('Lanterns on the Thames'),
+    'Author USE draft must reflect edited Authors template AND Nadia\'s verified book "Lanterns on the Thames"',
+  );
+  assert.ok(
+    draftAuthorAdapt.copy!.email_body.includes('Autumn Poetry Anthology') &&
+      draftAuthorAdapt.copy!.email_body.includes('Tidewrack') &&
+      draftAuthorAdapt.copy!.email_body.includes('Northern Verse Bursary'),
+    'Author ADAPT draft must reuse edited template positioning while structuring around Callum\'s works and bursary',
+  );
+  assert.ok(
+    !draftAuthorIgnore.copy!.email_body.includes('Autumn Poetry Anthology') &&
+      draftAuthorIgnore.copy!.email_body.includes('Oxford Lectures on Contemporary Form'),
+    'Author IGNORE draft must NOT use the standard submission template phrasing and must instead write an original message around her Oxford work',
+  );
+  assert.ok(
+    draftSponsorUse.copy!.email_body.includes('Headline Partners dedicated category naming rights') &&
+      draftSponsorUse.copy!.email_body.includes('Regional Poetry Translation Grant'),
+    'Sponsor USE draft must reflect edited Sponsors template AND Vanguard\'s Regional Poetry Translation Grant',
+  );
+  assert.ok(
+    draftOrgUse.copy!.email_body.includes('dedicated member entry waiver code') &&
+      draftOrgUse.copy!.email_body.includes('Pennine Stanza Workshop'),
+    'Organisation USE draft must reflect edited Organisations template AND Pennine Stanza Workshop',
+  );
+  assert.ok(
+    draftOrgAdapt.copy!.email_body.includes('dedicated member entry waiver code') &&
+      draftOrgAdapt.copy!.email_body.includes('Meridian Verse Debut Pamphlet Series'),
+    'Organisation ADAPT draft must adapt edited Organisations template AND reference Meridian Verse Debut Pamphlet Series',
+  );
+
+  // 5. Verify that further editing a template updates future generations without overwriting existing prospect messages
+  const previousNadiaEmail = draftAuthorUse.copy!.email_body;
+  saveFilePersonalizationSettings(mayaProjectId, {
+    ...reloadedMayaSettings,
+    category_templates: {
+      ...reloadedMayaSettings.category_templates,
+      'cat-authors': {
+        ...editedAuthorsTemplate,
+        body: [
+          'Hi there,',
+          'I hope your week is going well.',
+          'Through the Maya Poetry Book Awards, finalists are invited to our live London Southbank Poetry Gala and receive international press representation.',
+          'Would you like me to send the short submission overview?',
+          'Warmly,\nHannah Sterling',
+        ].join('\n\n'),
+        updated_at: new Date().toISOString(),
+      },
+    },
+  });
+
+  const updatedMayaSettings = getFilePersonalizationSettings(mayaProjectId);
+  const futureAuthorDraft = buildAdaptivePersonalizationEntry({
+    projectId: mayaProjectId,
+    researchEntry: authorUseProspect,
+    brief: mayaBrief,
+    settings: updatedMayaSettings,
+  });
+
+  assert.ok(
+    futureAuthorDraft.copy!.email_body.includes('London Southbank Poetry Gala'),
+    'Future message generations must reflect the newly edited template',
+  );
+  assert.ok(
+    previousNadiaEmail.includes('Autumn Poetry Anthology') &&
+      !previousNadiaEmail.includes('London Southbank Poetry Gala'),
+    'Previously generated prospect draft remains untouched unless regenerated',
+  );
+
+  // 6. Verify fallback when no template exists for a category
+  const unmappedProspect = makeResearchEntry({
+    record_id: 'maya-unmapped',
+    brief_target_id: 'non-existent-target',
+    target_type: ' Literary Podcast Hosts ',
+    identity: { name: ' Clara Bell ', entity_kind: 'person', identity_verified: true },
+    role: 'Host',
+    organisation: 'Verse & Voice Podcast',
+    work_and_projects: ['Hosts the weekly Verse & Voice Poetry Interview Podcast'],
+  });
+  const emptyTemplateBrief: StructuredBrief = { ...mayaBrief, targets: [] as any };
+  const resolvedNone = resolveCategoryTemplateForProspect(unmappedProspect.record, emptyTemplateBrief, baseMayaSettings);
+  assert.equal(resolvedNone, null, 'Should return null when no category template exists');
+  const unmappedDraft = buildAdaptivePersonalizationEntry({
+    projectId: mayaProjectId,
+    researchEntry: unmappedProspect,
+    brief: emptyTemplateBrief,
+    settings: baseMayaSettings,
+  });
+  assert.ok(
+    unmappedDraft.copy!.email_body.includes('Verse & Voice Poetry Interview Podcast'),
+    'When no template exists for a category, the agent still generates a personalised message from the brief and research',
+  );
+
+  // 7. Verify contextual cue understanding for both bracketed [...] and parenthetical (...) templates
+  //    (e.g. [personalised benefit or reason it could be valuable to them] and (personalised benefit or reason it could be valuable to them))
+  const defaultMayaAuthorDraft = buildAdaptivePersonalizationEntry({
+    projectId: mayaProjectId,
+    researchEntry: authorUseProspect,
+    brief: mayaBrief,
+    settings: baseMayaSettings,
+  });
+  assert.ok(
+    !defaultMayaAuthorDraft.copy!.email_body.includes('[Name]') &&
+      !defaultMayaAuthorDraft.copy!.email_body.includes('[specific detail') &&
+      !defaultMayaAuthorDraft.copy!.email_body.includes('[specific collaboration') &&
+      !defaultMayaAuthorDraft.copy!.email_body.includes('[personalised benefit'),
+    'All bracketed contextual cues [...] in the Maya template must be resolved in context',
+  );
+  assert.ok(
+    defaultMayaAuthorDraft.copy!.email_body.includes('Lanterns on the Thames') &&
+      defaultMayaAuthorDraft.copy!.email_body.includes('£7,000 in prizes') &&
+      defaultMayaAuthorDraft.copy!.email_body.includes('4 January 2027') &&
+      defaultMayaAuthorDraft.copy!.email_body.includes('https://poetrybookawards.co.uk') &&
+      defaultMayaAuthorDraft.copy!.email_body.includes('Hannah Sterling'),
+    'Resolved Maya draft must weave in the verified book, contextual benefit, competition dates, URL, and sender name',
+  );
+  assert.equal(
+    defaultMayaAuthorDraft.qa?.status,
+    'passed',
+    `Resolved Maya template draft must pass QA cleanly (issues: ${JSON.stringify(defaultMayaAuthorDraft.qa?.issues ?? [])})`,
+  );
+
+  // Also test parenthetical cues (...) inside a custom template alongside factual parentheses like (including a £3,000 top prize)
+  const parentheticalMayaSettings = makeSettings({
+    ...baseMayaSettings,
+    category_templates: {
+      'cat-sponsors': {
+        target_id: 'cat-sponsors',
+        target_type: 'Sponsors',
+        subject_line: 'Maya Poetry Book Awards — Partnership with (Name)',
+        body: [
+          'Hi (Name),',
+          'I came across (specific detail about their work or organisation) and thought there could be an interesting connection with the Maya Poetry Book Awards.',
+          'Maya is an international poetry book competition for indie writers, self-published poets and books from small, truly independent presses. With £7,000 in prizes (including a £3,000 top prize), it offers authors an opportunity for recognition and greater visibility.',
+          "We're reaching out to explore (specific collaboration or request) because (personalised benefit or reason it could be valuable to them).",
+          'Next year’s competition opens on 4 January 2027. You can find out more at https://poetrybookawards.co.uk.',
+          "Would you be open to exploring this further? We'd be happy to share more details.",
+          'Best,\n\n(Name)\n\nMaya Poetry Book Awards',
+        ].join('\n\n'),
+        is_custom: true,
+        updated_at: new Date().toISOString(),
+      },
+    },
+  });
+
+  const parenSponsorDraft = buildAdaptivePersonalizationEntry({
+    projectId: mayaProjectId,
+    researchEntry: sponsorUseProspect,
+    brief: mayaBrief,
+    settings: parentheticalMayaSettings,
+  });
+  assert.ok(
+    !parenSponsorDraft.copy!.email_body.includes('(specific detail') &&
+      !parenSponsorDraft.copy!.email_body.includes('(specific collaboration') &&
+      !parenSponsorDraft.copy!.email_body.includes('(personalised benefit') &&
+      !parenSponsorDraft.copy!.email_body.includes('(Name)'),
+    'All instructional parenthetical cues (...) must be understood and resolved in context',
+  );
+  assert.ok(
+    parenSponsorDraft.copy!.email_body.includes('(including a £3,000 top prize)'),
+    'Normal factual parentheses like "(including a £3,000 top prize)" must remain intact',
+  );
+  assert.ok(
+    parenSponsorDraft.copy!.email_body.includes('Regional Poetry Translation Grant') &&
+      parenSponsorDraft.copy!.email_body.includes('sponsorship or patronage partnership with Vanguard Literary Foundation') &&
+      parenSponsorDraft.copy!.email_body.includes('prominent brand alignment'),
+    'Parenthetical cues must resolve to the sponsor\'s verified grant work, sponsorship request, and tailored sponsor benefit',
+  );
+
+  // Clean up test settings files
+  deleteProjectPersonalizations(mayaProjectId);
+  deleteProjectPersonalizations(otherProjectId);
+});
+
+// ============================================================================
+// SCENARIO 16: Reviewer Feedback Memory & Rewrite from Feedback
+// ============================================================================
+test('Scenario 16: Post-personalization feedback is saved for future references (project, category, lead scopes) and immediately rewrites drafts based on feedback', () => {
+  const feedbackProjectId = 'test-feedback-memory-project';
+  const brief = makeBrief({
+    name: 'Maya Poetry Book Awards',
+    description: 'International poetry book competition for indie writers and small independent presses.',
+    primary_objective: 'Invite authors to enter the 2027 Maya Poetry Book Awards.',
+    targetType: 'Authors',
+  });
+
+  const leadEllen = makeResearchEntry({
+    record_id: 'lead-ellen',
+    brief_target_id: 'target-1',
+    target_type: 'Authors',
+    identity: { name: 'Ellen Montrose', entity_kind: 'person', identity_verified: true },
+    role: 'Poet & Creative Writing Lecturer',
+    organisation: 'Hofstra University',
+    work_and_projects: ['Published the poetry collection "The Rooftop Party"'],
+  });
+
+  const leadSecondAuthor = makeResearchEntry({
+    record_id: 'lead-second-author',
+    brief_target_id: 'target-1',
+    target_type: 'Authors',
+    identity: { name: 'Julian Vance', entity_kind: 'person', identity_verified: true },
+    role: 'Indie Poet',
+    organisation: null,
+    work_and_projects: ['Published the 2025 collection "Harbour Echoes"'],
+  });
+
+  const initialSettings = makeSettings({
+    sender_name: 'Maya Editorial Team',
+    organisation: 'Maya Poetry Book Awards',
+  });
+
+  // 1. Initial personalization for Ellen follows the Maya template directly
+  const initialDraft = buildAdaptivePersonalizationEntry({
+    projectId: feedbackProjectId,
+    researchEntry: leadEllen,
+    brief,
+    settings: initialSettings,
+  });
+  assert.ok(
+    initialDraft.copy!.email_body.includes('I came across') &&
+      initialDraft.copy!.email_body.includes('The Rooftop Party') &&
+      initialDraft.copy!.email_body.includes('greater visibility'),
+    'Initial draft follows the Maya template and resolves the contextual cues',
+  );
+
+  // 2. Reviewer gives feedback on Ellen's draft and clicks "Save & rewrite":
+  //    "Replace 'greater visibility' with 'international reader discovery' and don't mention 'small, truly independent presses'"
+  const feedbackItem = createFeedbackItem({
+    text: 'Replace "greater visibility" with "international reader discovery" and don\'t mention "small, truly independent presses"',
+    scope: 'project',
+    record: leadEllen.record,
+  });
+  const savedSettings = saveFilePersonalizationSettings(feedbackProjectId, {
+    ...initialSettings,
+    feedback_memory: appendFeedback(initialSettings.feedback_memory, feedbackItem),
+  });
+
+  const rewrittenEllenDraft = buildAdaptivePersonalizationEntry({
+    projectId: feedbackProjectId,
+    researchEntry: leadEllen,
+    brief,
+    settings: savedSettings,
+    existing: initialDraft,
+    rewriteFeedback: feedbackItem.text,
+  });
+
+  assert.ok(
+    !rewrittenEllenDraft.copy!.email_body.includes('small, truly independent presses'),
+    'Rewritten draft immediately removes the unwanted sentence based on feedback',
+  );
+  assert.ok(
+    rewrittenEllenDraft.copy!.email_body.includes('international reader discovery') &&
+      !rewrittenEllenDraft.copy!.email_body.includes('greater visibility'),
+    'Rewritten draft applies the requested phrase replacement from feedback',
+  );
+
+  // 3. Future personalization for a completely different prospect (Julian Vance) automatically remembers and applies the learned feedback!
+  const reloadedSettings = getFilePersonalizationSettings(feedbackProjectId);
+  const relevantForJulian = getRelevantFeedback(reloadedSettings, leadSecondAuthor.record);
+  assert.equal(relevantForJulian.length, 1, 'Project-scoped feedback must be retrieved for future prospects');
+
+  const futureJulianDraft = buildAdaptivePersonalizationEntry({
+    projectId: feedbackProjectId,
+    researchEntry: leadSecondAuthor,
+    brief,
+    settings: reloadedSettings,
+  });
+  assert.ok(
+    !futureJulianDraft.copy!.email_body.includes('small, truly independent presses') &&
+      futureJulianDraft.copy!.email_body.includes('international reader discovery') &&
+      futureJulianDraft.copy!.email_body.includes('Harbour Echoes'),
+    'Future prospect draft automatically learns and applies the saved reviewer feedback',
+  );
+
+  // 4. Verify Strategist and Writer LLM prompts include both LEARNED REVIEWER PREFERENCES and REWRITE REQUEST blocks
+  const strategyPrompt = buildStrategistUserPrompt(
+    brief,
+    leadSecondAuthor,
+    reloadedSettings,
+    '',
+    undefined,
+    'Make the tone more formal and concise',
+  );
+  assert.ok(
+    strategyPrompt.includes('=== LEARNED REVIEWER PREFERENCES') &&
+      strategyPrompt.includes('=== REWRITE REQUEST'),
+    'Strategist prompt must include learned reviewer preferences and active rewrite instructions',
+  );
+
+  const writerPrompt = buildWriterUserPrompt(
+    rewrittenEllenDraft.strategy!,
+    leadEllen,
+    reloadedSettings,
+    'Ellen Montrose',
+    brief,
+    undefined,
+    'Keep it under 90 words and highlight the £3,000 top prize',
+    initialDraft.copy,
+  );
+  assert.ok(
+    writerPrompt.includes('=== LEARNED REVIEWER PREFERENCES') &&
+      writerPrompt.includes('=== REWRITE REQUEST') &&
+      writerPrompt.includes('Keep it under 90 words and highlight the £3,000 top prize'),
+    'Writer prompt must include learned reviewer preferences, the rewrite instruction, and the previous draft context',
+  );
+
+  deleteProjectPersonalizations(feedbackProjectId);
+});
+
 

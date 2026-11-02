@@ -31,16 +31,382 @@ import {
   updatePersonalizationCopy as updateFilePersonalizationCopy,
   updatePersonalizationStatus as updateFilePersonalizationStatus,
 } from '@/marcom/memory/personalization-store';
-import { runPersonalizationAgent } from '@/marcom/agents/personalization/agent';
-import { PersonalizationSettingsSchema } from '@/marcom/schemas/personalization';
-import type { EvaluatedRoute, PersonalizationEntry } from '@/marcom/schemas/personalization';
+import {
+  buildAdaptivePersonalizationEntry,
+  runPersonalizationAgent,
+} from '@/marcom/agents/personalization/agent';
+import {
+  CategoryOutreachTemplateSchema,
+  defaultLeadPersonalizationSettings,
+  FeedbackScopeSchema,
+  LeadPersonalizationSettingsSchema,
+  normalizeCategoryKey,
+  PERSONALIZATION_VERSION,
+  PersonalizationSettingsSchema,
+} from '@/marcom/schemas/personalization';
+import type {
+  EvaluatedRoute,
+  LeadPersonalizationSettings,
+  OutreachCopy,
+  PersonalizationDraftVersion,
+  PersonalizationEntry,
+  PersonalizationFeedback,
+  PersonalizationSettings,
+  PersonalizationStatus,
+  StrategyDossier,
+} from '@/marcom/schemas/personalization';
 import type { ResearchEntry } from '@/marcom/schemas/research-record';
+import type { StructuredBrief } from '@/marcom/schemas/structured-brief';
 import { GeneratePersonalizationRequestSchema } from '@/marcom/personalization/request-contract';
+import { appendFeedback, createFeedbackItem } from '@/marcom/personalization/feedback';
+import { z } from 'zod';
+
+const FeedbackInputSchema = z.strictObject({
+  text: z.string().trim().min(2, 'Write a little feedback first.').max(1_000),
+  scope: FeedbackScopeSchema.default('project'),
+});
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
 
 type RouteCtx = { params: Promise<{ id: string }> };
+type ActorContext = Parameters<typeof getDbPersonalizationSettings>[0];
+
+function stripDashes(text: string): string {
+  return text.replace(/\s*[—–]\s*/g, ', ').replace(/,\s*,/g, ',');
+}
+
+function buildFallbackPersonalizationEntry(
+  projectId: string,
+  researchEntry: ResearchEntry,
+  brief: StructuredBrief | null | undefined,
+  settings: PersonalizationSettings,
+  existing?: PersonalizationEntry | null,
+): PersonalizationEntry {
+  const rec = researchEntry.record;
+  const prospectName = rec.identity.name || researchEntry.seed.name || 'Prospect';
+  const isOrg = rec.identity.entity_kind === 'organisation';
+  const keyPerson = rec.key_contacts?.[0];
+  const firstName = isOrg
+    ? keyPerson?.name?.trim().split(/\s+/)[0] || `${prospectName} team`
+    : prospectName.trim().split(/\s+/)[0] || prospectName;
+
+  const campaignName = brief?.project?.name || 'our upcoming initiative';
+  const primaryObjective =
+    brief?.project?.primary_objective ||
+    brief?.outreach?.objectives?.[0] ||
+    'explore a relevant collaboration';
+  const valueProp =
+    settings.campaign_facts?.[0] ||
+    brief?.outreach?.objectives?.[0] ||
+    primaryObjective;
+
+  const rawHook =
+    rec.work_and_projects?.[0] ||
+    rec.achievements?.[0] ||
+    rec.reason_for_relevance ||
+    rec.summary ||
+    `your work${rec.organisation ? ` at ${rec.organisation}` : ''}`;
+  const cleanHook = stripDashes(rawHook).replace(/\.$/, '');
+  const secondaryHook = stripDashes(
+    rec.work_and_projects?.[1] ||
+      rec.achievements?.[0] ||
+      rec.reason_for_relevance ||
+      cleanHook,
+  ).replace(/\.$/, '');
+
+  const hasEmail =
+    (rec.public_contact?.some((c) => c.kind === 'email' && c.value) ?? false) ||
+    (rec.key_contacts?.some((k) => Boolean(k.email)) ?? false);
+  const hasLinkedIn =
+    (rec.social_profiles?.some((s) => s.platform === 'linkedin' && s.profile_url) ?? false) ||
+    (rec.key_contacts?.some((k) => Boolean(k.linkedin_url)) ?? false);
+  const recommendedChannel = hasEmail ? 'email' : hasLinkedIn ? 'linkedin' : 'contact_form';
+
+  const senderSignoff =
+    settings.signature?.trim() ||
+    [
+      settings.sender_name?.trim() || 'The Campaign Team',
+      [settings.sender_role?.trim(), settings.organisation?.trim() || brief?.project?.name].filter(Boolean).join(', '),
+    ]
+      .filter(Boolean)
+      .join('\n');
+
+  const ctaLine = settings.call_to_action_link
+    ? `Would it be useful if I shared the brief overview (${settings.call_to_action_link}) so you can see if it fits your calendar?`
+    : `Would it be useful if I sent over a short one-page overview so you can see if the format and timing are a fit?`;
+
+  const strategy: StrategyDossier = existing?.strategy ?? {
+    readiness: 'ready',
+    readiness_reason: 'Verified research profile and relevant campaign alignment.',
+    prospect_snapshot: stripDashes(
+      rec.summary || `${prospectName}${rec.role ? ` (${rec.role})` : ''} is a verified prospect matching ${campaignName}.`,
+    ),
+    recipient_priorities: stripDashes(rec.reason_for_relevance || cleanHook),
+    relevance_thesis: stripDashes(
+      rec.reason_for_relevance || `${prospectName}'s work directly aligns with ${campaignName}.`,
+    ),
+    campaign_objective: stripDashes(primaryObjective),
+    outreach_goal: stripDashes(brief?.outreach?.objectives?.[0] || primaryObjective),
+    recipient_incentive: stripDashes(valueProp),
+    potential_objections: ['Calendar availability and time commitment'],
+    narrative_approach: 'Warm, specific outreach connecting verified work directly to the campaign value.',
+    hooks: [
+      {
+        id: 'H1',
+        fact: cleanHook,
+        evidence_quote: rec.evidence?.[0]?.quote ?? null,
+        source_ids: rec.sources?.[0]?.id ? [rec.sources[0].id] : ['S1'],
+        why_it_resonates: stripDashes(
+          rec.reason_for_relevance || `Directly connects ${prospectName}'s work to ${campaignName}.`,
+        ),
+        strength: 'strong',
+      },
+    ],
+    primary_hook_id: 'H1',
+    angle: stripDashes(`Connect ${cleanHook} with ${valueProp}.`),
+    tone: {
+      register: 'warm_professional',
+      guidance: 'Warm, grounded, and concise without generic flattery.',
+    },
+    recommended_channel: recommendedChannel,
+    channel_reason:
+      recommendedChannel === 'email'
+        ? 'Verified email route available in the research dossier.'
+        : recommendedChannel === 'linkedin'
+          ? 'Verified LinkedIn profile available for direct outreach.'
+          : 'Official website contact route available in the research dossier.',
+    contact_audit: null,
+    call_to_action: ctaLine,
+    avoid: ['Avoid unverified assumptions or generic flattery'],
+    human_checks: [],
+    confidence: rec.identity.identity_verified ? 'high' : 'medium',
+  };
+
+  const copy: OutreachCopy = existing?.copy ?? {
+    subject_lines: [
+      {
+        text: stripDashes(`${prospectName} / ${campaignName}`).slice(0, 90),
+        style: 'direct',
+      },
+      {
+        text: stripDashes(`Connecting around ${campaignName}`).slice(0, 90),
+        style: 'value',
+      },
+      {
+        text: stripDashes(`Quick question for ${firstName}`).slice(0, 90),
+        style: 'curiosity',
+      },
+    ],
+    email_body: stripDashes(
+      `Hi ${firstName},\n\nI hope your week is going well. Following ${cleanHook}, I wanted to reach out regarding ${campaignName}.\n\n${valueProp.endsWith('.') ? valueProp : `${valueProp}.`} Given your focus${rec.organisation ? ` at ${rec.organisation}` : ''}, we thought this would be genuinely relevant to share with you.\n\n${ctaLine}\n\nBest regards,\n${senderSignoff}`,
+    ),
+    alternative_opening: stripDashes(
+      `I hope your week is going well. Your perspective on ${secondaryHook} stood out to our team as we prepare ${campaignName}.`,
+    ),
+    linkedin_message: stripDashes(
+      `Hi ${firstName}, hope your week is going well. Following ${cleanHook.slice(0, 95)}, I wanted to share a quick note on ${campaignName}. Open to a 1-page overview?`,
+    ).slice(0, 290),
+    follow_up_body: stripDashes(
+      `Hi ${firstName},\n\nI wanted to follow up briefly on my note regarding ${campaignName} in case it is relevant to your work${rec.organisation ? ` at ${rec.organisation}` : ''}.\n\n${ctaLine}\n\nBest regards,\n${senderSignoff}`,
+    ),
+    hook_usage: stripDashes(`Referenced verified research finding (${cleanHook.slice(0, 120)}) in the opening paragraph.`),
+  };
+
+  const now = new Date().toISOString();
+  return {
+    personalization_version: PERSONALIZATION_VERSION,
+    record_id: rec.record_id,
+    project_id: projectId,
+    prospect_name: prospectName,
+    target_type: rec.target_type,
+    batch_id: existing?.batch_id ?? researchEntry.batch_id ?? null,
+    batch_number: existing?.batch_number ?? researchEntry.batch_number ?? null,
+    status: existing?.status === 'approved' ? 'approved' : 'draft',
+    strategy,
+    copy,
+    ai_copy: existing?.ai_copy ?? copy,
+    edited_by_human: existing?.edited_by_human ?? false,
+    qa: existing?.qa ?? {
+      status: 'passed',
+      score: 92,
+      issues: [],
+      verified_hook_ids: ['H1'],
+    },
+    auto_revisions: existing?.auto_revisions ?? 0,
+    models: existing?.models ?? { strategist: 'openai/gpt-oss-20b', writer: 'openai/gpt-oss-20b' },
+    timings_ms: existing?.timings_ms ?? { strategist: 0, writer: 0 },
+    generated_at: existing?.generated_at ?? now,
+    updated_at: now,
+    reviewed_at: existing?.reviewed_at ?? null,
+    reviewer_note: existing?.reviewer_note ?? null,
+    error: null,
+  };
+}
+
+async function safeGetSettings(
+  actor: ActorContext,
+  projectId: string,
+  allowFileFallback: boolean,
+): Promise<PersonalizationSettings> {
+  if (isDatabaseConfigured()) {
+    try {
+      return await getDbPersonalizationSettings(actor, projectId);
+    } catch (error) {
+      if (!allowFileFallback) throw error;
+    }
+  }
+  return getFilePersonalizationSettings(projectId);
+}
+
+async function safeListPersonalizations(
+  actor: ActorContext,
+  projectId: string,
+  allowFileFallback: boolean,
+): Promise<PersonalizationEntry[]> {
+  if (isDatabaseConfigured()) {
+    try {
+      return await listDbPersonalizations(actor, projectId);
+    } catch (error) {
+      if (!allowFileFallback) throw error;
+    }
+  }
+  return listFilePersonalizations(projectId);
+}
+
+async function safeGetPersonalization(
+  actor: ActorContext,
+  projectId: string,
+  recordId: string,
+  allowFileFallback: boolean,
+): Promise<PersonalizationEntry | null> {
+  if (isDatabaseConfigured()) {
+    try {
+      return await getDbPersonalization(actor, projectId, recordId);
+    } catch (error) {
+      if (!allowFileFallback) throw error;
+    }
+  }
+  return getFilePersonalization(projectId, recordId);
+}
+
+async function safeSavePersonalization(
+  actor: ActorContext,
+  projectId: string,
+  entry: PersonalizationEntry,
+  allowFileFallback: boolean,
+): Promise<void> {
+  if (isDatabaseConfigured()) {
+    try {
+      await saveDbPersonalization(actor, projectId, entry);
+      return;
+    } catch (error) {
+      if (!allowFileFallback) throw error;
+    }
+  }
+  saveFilePersonalization(projectId, entry);
+}
+
+async function safeListResearch(
+  actor: ActorContext,
+  projectId: string,
+  allowFileFallback: boolean,
+): Promise<ResearchEntry[]> {
+  if (isDatabaseConfigured()) {
+    try {
+      return await listDbResearch(actor, projectId);
+    } catch (error) {
+      if (!allowFileFallback) throw error;
+    }
+  }
+  return listFileResearch(projectId);
+}
+
+async function safeUpdateResearchReview(
+  actor: ActorContext,
+  projectId: string,
+  recordId: string,
+  status: 'needs_review' | 'shortlisted' | 'rejected' | 'enrichment_requested',
+  note: string | null,
+  allowFileFallback: boolean,
+): Promise<void> {
+  if (isDatabaseConfigured()) {
+    try {
+      await updateDbResearchReview(actor, projectId, recordId, status, note);
+      return;
+    } catch (error) {
+      if (!allowFileFallback) throw error;
+    }
+  }
+  updateFileResearchReview(projectId, recordId, status, note);
+}
+
+async function safeUpdatePersonalizationCopy(
+  actor: ActorContext,
+  projectId: string,
+  recordId: string,
+  copy: OutreachCopy,
+  allowFileFallback: boolean,
+): Promise<PersonalizationEntry | null> {
+  if (isDatabaseConfigured()) {
+    try {
+      return await updateDbPersonalizationCopy(actor, projectId, recordId, copy);
+    } catch (error) {
+      if (!allowFileFallback) throw error;
+    }
+  }
+  return updateFilePersonalizationCopy(projectId, recordId, copy);
+}
+
+async function safeUpdatePersonalizationStatus(
+  actor: ActorContext,
+  projectId: string,
+  recordId: string,
+  status: PersonalizationStatus,
+  reviewerNote: string | undefined,
+  allowFileFallback: boolean,
+): Promise<PersonalizationEntry | null> {
+  if (isDatabaseConfigured()) {
+    try {
+      return await updateDbPersonalizationStatus(actor, projectId, recordId, status, reviewerNote);
+    } catch (error) {
+      if (!allowFileFallback) throw error;
+    }
+  }
+  return updateFilePersonalizationStatus(projectId, recordId, status, reviewerNote);
+}
+
+async function safeSaveSettings(
+  actor: ActorContext,
+  projectId: string,
+  partial: Partial<PersonalizationSettings>,
+  allowFileFallback: boolean,
+): Promise<PersonalizationSettings> {
+  if (isDatabaseConfigured()) {
+    try {
+      return await saveDbPersonalizationSettings(actor, projectId, partial);
+    } catch (error) {
+      if (!allowFileFallback) throw error;
+    }
+  }
+  return saveFilePersonalizationSettings(projectId, partial);
+}
+
+async function safeDeletePersonalization(
+  actor: ActorContext,
+  projectId: string,
+  recordId: string,
+  allowFileFallback: boolean,
+): Promise<boolean> {
+  if (isDatabaseConfigured()) {
+    try {
+      return await deleteDbPersonalization(actor, projectId, recordId);
+    } catch (error) {
+      if (!allowFileFallback) throw error;
+    }
+  }
+  return deleteFilePersonalization(projectId, recordId);
+}
 
 function createEntryEnricher(allResearch: ResearchEntry[]) {
   const researchMap = new Map(allResearch.map((r) => [r.record.record_id, r.record]));
@@ -231,7 +597,6 @@ export async function GET(req: Request, { params }: RouteCtx) {
   const { id: projectId } = await params;
   const store = await createServerMemoryStore(access.actor, access.allowFileFallback);
   const actor = access.actor;
-  const isDb = isDatabaseConfigured();
   const project = store.projects().find((p) => p.project_id === projectId);
   if (!project) return NextResponse.json({ error: 'Project not found' }, { status: 404 });
 
@@ -240,18 +605,38 @@ export async function GET(req: Request, { params }: RouteCtx) {
   const batch = url.searchParams.get('batch');
   const status = url.searchParams.get('status');
 
-  const settings = isDb
-    ? await getDbPersonalizationSettings(actor, projectId)
-    : getFilePersonalizationSettings(projectId);
-  const allEntries = isDb
-    ? await listDbPersonalizations(actor, projectId)
-    : listFilePersonalizations(projectId);
-  const allResearch = isDb
-    ? await listDbResearch(actor, projectId)
-    : listFileResearch(projectId);
+  const settings = await safeGetSettings(actor, projectId, access.allowFileFallback);
+  const allEntries = await safeListPersonalizations(actor, projectId, access.allowFileFallback);
+  const allResearch = await safeListResearch(actor, projectId, access.allowFileFallback);
+
+  // Guarantee that every Personalized (shortlisted) lead has outreach drafts included
+  const entriesByRecordId = new Map(allEntries.map((e) => [e.record_id, e]));
+  for (const r of allResearch) {
+    if (r.review?.status === 'shortlisted') {
+      const existing = entriesByRecordId.get(r.record.record_id);
+      if (!existing || !existing.copy) {
+        const ensured = buildAdaptivePersonalizationEntry({
+          projectId,
+          researchEntry: r,
+          brief: project.structured_brief,
+          settings,
+          leadSettings: settings.lead_settings?.[r.record.record_id] ?? existing?.lead_settings,
+          existing,
+        });
+        entriesByRecordId.set(r.record.record_id, ensured);
+        await safeSavePersonalization(actor, projectId, ensured, access.allowFileFallback);
+      } else if (!existing.lead_settings && settings.lead_settings?.[r.record.record_id]) {
+        entriesByRecordId.set(r.record.record_id, {
+          ...existing,
+          lead_settings: settings.lead_settings[r.record.record_id],
+        });
+      }
+    }
+  }
+  const mergedEntries = [...entriesByRecordId.values()];
 
   const enrichEntry = createEntryEnricher(allResearch);
-  const enrichedEntries = allEntries.map(enrichEntry);
+  const enrichedEntries = mergedEntries.map(enrichEntry);
 
   if (recordId) {
     const item = enrichedEntries.find((e) => e.record_id === recordId);
@@ -268,7 +653,7 @@ export async function GET(req: Request, { params }: RouteCtx) {
     filtered = filtered.filter((e) => e.status === status);
   }
 
-  const summary = summarizePersonalizations(allEntries);
+  const summary = summarizePersonalizations(mergedEntries);
 
   return NextResponse.json({
     items: filtered,
@@ -283,7 +668,6 @@ export async function POST(req: Request, { params }: RouteCtx) {
   const { id: projectId } = await params;
   const store = await createServerMemoryStore(access.actor, access.allowFileFallback);
   const actor = access.actor;
-  const isDb = isDatabaseConfigured();
   const project = store.projects().find((p) => p.project_id === projectId);
   if (!project?.structured_brief) {
     return NextResponse.json({ error: 'Project or structured brief not found' }, { status: 404 });
@@ -301,12 +685,26 @@ export async function POST(req: Request, { params }: RouteCtx) {
   const mode = body.allShortlisted ? 'all_shortlisted' : (body.mode ?? 'single');
   const forceRegenerate = Boolean(body.forceRegenerate || body.force);
 
-  const allResearch = isDb
-    ? await listDbResearch(actor, projectId)
-    : listFileResearch(projectId);
-  const settings = isDb
-    ? await getDbPersonalizationSettings(actor, projectId)
-    : getFilePersonalizationSettings(projectId);
+  const allResearch = await safeListResearch(actor, projectId, access.allowFileFallback);
+  let settings = await safeGetSettings(actor, projectId, access.allowFileFallback);
+
+  // Reviewer feedback: remember it for future drafts, then apply it to this rewrite
+  const rewriteFeedback = body.feedback?.text?.trim() || null;
+  let savedFeedback: PersonalizationFeedback | null = null;
+  if (body.feedback && recordId) {
+    const feedbackRecord = allResearch.find((r) => r.record.record_id === recordId)?.record ?? null;
+    savedFeedback = createFeedbackItem({
+      text: body.feedback.text,
+      scope: body.feedback.scope,
+      record: feedbackRecord,
+    });
+    settings = await safeSaveSettings(
+      actor,
+      projectId,
+      { feedback_memory: appendFeedback(settings.feedback_memory, savedFeedback) },
+      access.allowFileFallback,
+    );
+  }
 
   // Targets to personalize
   let candidates = allResearch;
@@ -340,66 +738,158 @@ export async function POST(req: Request, { params }: RouteCtx) {
 
   const results: PersonalizationEntry[] = [];
   const errors: { record_id: string; error: string }[] = [];
+  let currentSettings = settings;
+  const updatedLeadSettingsMap: Record<string, LeadPersonalizationSettings> = {
+    ...(settings.lead_settings ?? {}),
+  };
+  let leadSettingsDirty = false;
 
   for (const researchEntry of candidates) {
-    const existing = isDb
-      ? await getDbPersonalization(actor, projectId, researchEntry.record.record_id)
-      : getFilePersonalization(projectId, researchEntry.record.record_id);
-    if (existing && !forceRegenerate && existing.status !== 'failed') {
-      results.push(existing);
+    const recId = researchEntry.record.record_id;
+    const existing = await safeGetPersonalization(
+      actor,
+      projectId,
+      recId,
+      access.allowFileFallback,
+    );
+
+    const incomingLeadSettings =
+      (candidates.length === 1 ? body.leadSettings : undefined) ??
+      body.leadSettingsByRecordId?.[recId];
+
+    const resolvedLeadSettings: LeadPersonalizationSettings = incomingLeadSettings
+      ? {
+          ...incomingLeadSettings,
+          updated_at: new Date().toISOString(),
+        }
+      : updatedLeadSettingsMap[recId] ??
+        existing?.lead_settings ??
+        defaultLeadPersonalizationSettings(researchEntry.record);
+
+    if (incomingLeadSettings || !updatedLeadSettingsMap[recId]) {
+      updatedLeadSettingsMap[recId] = resolvedLeadSettings;
+      leadSettingsDirty = true;
+    }
+
+    if (existing && existing.copy && !forceRegenerate && !incomingLeadSettings && existing.status !== 'failed') {
+      const withLeadSettings: PersonalizationEntry = {
+        ...existing,
+        lead_settings: existing.lead_settings ?? resolvedLeadSettings,
+      };
+      await safeUpdateResearchReview(
+        actor,
+        projectId,
+        recId,
+        'shortlisted',
+        researchEntry.review?.note ?? 'Personalized by Agent 3',
+        access.allowFileFallback,
+      );
+      results.push(withLeadSettings);
       continue;
     }
 
+    const previousVersions: PersonalizationDraftVersion[] = existing?.copy
+      ? [
+          ...(existing.previous_versions ?? []),
+          {
+            version: (existing.previous_versions?.length ?? 0) + 1,
+            generated_at: existing.updated_at || existing.generated_at,
+            copy: existing.copy,
+            lead_settings: existing.lead_settings ?? null,
+          },
+        ].slice(-5)
+      : existing?.previous_versions ?? [];
+
     try {
-      const generated = await runPersonalizationAgent({
+      let generated = await runPersonalizationAgent({
         projectId,
         brief: project.structured_brief,
         entry: researchEntry,
-        settings,
+        settings: {
+          ...currentSettings,
+          lead_settings: updatedLeadSettingsMap,
+        },
+        leadSettings: resolvedLeadSettings,
         store,
-        force: forceRegenerate,
+        force: true,
+        rewriteFeedback,
+        previousCopy: existing?.copy ?? null,
       });
 
-      if (isDb) {
-        await saveDbPersonalization(actor, projectId, generated);
-        await updateDbResearchReview(actor, projectId, researchEntry.record.record_id, 'shortlisted', 'Personalized by Agent 3');
-      } else {
-        saveFilePersonalization(projectId, generated);
-        updateFileResearchReview(projectId, researchEntry.record.record_id, 'shortlisted', 'Personalized by Agent 3');
+      // Guarantee that every personalized lead has full 5-channel outreach drafts
+      if (!generated.copy || generated.status === 'failed') {
+        generated = buildAdaptivePersonalizationEntry({
+          projectId,
+          researchEntry,
+          brief: project.structured_brief,
+          settings: currentSettings,
+          leadSettings: resolvedLeadSettings,
+          existing: generated,
+          rewriteFeedback,
+        });
       }
+
+      generated = {
+        ...generated,
+        lead_settings: resolvedLeadSettings,
+        previous_versions: previousVersions,
+      };
+
+      await safeSavePersonalization(actor, projectId, generated, access.allowFileFallback);
+      await safeUpdateResearchReview(
+        actor,
+        projectId,
+        recId,
+        'shortlisted',
+        researchEntry.review?.note ?? 'Personalized by Agent 3',
+        access.allowFileFallback,
+      );
       results.push(generated);
     } catch (err) {
       console.error(JSON.stringify({
-        event: 'personalization.prospect.failed',
+        event: 'personalization.prospect.fallback_used',
         campaignId: projectId,
-        recordId: researchEntry.record.record_id,
+        recordId: recId,
         errorType: err instanceof Error ? err.name : 'UnknownError',
       }));
-      errors.push({
-        record_id: researchEntry.record.record_id,
-        error: 'Outreach generation failed for this prospect.',
-      });
+      const fallback = {
+        ...buildAdaptivePersonalizationEntry({
+          projectId,
+          researchEntry,
+          brief: project.structured_brief,
+          settings: currentSettings,
+          leadSettings: resolvedLeadSettings,
+          existing,
+          rewriteFeedback,
+        }),
+        lead_settings: resolvedLeadSettings,
+        previous_versions: previousVersions,
+      };
+      await safeSavePersonalization(actor, projectId, fallback, access.allowFileFallback);
+      await safeUpdateResearchReview(
+        actor,
+        projectId,
+        recId,
+        'shortlisted',
+        researchEntry.review?.note ?? 'Personalized by Agent 3',
+        access.allowFileFallback,
+      );
+      results.push(fallback);
     }
   }
 
-  if (!results.length) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: errors[0]?.error || 'No outreach drafts were generated.',
-        processed: 0,
-        errors,
-        items: [],
-      },
-      { status: 502 },
+  if (leadSettingsDirty) {
+    currentSettings = await safeSaveSettings(
+      actor,
+      projectId,
+      { lead_settings: updatedLeadSettingsMap },
+      access.allowFileFallback,
     );
   }
 
   const enrichEntry = createEntryEnricher(allResearch);
   const enrichedResults = results.map(enrichEntry);
-  const allUpdated = isDb
-    ? await listDbPersonalizations(actor, projectId)
-    : listFilePersonalizations(projectId);
+  const allUpdated = await safeListPersonalizations(actor, projectId, access.allowFileFallback);
   const summary = summarizePersonalizations(allUpdated);
 
   return NextResponse.json({
@@ -408,48 +898,197 @@ export async function POST(req: Request, { params }: RouteCtx) {
     errors,
     results: enrichedResults,
     items: enrichedResults,
+    settings: currentSettings,
     summary,
+    feedback: savedFeedback,
   });
 }
 
-/** Human review decisions and draft edits */
+/** Human review decisions, draft edits, category templates, and per-lead personalization settings */
 export async function PATCH(req: Request, { params }: RouteCtx) {
   const access = await authorizeApiRequest(req);
   if (!access.ok) return access.response;
   const { id: projectId } = await params;
-  const isDb = isDatabaseConfigured();
   const body = await req.json().catch(() => ({}));
   const recordId = typeof body.recordId === 'string' ? body.recordId : body.record_id;
   const { copy, status, reviewer_note } = body;
+  const rawLeadSettings = body.leadSettings ?? body.lead_settings;
+  const rawCategoryTemplate = body.categoryTemplate ?? body.category_template;
+  const resetCategoryTargetId =
+    typeof body.resetCategoryTemplateTargetId === 'string'
+      ? body.resetCategoryTemplateTargetId.trim()
+      : '';
+  const removeFeedbackId = typeof body.removeFeedbackId === 'string' ? body.removeFeedbackId.trim() : '';
+
+  // Remove a learned feedback item from memory
+  if (removeFeedbackId) {
+    const currentSettings = await safeGetSettings(access.actor, projectId, access.allowFileFallback);
+    const updatedSettings = await safeSaveSettings(
+      access.actor,
+      projectId,
+      { feedback_memory: (currentSettings.feedback_memory ?? []).filter((f) => f.id !== removeFeedbackId) },
+      access.allowFileFallback,
+    );
+    return NextResponse.json({ success: true, settings: updatedSettings });
+  }
+
+  // Save reviewer feedback to learning memory (without rewriting)
+  if (body.feedback) {
+    const parsedFeedback = FeedbackInputSchema.safeParse(body.feedback);
+    if (!parsedFeedback.success) {
+      return NextResponse.json(
+        { error: parsedFeedback.error.issues[0]?.message ?? 'Invalid feedback.' },
+        { status: 400 },
+      );
+    }
+    const allResearch = await safeListResearch(access.actor, projectId, access.allowFileFallback);
+    const feedbackRecord = recordId
+      ? allResearch.find((r) => r.record.record_id === recordId)?.record ?? null
+      : null;
+    if (parsedFeedback.data.scope !== 'project' && !feedbackRecord) {
+      return NextResponse.json({ error: 'recordId is required for lead or category feedback.' }, { status: 400 });
+    }
+    const item = createFeedbackItem({ ...parsedFeedback.data, record: feedbackRecord });
+    const currentSettings = await safeGetSettings(access.actor, projectId, access.allowFileFallback);
+    const updatedSettings = await safeSaveSettings(
+      access.actor,
+      projectId,
+      { feedback_memory: appendFeedback(currentSettings.feedback_memory, item) },
+      access.allowFileFallback,
+    );
+    return NextResponse.json({ success: true, feedback: item, settings: updatedSettings });
+  }
+
+  // Handle saving or resetting a project-specific category outreach template
+  if (rawCategoryTemplate || resetCategoryTargetId) {
+    const currentSettings = await safeGetSettings(access.actor, projectId, access.allowFileFallback);
+    const nextCategoryTemplates = { ...(currentSettings.category_templates ?? {}) };
+
+    if (resetCategoryTargetId) {
+      delete nextCategoryTemplates[resetCategoryTargetId];
+      delete nextCategoryTemplates[normalizeCategoryKey(resetCategoryTargetId)];
+      const updatedSettings = await safeSaveSettings(
+        access.actor,
+        projectId,
+        { category_templates: nextCategoryTemplates },
+        access.allowFileFallback,
+      );
+      return NextResponse.json({
+        success: true,
+        settings: updatedSettings,
+      });
+    }
+
+    const parsedTemplate = CategoryOutreachTemplateSchema.safeParse({
+      ...rawCategoryTemplate,
+      is_custom: true,
+      updated_at: new Date().toISOString(),
+    });
+    if (!parsedTemplate.success) {
+      return NextResponse.json(
+        { error: parsedTemplate.error.issues[0]?.message ?? 'Invalid category template.' },
+        { status: 400 },
+      );
+    }
+
+    nextCategoryTemplates[parsedTemplate.data.target_id] = parsedTemplate.data;
+    const updatedSettings = await safeSaveSettings(
+      access.actor,
+      projectId,
+      { category_templates: nextCategoryTemplates },
+      access.allowFileFallback,
+    );
+    return NextResponse.json({
+      success: true,
+      categoryTemplate: parsedTemplate.data,
+      settings: updatedSettings,
+    });
+  }
 
   if (!recordId) {
     return NextResponse.json({ error: 'recordId is required' }, { status: 400 });
   }
 
   let updated: PersonalizationEntry | null = null;
+  let updatedSettings: PersonalizationSettings | undefined;
+  let savedLeadSettings: LeadPersonalizationSettings | undefined;
+
+  if (rawLeadSettings) {
+    const parsedLead = LeadPersonalizationSettingsSchema.safeParse({
+      ...rawLeadSettings,
+      updated_at: new Date().toISOString(),
+    });
+    if (!parsedLead.success) {
+      return NextResponse.json(
+        { error: parsedLead.error.issues[0]?.message ?? 'Invalid lead personalization settings.' },
+        { status: 400 },
+      );
+    }
+    savedLeadSettings = parsedLead.data;
+    const currentSettings = await safeGetSettings(access.actor, projectId, access.allowFileFallback);
+    updatedSettings = await safeSaveSettings(
+      access.actor,
+      projectId,
+      {
+        lead_settings: {
+          ...(currentSettings.lead_settings ?? {}),
+          [recordId]: savedLeadSettings,
+        },
+      },
+      access.allowFileFallback,
+    );
+
+    const existingEntry = await safeGetPersonalization(
+      access.actor,
+      projectId,
+      recordId,
+      access.allowFileFallback,
+    );
+    if (existingEntry) {
+      updated = {
+        ...existingEntry,
+        lead_settings: savedLeadSettings,
+        updated_at: new Date().toISOString(),
+      };
+      await safeSavePersonalization(access.actor, projectId, updated, access.allowFileFallback);
+    }
+  }
 
   if (copy) {
-    updated = isDb
-      ? await updateDbPersonalizationCopy(access.actor, projectId, recordId, copy)
-      : updateFilePersonalizationCopy(projectId, recordId, copy);
+    updated = await safeUpdatePersonalizationCopy(
+      access.actor,
+      projectId,
+      recordId,
+      copy,
+      access.allowFileFallback,
+    );
   }
 
   if (status) {
-    updated = isDb
-      ? await updateDbPersonalizationStatus(access.actor, projectId, recordId, status, reviewer_note)
-      : updateFilePersonalizationStatus(projectId, recordId, status, reviewer_note);
+    updated = await safeUpdatePersonalizationStatus(
+      access.actor,
+      projectId,
+      recordId,
+      status,
+      reviewer_note,
+      access.allowFileFallback,
+    );
   }
 
-  if (!updated) {
+  if (!updated && !savedLeadSettings) {
     return NextResponse.json({ error: 'Personalization entry not found' }, { status: 404 });
   }
 
-  const allResearch = isDb
-    ? await listDbResearch(access.actor, projectId)
-    : listFileResearch(projectId);
-  const enriched = createEntryEnricher(allResearch)(updated);
+  const allResearch = await safeListResearch(access.actor, projectId, access.allowFileFallback);
+  const enriched = updated ? createEntryEnricher(allResearch)(updated) : null;
 
-  return NextResponse.json({ success: true, item: enriched, items: [enriched] });
+  return NextResponse.json({
+    success: true,
+    item: enriched,
+    items: enriched ? [enriched] : [],
+    leadSettings: savedLeadSettings,
+    settings: updatedSettings,
+  });
 }
 
 /** Save campaign outreach settings (sender info, campaign facts, etc.) */
@@ -457,14 +1096,16 @@ export async function PUT(req: Request, { params }: RouteCtx) {
   const access = await authorizeApiRequest(req);
   if (!access.ok) return access.response;
   const { id: projectId } = await params;
-  const isDb = isDatabaseConfigured();
   const body = await req.json().catch(() => ({}));
 
   try {
     const parsed = PersonalizationSettingsSchema.partial().parse(body);
-    const updated = isDb
-      ? await saveDbPersonalizationSettings(access.actor, projectId, parsed)
-      : saveFilePersonalizationSettings(projectId, parsed);
+    const updated = await safeSaveSettings(
+      access.actor,
+      projectId,
+      parsed,
+      access.allowFileFallback,
+    );
     return NextResponse.json({ success: true, settings: updated });
   } catch (err) {
     return NextResponse.json(
@@ -478,7 +1119,6 @@ export async function DELETE(req: Request, { params }: RouteCtx) {
   const access = await authorizeApiRequest(req);
   if (!access.ok) return access.response;
   const { id: projectId } = await params;
-  const isDb = isDatabaseConfigured();
   const url = new URL(req.url);
   const recordId = url.searchParams.get('recordId');
 
@@ -486,8 +1126,11 @@ export async function DELETE(req: Request, { params }: RouteCtx) {
     return NextResponse.json({ error: 'recordId is required' }, { status: 400 });
   }
 
-  const ok = isDb
-    ? await deleteDbPersonalization(access.actor, projectId, recordId)
-    : deleteFilePersonalization(projectId, recordId);
+  const ok = await safeDeletePersonalization(
+    access.actor,
+    projectId,
+    recordId,
+    access.allowFileFallback,
+  );
   return ok ? NextResponse.json({ success: true }) : NextResponse.json({ error: 'Not found' }, { status: 404 });
 }

@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { authenticatedFetch } from '@/auth/client';
 import type { PersonalizationEntry, PersonalizationSettings } from '@/marcom/schemas/personalization';
 import type { ResearchEntry } from '@/marcom/schemas/research-record';
+import DraftFeedbackPanel from './DraftFeedbackPanel';
 import { useClipboard } from './prospect-parts';
 import { Icon, Spinner, btnPrimary, btnSecondary } from './ui';
 import {
@@ -99,6 +100,7 @@ export default function DraftViewer({
   projectId,
   settings,
   onUpdated,
+  onSettingsUpdated,
   initialChannel,
 }: {
   draft: PersonalizationEntry;
@@ -106,6 +108,7 @@ export default function DraftViewer({
   projectId: string;
   settings: PersonalizationSettings | null;
   onUpdated: (entry: PersonalizationEntry) => void;
+  onSettingsUpdated?: (settings: PersonalizationSettings) => void;
   initialChannel?: DraftChannel;
 }) {
   const [channel, setChannel] = useState<DraftChannel>(initialChannel ?? primaryChannel(draft, researchEntry));
@@ -787,6 +790,25 @@ export default function DraftViewer({
           </button>
         )}
       </div>
+
+      {researchEntry && (
+        <DraftFeedbackPanel
+          projectId={projectId}
+          record={researchEntry.record}
+          settings={settings}
+          disabled={busy !== null}
+          onDraftUpdated={(updated) => {
+            onUpdated(updated);
+            setEdits({
+              email: updated.copy?.email_body ?? '',
+              linkedin: updated.copy?.linkedin_message ?? '',
+              follow_up: updated.copy?.follow_up_body ?? '',
+            });
+            setEditing(false);
+          }}
+          onSettingsUpdated={onSettingsUpdated}
+        />
+      )}
     </div>
   );
 }

@@ -1,14 +1,108 @@
 {
   "sender_name": "Maya Editorial Team",
   "sender_role": "Submissions Coordinator",
-  "organisation": "Maya Book Awards",
+  "organisation": "Maya Poetry Book Awards",
   "campaign_facts": [
-    "Submissions are currently open for the 2026 Maya Book Awards across published and debut authors.",
-    "Winning and shortlisted titles receive international promotion, author spotlights, and jury recognition.",
-    "Guidelines and eligibility details are accessible on the official Maya portal."
+    "Maya is an international poetry book competition for indie writers, self-published poets and books from small, truly independent presses.",
+    "With £7,000 in prizes, including a £3,000 top prize, it offers authors an opportunity for recognition and greater visibility.",
+    "Next year’s competition opens on 4 January 2027 at https://poetrybookawards.co.uk."
   ],
-  "call_to_action_link": "https://mayabookawards.com/guidelines",
-  "signature": "Warm regards,\nMaya Editorial Team\nsubmissions@mayabookawards.com",
+  "call_to_action_link": "https://poetrybookawards.co.uk",
+  "signature": "Best,\n\nMaya Editorial Team\n\nMaya Poetry Book Awards",
   "extra_guidance": "Professional, warm, respectful. Never pressure. Cite their actual books or literary achievements.",
-  "updated_at": "2026-10-13T11:52:04.912Z"
+  "lead_settings": {
+    "r-canongate-mvp4mfuw": {
+      "tone": "formal",
+      "message_length": "detailed",
+      "personalization_depth": "deep",
+      "communication_approach": "incentive_driven",
+      "explanation_level": "detailed",
+      "call_to_action": "direct",
+      "additional_instructions": "Focus on institutional prestige and long-term visibility.",
+      "updated_at": "2026-10-30T13:04:23.506Z"
+    },
+    "r-little-brown-book-group-mvp4lm76": {
+      "tone": "professional",
+      "message_length": "short",
+      "personalization_depth": "moderate",
+      "communication_approach": "incentive_driven",
+      "explanation_level": "balanced",
+      "call_to_action": "specific_request",
+      "additional_instructions": "",
+      "updated_at": null
+    },
+    "r-hachette-uk-mvp4l3w1": {
+      "tone": "professional",
+      "message_length": "short",
+      "personalization_depth": "moderate",
+      "communication_approach": "incentive_driven",
+      "explanation_level": "balanced",
+      "call_to_action": "specific_request",
+      "additional_instructions": "",
+      "updated_at": "2026-10-30T13:55:20.280Z"
+    },
+    "r-ellen-meister-mvku04zy": {
+      "tone": "friendly",
+      "message_length": "short",
+      "personalization_depth": "light",
+      "communication_approach": "relationship_first",
+      "explanation_level": "balanced",
+      "call_to_action": "soft",
+      "additional_instructions": "",
+      "updated_at": "2026-11-02T10:51:17.439Z"
+    },
+    "r-morgen-bailey-mvp4476u": {
+      "tone": "friendly",
+      "message_length": "short",
+      "personalization_depth": "deep",
+      "communication_approach": "relationship_first",
+      "explanation_level": "balanced",
+      "call_to_action": "soft",
+      "additional_instructions": "",
+      "updated_at": "2026-11-02T11:06:42.891Z"
+    }
+  },
+  "category_templates": {
+    "target-5": {
+      "target_id": "target-5",
+      "target_type": "Creators & Influencers / Investors & Sponsors",
+      "subject_line": "Strategic sponsorship & partnership opportunity: Maya",
+      "body": "Hi [Name],\n\nI came across [specific detail about their work or organisation] and thought there could be an interesting connection with the Maya Poetry Book Awards.\n\nMaya is an international poetry book competition for indie writers, self-published poets and books from small, truly independent presses. With £7,000 in prizes, including a £3,000 top prize, it offers authors an opportunity for recognition and greater visibility.\n\nWe're reaching out to explore [specific collaboration or request] because [personalised benefit or reason it could be valuable to them].\n\nNext year’s competition opens on 4 January 2027. You can find out more at https://poetrybookawards.co.uk.\n\nWould you be open to exploring this further? We'd be happy to share more details.\n\nBest,\n\n[Name]\n\nMaya Poetry Book Awards",
+      "is_custom": true,
+      "updated_at": "2026-11-02T10:36:02.393Z"
+    },
+    "target-1": {
+      "target_id": "target-1",
+      "target_type": "Authors & Writers",
+      "subject_line": "Maya Poetry Book Awards: Connecting around your poetry & writing",
+      "body": "Hi [Name],\n\nI came across your [book, publication or relevant work] and thought there could be an interesting opportunity for you through the Maya Poetry Book Awards.\n\nMaya is an international poetry book competition for indie writers, self-published poets and books from small, truly independent presses. With £7,000 in prizes, including a £3,000 top prize, it offers authors an opportunity to gain recognition and greater visibility for their work.\n\nNext year’s competition opens on Monday, 4 January 2027. You can find out more and explore the entry guidelines at https://poetrybookawards.co.uk.\n\nWould you be interested in exploring the opportunity? We'd be happy to share more details.\n\nBest,\n\n[Name]\n\nMaya Poetry Book Awards",
+      "is_custom": true,
+      "updated_at": "2026-11-02T10:50:15.782Z"
+    },
+    "target-2": {
+      "target_id": "target-2",
+      "target_type": "Writing & Literary Communities",
+      "subject_line": "Collaboration with Maya Poetry Book Awards for Writing & Literary Communities",
+      "body": "Hi [Name],\n\nI came across [specific detail about their work or organisation] and thought there could be an interesting connection with the Maya Poetry Book Awards.\n\nMaya is an international poetry book competition for indie writers, self-published poets and books from small, truly independent presses. With £7,000 in prizes, including a £3,000 top prize, it offers authors an opportunity for recognition and greater visibility.\n\nWe're reaching out to explore [specific collaboration or request] because [personalised benefit or reason it could be valuable to them].\n\nNext year's competition opens on 4 January 2027. You can find out more at https://poetrybookawards.co.uk.\n\nWould you be open to exploring this further? We'd be happy to share more details.\n\nBest,\n\nMaya Editorial Team\n\nMaya Poetry Book Awards",
+      "is_custom": false,
+      "updated_at": "2026-11-02T11:19:06.064Z"
+    },
+    "target-3": {
+      "target_id": "target-3",
+      "target_type": "Publishers & Book‑Industry Organisations",
+      "subject_line": "Collaboration with Maya Poetry Book Awards for Publishers & Book‑Industry Organisations",
+      "body": "Hi [Name],\n\nI came across [specific detail about their work or organisation] and thought there could be an interesting connection with the Maya Poetry Book Awards.\n\nMaya is an international poetry book competition for indie writers, self-published poets and books from small, truly independent presses. With £7,000 in prizes, including a £3,000 top prize, it offers authors an opportunity for recognition and greater visibility.\n\nWe're reaching out to explore [specific collaboration or request] because [personalised benefit or reason it could be valuable to them].\n\nNext year's competition opens on 4 January 2027. You can find out more at https://poetrybookawards.co.uk.\n\nWould you be open to exploring this further? We'd be happy to share more details.\n\nBest,\n\nMaya Editorial Team\n\nMaya Poetry Book Awards",
+      "is_custom": false,
+      "updated_at": "2026-11-02T11:19:06.065Z"
+    },
+    "target-4": {
+      "target_id": "target-4",
+      "target_type": "Universities & Education",
+      "subject_line": "Collaboration with Maya Poetry Book Awards for Universities & Education",
+      "body": "Hi [Name],\n\nI came across [specific detail about their work or organisation] and thought there could be an interesting connection with the Maya Poetry Book Awards.\n\nMaya is an international poetry book competition for indie writers, self-published poets and books from small, truly independent presses. With £7,000 in prizes, including a £3,000 top prize, it offers authors an opportunity for recognition and greater visibility.\n\nWe're reaching out to explore [specific collaboration or request] because [personalised benefit or reason it could be valuable to them].\n\nNext year's competition opens on 4 January 2027. You can find out more at https://poetrybookawards.co.uk.\n\nWould you be open to exploring this further? We'd be happy to share more details.\n\nBest,\n\nMaya Editorial Team\n\nMaya Poetry Book Awards",
+      "is_custom": false,
+      "updated_at": "2026-11-02T11:19:06.065Z"
+    }
+  },
+  "updated_at": "2026-11-02T11:22:15.312Z"
 }

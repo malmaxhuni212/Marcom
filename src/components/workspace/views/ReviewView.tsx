@@ -108,15 +108,11 @@ function ReviewContent({ bundle }: { bundle: ProjectBundle }) {
   const record = current.record;
 
   const decide = async (status: ReviewStatus, label: Decision, decisionNote: string) => {
-    if (status === 'rejected' && !decisionNote.trim()) {
-      setError('Add a note explaining why before rejecting this prospect.');
-      document.getElementById('review-note')?.focus();
-      return;
-    }
+    const finalNote = decisionNote.trim() || (status === 'rejected' ? 'Rejected by user' : null);
     setSaving(true);
     setError(null);
     try {
-      await saveDecision(bundle.projectId, id, status, decisionNote);
+      await saveDecision(bundle.projectId, id, status, finalNote);
       setDecisions((existing) => ({ ...existing, [id]: label }));
       setFocusId(null);
       setMoreResearchOpen(false);

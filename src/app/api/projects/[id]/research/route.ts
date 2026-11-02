@@ -260,9 +260,7 @@ export async function PATCH(req: Request, { params }: RouteCtx) {
   if (!parsed.success) {
     return NextResponse.json({ error: 'The review decision is invalid.' }, { status: 400 });
   }
-  if (parsed.data.status === 'rejected' && !parsed.data.note?.trim()) {
-    return NextResponse.json({ error: 'Add a reason before rejecting this prospect.' }, { status: 422 });
-  }
+  const finalNote = parsed.data.note?.trim() || (parsed.data.status === 'rejected' ? 'Rejected by user' : null);
 
   let updated = null;
   if (isDatabaseConfigured()) {
@@ -272,15 +270,15 @@ export async function PATCH(req: Request, { params }: RouteCtx) {
         projectId,
         parsed.data.record_id,
         parsed.data.status,
-        parsed.data.note ?? null,
+        finalNote,
       );
     } catch (e) {
       if (!access.allowFileFallback) throw e;
       console.warn('Database error in research PATCH, falling back to file memory.');
-      updated = updateFileReview(projectId, parsed.data.record_id, parsed.data.status, parsed.data.note ?? null);
+      updated = updateFileReview(projectId, parsed.data.record_id, parsed.data.status, finalNote);
     }
   } else if (access.allowFileFallback) {
-    updated = updateFileReview(projectId, parsed.data.record_id, parsed.data.status, parsed.data.note ?? null);
+    updated = updateFileReview(projectId, parsed.data.record_id, parsed.data.status, finalNote);
   } else {
     throw new Error('The authoritative database is unavailable.');
   }

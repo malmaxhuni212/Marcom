@@ -40,6 +40,11 @@ export interface StartResearchInput {
   targetLabel: string;
   count: number;
   name?: string;
+  force?: boolean;
+  notes?: string;
+  organisation?: string;
+  role?: string;
+  website?: string;
 }
 
 interface WorkspaceValue {
@@ -146,9 +151,27 @@ function WorkspaceProviderRoot({ children }: { children: ReactNode }) {
       setBundle(nextBundle);
       setBundleError(null);
     } catch (error) {
-      if (activeIdRef.current === projectId) setBundleError((error as Error).message);
+      if (activeIdRef.current !== projectId) return;
+      const message = (error as Error).message;
+      // If a remembered project ID no longer exists (e.g. after switching between DB and local fallback),
+      // automatically recover to the first available project instead of stranding the user.
+      if (message.toLowerCase().includes('not found')) {
+        const list = await refreshProjects();
+        const fallback = list.find((p) => p.id !== projectId) ?? list[0];
+        if (fallback && fallback.id !== projectId) {
+          activeIdRef.current = fallback.id;
+          setBundleError(null);
+          setActiveIdState(fallback.id);
+          try {
+            window.localStorage.setItem(ACTIVE_PROJECT_KEY, fallback.id);
+          } catch {}
+          void loadBundle(fallback.id);
+          return;
+        }
+      }
+      setBundleError(message);
     }
-  }, []);
+  }, [refreshProjects]);
 
   // Initial project list + active project (URL ?project= wins, then the remembered project, then the first).
   // Fire loadBundle in parallel if a remembered/requested project ID is available to eliminate waterfall latency.
@@ -190,7 +213,11 @@ function WorkspaceProviderRoot({ children }: { children: ReactNode }) {
       const chosen = [requested, remembered].find((id) => id && list.some((project) => project.id === id)) ?? list[0]!.id;
       if (chosen !== activeIdRef.current) {
         activeIdRef.current = chosen;
+        setBundleError(null);
         setActiveIdState(chosen);
+        try {
+          window.localStorage.setItem(ACTIVE_PROJECT_KEY, chosen);
+        } catch {}
       }
     })();
   }, [isPublicAuthRoute, refreshProjects, loadBundle]);
@@ -214,9 +241,19 @@ function WorkspaceProviderRoot({ children }: { children: ReactNode }) {
   }, []);
 
   const reload = useCallback(async () => {
-    const id = activeIdRef.current;
+    setBundleError(null);
+    const list = await refreshProjects();
+    let id = activeIdRef.current;
+    if (list.length > 0 && (!id || !list.some((p) => p.id === id))) {
+      id = list[0]!.id;
+      activeIdRef.current = id;
+      setActiveIdState(id);
+      try {
+        window.localStorage.setItem(ACTIVE_PROJECT_KEY, id);
+      } catch {}
+    }
     if (!id) return;
-    await Promise.all([loadBundle(id), refreshProjects()]);
+    await loadBundle(id);
   }, [loadBundle, refreshProjects]);
 
   const updateDraft = useCallback((entry: PersonalizationEntry) => {
@@ -312,7 +349,8 @@ function WorkspaceProviderRoot({ children }: { children: ReactNode }) {
   );
 
   const startResearch = useCallback(
-    async ({ targetId, targetLabel, count, name }: StartResearchInput) => {
+    async (input: StartResearchInput) => {
+      const { targetId, targetLabel, count, name, force, notes, organisation, role, website } = input;
       const projectId = activeIdRef.current;
       if (!projectId) return;
       clearPoll();
@@ -376,7 +414,16 @@ function WorkspaceProviderRoot({ children }: { children: ReactNode }) {
         const response = await authenticatedFetch(`/api/projects/${projectId}/research`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: name?.trim() ?? '', target_id: targetId, entity_kind: 'unknown' }),
+          body: JSON.stringify({
+            name: name?.trim() ?? '',
+            target_id: targetId,
+            entity_kind: 'unknown',
+            force: force ?? Boolean(name?.trim()),
+            notes: notes?.trim() || undefined,
+            organisation: organisation?.trim() || undefined,
+            role: role?.trim() || undefined,
+            website: website?.trim() || undefined,
+          }),
         });
         if (!response.ok || !response.body) {
           const data = await response.json().catch(() => ({}));

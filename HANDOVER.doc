@@ -1,0 +1,209 @@
+<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta charset="utf-8">
+<title>MARCOM Automation - Project Handover Document</title>
+<!--[if gte mso 9]>
+<xml>
+<w:WordDocument>
+<w:View>Print</w:View>
+<w:Zoom>100</w:Zoom>
+<w:DoNotOptimizeForBrowser/>
+</w:WordDocument>
+</xml>
+<![endif]-->
+<style>
+  @page Section1 {
+    size: 8.5in 11.0in;
+    margin: 1.0in 1.0in 1.0in 1.0in;
+    mso-header-margin: 0.5in;
+    mso-footer-margin: 0.5in;
+    mso-paper-source: 0;
+  }
+  div.Section1 {
+    page: Section1;
+  }
+  body {
+    font-family: 'Segoe UI', Calibri, Arial, sans-serif;
+    color: #1e293b;
+    font-size: 11pt;
+    line-height: 1.6;
+    margin: 0;
+    padding: 0;
+  }
+  h1 { font-size: 22pt; color: #0f172a; margin-top: 18pt; margin-bottom: 10pt; }
+  h2 { font-size: 15pt; color: #1e293b; margin-top: 16pt; margin-bottom: 8pt; }
+  h3 { font-size: 12pt; color: #334155; margin-top: 12pt; margin-bottom: 6pt; }
+  p, li { font-size: 11pt; color: #334155; line-height: 1.6; }
+  table { border-collapse: collapse; width: 100%; margin: 12pt 0; }
+  td, th { border: 1px solid #cbd5e1; padding: 6pt 10pt; font-size: 10pt; }
+  th { background-color: #0f172a; color: #ffffff; }
+  pre { background-color: #0f172a; color: #f8fafc; padding: 10pt; border-radius: 4pt; font-family: Consolas, monospace; font-size: 9.5pt; }
+  blockquote { border-left: 3pt solid #0284c7; background: #f0f9ff; padding: 8pt 12pt; margin: 10pt 0; color: #0369a1; }
+</style>
+</head>
+<body>
+<div class="Section1">
+<h1 style="color: #0f172a; font-size: 24pt; font-weight: bold; border-bottom: 2px solid #cbd5e1; padding-bottom: 10px; margin-top: 24px; margin-bottom: 14px;">MARCOM Automation — Comprehensive Project Handover Document</h1>
+<blockquote style="border-left: 4px solid #0284c7; background: #f0f9ff; padding: 10px 16px; margin: 14px 0; color: #0369a1; font-style: italic;"><strong>Document Version:</strong> 1.0.0  </blockquote>
+<blockquote style="border-left: 4px solid #0284c7; background: #f0f9ff; padding: 10px 16px; margin: 14px 0; color: #0369a1; font-style: italic;"><strong>Repository:</strong> <code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">Lunim-Corporate/marcom-automation</code>  </blockquote>
+<blockquote style="border-left: 4px solid #0284c7; background: #f0f9ff; padding: 10px 16px; margin: 14px 0; color: #0369a1; font-style: italic;"><strong>Active Branch:</strong> <code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">dev_mal</code> (tracked with <code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">origin/dev_mal</code>)  </blockquote>
+<blockquote style="border-left: 4px solid #0284c7; background: #f0f9ff; padding: 10px 16px; margin: 14px 0; color: #0369a1; font-style: italic;"><strong>Latest Commit:</strong> <code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">c92f55a</code>  </blockquote>
+<blockquote style="border-left: 4px solid #0284c7; background: #f0f9ff; padding: 10px 16px; margin: 14px 0; color: #0369a1; font-style: italic;"><strong>Last Updated:</strong> October 28, 2026  </blockquote>
+<hr style="border: none; border-top: 1px solid #cbd5e1; margin: 24px 0;" />
+<h2 style="color: #1e293b; font-size: 16pt; font-weight: bold; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; margin-top: 22px; margin-bottom: 12px;">1. Executive Summary & Vision</h2>
+<p style="color: #334155; font-size: 11pt; line-height: 1.6; margin: 8px 0;"><strong>MARCOM</strong> (<em>Multi-Agent Researcher Communicator</em>) is a project-independent autonomous AI research and B2B communications platform developed for <strong>Lunim Corporate</strong> and its diverse initiative portfolio (e.g. <em>Maya Book Awards</em>, <em>FlowPilot Automation</em>, and corporate communications).</p>
+<h3 style="color: #334155; font-size: 13pt; font-weight: bold; margin-top: 18px; margin-bottom: 8px;">Core Problem Solved</h3>
+<p style="color: #334155; font-size: 11pt; line-height: 1.6; margin: 8px 0;">Traditional cold outreach and SDR tools suffer from hallucinations, generic template spam, superficial scraping, and low conversion rates. MARCOM replaces this with:</p>
+<ul style="margin: 10px 0 14px 28px; padding-left: 0; line-height: 1.6;">
+<li style="margin-bottom: 5px; color: #334155;"><strong>Evidence-Grounded Prospecting:</strong> Every prospect attribute, verified quote, and hook cites an explicit public URL discovered via neural search.</li>
+<li style="margin-bottom: 5px; color: #334155;"><strong>Strict Separation of Concerns:</strong> Models never multitask. An agent that synthesizes briefs never conducts search; an agent that researches never drafts outreach copy.</li>
+<li style="margin-bottom: 5px; color: #334155;"><strong>Deterministic Enforcement over LLM Trust:</strong> Zod schemas, character bounds, deliverability verifications, and blacklisted buzzword filters run in deterministic TypeScript code, never relying on LLM self-policing.</li>
+<li style="margin-bottom: 5px; color: #334155;"><strong>Human-in-the-Loop Governance:</strong> Autonomous agents prepare candidate campaigns, prospects, and personalized drafts, but a human must review and approve before any communication is dispatched.</li>
+</ul>
+<hr style="border: none; border-top: 1px solid #cbd5e1; margin: 24px 0;" />
+<h2 style="color: #1e293b; font-size: 16pt; font-weight: bold; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; margin-top: 22px; margin-bottom: 12px;">2. Technology Stack & Key Dependencies</h2>
+<table style="width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 10pt; font-family: Segoe UI, Arial, sans-serif;"><thead><tr style="background-color: #0f172a; color: #ffffff;"><th style="border: 1px solid #334155; padding: 9px 12px; text-align: left; font-weight: bold;">Layer</th><th style="border: 1px solid #334155; padding: 9px 12px; text-align: left; font-weight: bold;">Technology</th><th style="border: 1px solid #334155; padding: 9px 12px; text-align: left; font-weight: bold;">Details / Notes</th></tr></thead><tbody><tr style="background-color: #ffffff;"><td style="border: 1px solid #e2e8f0; padding: 8px 12px; color: #334155; vertical-align: top;"><strong>Framework</strong></td><td style="border: 1px solid #e2e8f0; padding: 8px 12px; color: #334155; vertical-align: top;">Next.js 16.3.8 (App Router)</td><td style="border: 1px solid #e2e8f0; padding: 8px 12px; color: #334155; vertical-align: top;">High-performance React framework; runs locally on <code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">127.0.0.1:3000</code>.</td></tr><tr style="background-color: #f8fafc;"><td style="border: 1px solid #e2e8f0; padding: 8px 12px; color: #334155; vertical-align: top;"><strong>UI & Styling</strong></td><td style="border: 1px solid #e2e8f0; padding: 8px 12px; color: #334155; vertical-align: top;">React 19.2.8 + Tailwind CSS v4</td><td style="border: 1px solid #e2e8f0; padding: 8px 12px; color: #334155; vertical-align: top;">Dark cinematic UI (<code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">#08080c</code> palette, glassmorphism, cyan/emerald accents).</td></tr><tr style="background-color: #ffffff;"><td style="border: 1px solid #e2e8f0; padding: 8px 12px; color: #334155; vertical-align: top;"><strong>Language</strong></td><td style="border: 1px solid #e2e8f0; padding: 8px 12px; color: #334155; vertical-align: top;">TypeScript 5.8</td><td style="border: 1px solid #e2e8f0; padding: 8px 12px; color: #334155; vertical-align: top;">Strict type checking (<code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">tsc --noEmit</code>).</td></tr><tr style="background-color: #f8fafc;"><td style="border: 1px solid #e2e8f0; padding: 8px 12px; color: #334155; vertical-align: top;"><strong>Database</strong></td><td style="border: 1px solid #e2e8f0; padding: 8px 12px; color: #334155; vertical-align: top;">PostgreSQL (Neon / Serverless)</td><td style="border: 1px solid #e2e8f0; padding: 8px 12px; color: #334155; vertical-align: top;">Authoritative source of truth for all projects, research jobs, and prospects.</td></tr><tr style="background-color: #ffffff;"><td style="border: 1px solid #e2e8f0; padding: 8px 12px; color: #334155; vertical-align: top;"><strong>ORM & Migrations</strong></td><td style="border: 1px solid #e2e8f0; padding: 8px 12px; color: #334155; vertical-align: top;">Drizzle ORM + Drizzle Kit</td><td style="border: 1px solid #e2e8f0; padding: 8px 12px; color: #334155; vertical-align: top;">Migrations tracked in <code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">netlify/database/migrations/</code>.</td></tr><tr style="background-color: #f8fafc;"><td style="border: 1px solid #e2e8f0; padding: 8px 12px; color: #334155; vertical-align: top;"><strong>LLM Inference</strong></td><td style="border: 1px solid #e2e8f0; padding: 8px 12px; color: #334155; vertical-align: top;">Groq API (<code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">llama-3.3-70b-versatile</code>)</td><td style="border: 1px solid #e2e8f0; padding: 8px 12px; color: #334155; vertical-align: top;">Fast, low-latency reasoning for brief synthesis and two-stage outreach drafting.</td></tr><tr style="background-color: #ffffff;"><td style="border: 1px solid #e2e8f0; padding: 8px 12px; color: #334155; vertical-align: top;"><strong>Web Research</strong></td><td style="border: 1px solid #e2e8f0; padding: 8px 12px; color: #334155; vertical-align: top;">Exa AI API (<code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">@exa-labs/sdk</code>)</td><td style="border: 1px solid #e2e8f0; padding: 8px 12px; color: #334155; vertical-align: top;">Neural web search for discovering verified individuals, organizations, and source quotes.</td></tr><tr style="background-color: #f8fafc;"><td style="border: 1px solid #e2e8f0; padding: 8px 12px; color: #334155; vertical-align: top;"><strong>Document Ingestion</strong></td><td style="border: 1px solid #e2e8f0; padding: 8px 12px; color: #334155; vertical-align: top;"><code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">pdf-parse</code>, <code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">mammoth</code> (docx), <code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">cheerio</code></td><td style="border: 1px solid #e2e8f0; padding: 8px 12px; color: #334155; vertical-align: top;">Extracts and normalizes uploaded briefs, decks, and public Google Docs.</td></tr><tr style="background-color: #ffffff;"><td style="border: 1px solid #e2e8f0; padding: 8px 12px; color: #334155; vertical-align: top;"><strong>Testing</strong></td><td style="border: 1px solid #e2e8f0; padding: 8px 12px; color: #334155; vertical-align: top;">Node.js Test Runner + <code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">tsx</code></td><td style="border: 1px solid #e2e8f0; padding: 8px 12px; color: #334155; vertical-align: top;">86 automated unit and integration tests under <code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">src/<em>*/</em>.test.ts</code>.</td></tr><tr style="background-color: #f8fafc;"><td style="border: 1px solid #e2e8f0; padding: 8px 12px; color: #334155; vertical-align: top;"><strong>Hosting Target</strong></td><td style="border: 1px solid #e2e8f0; padding: 8px 12px; color: #334155; vertical-align: top;">Netlify</td><td style="border: 1px solid #e2e8f0; padding: 8px 12px; color: #334155; vertical-align: top;">Next.js Netlify runtime with PostgreSQL integration.</td></tr></tbody></table>
+<hr style="border: none; border-top: 1px solid #cbd5e1; margin: 24px 0;" />
+<h2 style="color: #1e293b; font-size: 16pt; font-weight: bold; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; margin-top: 22px; margin-bottom: 12px;">3. Architecture & Core Pipelines</h2>
+<pre style="background: #0f172a; color: #f8fafc; padding: 14px 18px; border-radius: 6px; font-family: Consolas, monospace; font-size: 9.5pt; line-height: 1.5; margin: 14px 0; border: 1px solid #334155;"><code>flowchart TD
+    A[Human Project Brief / Upload] --&gt; B[Brief Analyzer Agent]
+    B --&gt;|Prefill Mode| C[4 Intake Questions + Optional Constraints]
+    C --&gt;|Human Approval| D[Full Campaign Configuration]
+    D --&gt;|PostgreSQL Storage| E[(Projects Table)]
+    E --&gt; F[Research Agent / Scout]
+    F --&gt;|Exa Neural Search| G[Prospect Discovery &amp; Evidence Extraction]
+    G --&gt; H{Research QA Engine}
+    H --&gt;|Verified &amp; Deduplicated| I[(Prospects Table)]
+    I --&gt; J[Personalization Agent / Tailor]
+    J --&gt;|Strategist + Copywriter| K[Personalized Outreach Drafts]
+    K --&gt; L{Personalization QA Engine}
+    L --&gt;|Strict Bounds Check| M[(Personalizations Table)]
+    M --&gt; N[Slide-Over Prospect Inspection Drawer &amp; Human Approval]</code></pre>
+<h3 style="color: #334155; font-size: 13pt; font-weight: bold; margin-top: 18px; margin-bottom: 8px;">3.1 Agent 1: Brief Analyzer (<code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">src/marcom/agents/brief-analyzer/</code>)</h3>
+<ul style="margin: 10px 0 14px 28px; padding-left: 0; line-height: 1.6;">
+<li style="margin-bottom: 5px; color: #334155;"><strong>Input:</strong> Raw text, PDF files, Word <code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">.docx</code>, Markdown, or Google Doc URLs.</li>
+<li style="margin-bottom: 5px; color: #334155;"><strong>Workflow Modes:</strong></li>
+</ul>
+<p style="color: #334155; font-size: 11pt; line-height: 1.6; margin: 8px 0;">1. <code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">mode: 'prefill'</code>: Synthesizes the brief into direct answers for the 4 core intake questions plus suggested project name and optional constraints.</p>
+<p style="color: #334155; font-size: 11pt; line-height: 1.6; margin: 8px 0;">2. Full Synthesis: Produces a fully validated <code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">StructuredBrief</code> object (objectives, target segments, qualification criteria, negative search terms, and outreach channel preferences).</p>
+<ul style="margin: 10px 0 14px 28px; padding-left: 0; line-height: 1.6;">
+<li style="margin-bottom: 5px; color: #334155;"><strong>Boundaries:</strong> Does <strong>not</strong> perform external search and does <strong>not</strong> draft outreach copy.</li>
+</ul>
+<h3 style="color: #334155; font-size: 13pt; font-weight: bold; margin-top: 18px; margin-bottom: 8px;">3.2 Agent 2: Research Agent / Scout (<code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">src/marcom/agents/research/</code>)</h3>
+<ul style="margin: 10px 0 14px 28px; padding-left: 0; line-height: 1.6;">
+<li style="margin-bottom: 5px; color: #334155;"><strong>Input:</strong> Validated <code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">StructuredBrief</code> from active campaign.</li>
+<li style="margin-bottom: 5px; color: #334155;"><strong>Engine:</strong> Queries Exa AI neural search engine with domain deduplication, keyword matching, and quote verification.</li>
+<li style="margin-bottom: 5px; color: #334155;"><strong>Quality Assurance (<code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">research-qa.ts</code>):</strong> Validates that every prospect has a real name, role, organization, source URL, and verified quote. Flags bot traps and invalid domains.</li>
+</ul>
+<h3 style="color: #334155; font-size: 13pt; font-weight: bold; margin-top: 18px; margin-bottom: 8px;">3.3 Agent 3: Personalization Agent / Tailor (<code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">src/marcom/agents/personalization/</code>)</h3>
+<ul style="margin: 10px 0 14px 28px; padding-left: 0; line-height: 1.6;">
+<li style="margin-bottom: 5px; color: #334155;"><strong>Input:</strong> Verified prospect profile + project context.</li>
+<li style="margin-bottom: 5px; color: #334155;"><strong>Two-Model Chain (Groq):</strong></li>
+</ul>
+<p style="color: #334155; font-size: 11pt; line-height: 1.6; margin: 8px 0;">1. <em>Intelligence Strategist:</em> Audits communication channels, selects the strongest proof hook, and formulates the outreach strategy.</p>
+<p style="color: #334155; font-size: 11pt; line-height: 1.6; margin: 8px 0;">2. <em>Master Copywriter:</em> Drafts direct, high-conversion copy tailored to the recipient.</p>
+<ul style="margin: 10px 0 14px 28px; padding-left: 0; line-height: 1.6;">
+<li style="margin-bottom: 5px; color: #334155;"><strong>Strict Guardrails:</strong> Enforces word count bounds, bans buzzwords ("synergy", "game-changer", etc.), and <strong>strictly forbids em-dashes and en-dashes</strong>.</li>
+</ul>
+<hr style="border: none; border-top: 1px solid #cbd5e1; margin: 24px 0;" />
+<h2 style="color: #1e293b; font-size: 16pt; font-weight: bold; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; margin-top: 22px; margin-bottom: 12px;">4. Key Workflows & Recent Implementations</h2>
+<h3 style="color: #334155; font-size: 13pt; font-weight: bold; margin-top: 18px; margin-bottom: 8px;">4.1 3-Stage Brief Intake & Campaign Setup</h3>
+<p style="color: #334155; font-size: 11pt; line-height: 1.6; margin: 8px 0;">Located in <a href="file:///c:/Users/Asus/Downloads/marcom-automation-main/marcom-automation-main/src/components/ui/BriefIntakeModal.tsx" style="color: #0284c7; text-decoration: underline;"><code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">src/components/ui/BriefIntakeModal.tsx</code></a>:</p>
+<p style="color: #334155; font-size: 11pt; line-height: 1.6; margin: 8px 0;">1. <strong>Stage 1 (<code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">UPLOAD</code>):</strong> User uploads a brief document (PDF, Word, TXT, MD up to 15MB) or enters a Google Doc URL. Alternatively, they can click <em>"Skip upload & write manually →"</em>.</p>
+<p style="color: #334155; font-size: 11pt; line-height: 1.6; margin: 8px 0;">2. <strong>Stage 2 (<code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">QUESTIONS</code>):</strong> The system auto-answers the 4 mandatory questions (<code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">overview</code>, <code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">goals</code>, <code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">work</code>, <code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">audience</code>) and suggests a project name. The 5th question (<code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">constraints</code>) is labeled <code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">Optional</code>. The user reviews, edits, and adds anything. The primary action <em>"Approve Questions & Configure Campaign →"</em> is strictly disabled until all 4 mandatory questions are filled.</p>
+<p style="color: #334155; font-size: 11pt; line-height: 1.6; margin: 8px 0;">3. <strong>Stage 3 (<code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">REVIEW</code>):</strong> Transitions to <a href="file:///c:/Users/Asus/Downloads/marcom-automation-main/marcom-automation-main/src/components/campaign/CampaignConfigurationForm.tsx" style="color: #0284c7; text-decoration: underline;"><code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">CampaignConfigurationForm.tsx</code></a>, displaying every setting (targets, qualification criteria, negative keywords, outreach channels). The user can tweak any configuration or click <em>"Save campaign"</em> to persist it to PostgreSQL.</p>
+<h3 style="color: #334155; font-size: 13pt; font-weight: bold; margin-top: 18px; margin-bottom: 8px;">4.2 Slide-Over Prospect Inspection Drawer</h3>
+<p style="color: #334155; font-size: 11pt; line-height: 1.6; margin: 8px 0;">Located in <a href="file:///c:/Users/Asus/Downloads/marcom-automation-main/marcom-automation-main/src/components/workspace/views/ProspectsView.tsx" style="color: #0284c7; text-decoration: underline;"><code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">src/components/workspace/views/ProspectsView.tsx</code></a>:</p>
+<ul style="margin: 10px 0 14px 28px; padding-left: 0; line-height: 1.6;">
+<li style="margin-bottom: 5px; color: #334155;">When a user clicks on any prospect in the list, a slide-over modal/drawer opens immediately on screen.</li>
+<li style="margin-bottom: 5px; color: #334155;">Users no longer need to scroll to the bottom of the page to inspect prospect information, evidence citations, and generated email drafts.</li>
+</ul>
+<h3 style="color: #334155; font-size: 13pt; font-weight: bold; margin-top: 18px; margin-bottom: 8px;">4.3 Campaign Deletion with Full Cascade</h3>
+<p style="color: #334155; font-size: 11pt; line-height: 1.6; margin: 8px 0;">Located in [<code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">src/app/api/projects/[id]/route.ts</code>](file:///c:/Users/Asus/Downloads/marcom-automation-main/marcom-automation-main/src/app/api/projects/[id]/route.ts) and <a href="file:///c:/Users/Asus/Downloads/marcom-automation-main/marcom-automation-main/src/components/workspace/CampaignSwitcher.tsx" style="color: #0284c7; text-decoration: underline;"><code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">src/components/workspace/CampaignSwitcher.tsx</code></a>:</p>
+<ul style="margin: 10px 0 14px 28px; padding-left: 0; line-height: 1.6;">
+<li style="margin-bottom: 5px; color: #334155;">A permanent, high-visibility "Delete Campaign" button is placed at the bottom right of the campaign switcher menu.</li>
+<li style="margin-bottom: 5px; color: #334155;">Deletion cascades cleanly in PostgreSQL, removing associated prospects, personalizations, research jobs, and source files.</li>
+</ul>
+<hr style="border: none; border-top: 1px solid #cbd5e1; margin: 24px 0;" />
+<h2 style="color: #1e293b; font-size: 16pt; font-weight: bold; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; margin-top: 22px; margin-bottom: 12px;">5. Database Schema & Migration Guide</h2>
+<p style="color: #334155; font-size: 11pt; line-height: 1.6; margin: 8px 0;">PostgreSQL is the single source of truth. All tables are defined using Drizzle ORM in <code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">src/db/schema/</code>:</p>
+<ul style="margin: 10px 0 14px 28px; padding-left: 0; line-height: 1.6;">
+<li style="margin-bottom: 5px; color: #334155;"><strong><code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">projects</code> (<code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">projects.ts</code>):</strong> Stores campaign metadata, structured brief JSON, and configuration revisions.</li>
+<li style="margin-bottom: 5px; color: #334155;"><strong><code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">source_files</code> (<code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">source-files.ts</code>):</strong> Stores raw uploaded brief documents and extraction results.</li>
+<li style="margin-bottom: 5px; color: #334155;"><strong><code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">research_jobs</code> (<code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">research-jobs.ts</code>):</strong> Tracks background research job status, attempts, and payloads.</li>
+<li style="margin-bottom: 5px; color: #334155;"><strong><code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">prospects</code> (<code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">prospects.ts</code>):</strong> Stores verified individuals/organizations, scores, qualification status (<code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">NEEDS_REVIEW</code>, <code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">APPROVED</code>, <code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">REJECTED</code>), and evidence citations.</li>
+<li style="margin-bottom: 5px; color: #334155;"><strong><code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">personalizations</code> (<code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">personalizations.ts</code>):</strong> Stores generated outreach copy, subject lines, channels, and delivery statuses.</li>
+<li style="margin-bottom: 5px; color: #334155;"><strong><code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">admin_users</code> & <code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">admin_sessions</code> (<code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">admin.ts</code>):</strong> Manages shared pilot access authentication.</li>
+</ul>
+<h3 style="color: #334155; font-size: 13pt; font-weight: bold; margin-top: 18px; margin-bottom: 8px;">Migration Rules</h3>
+<ul style="margin: 10px 0 14px 28px; padding-left: 0; line-height: 1.6;">
+<li style="margin-bottom: 5px; color: #334155;">Committed migrations live in <code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">netlify/database/migrations/</code>.</li>
+<li style="margin-bottom: 5px; color: #334155;"><strong>Never edit an existing applied migration.</strong></li>
+<li style="margin-bottom: 5px; color: #334155;">Generate new migrations using: <code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">npm run db:generate</code>.</li>
+<li style="margin-bottom: 5px; color: #334155;">Apply migrations using: <code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">npm run db:migrate</code>.</li>
+</ul>
+<hr style="border: none; border-top: 1px solid #cbd5e1; margin: 24px 0;" />
+<h2 style="color: #1e293b; font-size: 16pt; font-weight: bold; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; margin-top: 22px; margin-bottom: 12px;">6. Authentication & Security Model</h2>
+<p style="color: #334155; font-size: 11pt; line-height: 1.6; margin: 8px 0;">The system implements a shared pilot authentication architecture (<code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">src/auth/</code>):</p>
+<ul style="margin: 10px 0 14px 28px; padding-left: 0; line-height: 1.6;">
+<li style="margin-bottom: 5px; color: #334155;"><strong>Local Development:</strong> Loopback requests (<code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">127.0.0.1</code> and <code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">localhost</code>) automatically bypass authentication for rapid iteration.</li>
+<li style="margin-bottom: 5px; color: #334155;"><strong>Remote / Hosted Access:</strong> Requires shared pilot credentials (<code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">APP_SHARED_PASSWORD</code>).</li>
+<li style="margin-bottom: 5px; color: #334155;"><strong>Security Protections:</strong></li>
+<li style="margin-bottom: 5px; color: #334155;">Password hashing with PBKDF2 / Argon2.</li>
+<li style="margin-bottom: 5px; color: #334155;">Secure, HttpOnly, SameSite <code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">__Host</code> cookies.</li>
+<li style="margin-bottom: 5px; color: #334155;">Explicit CSRF token validation on mutating POST/PUT/DELETE requests via <code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">authenticatedFetch</code>.</li>
+<li style="margin-bottom: 5px; color: #334155;">Strict input sanitization and domain verification on all web searches.</li>
+</ul>
+<hr style="border: none; border-top: 1px solid #cbd5e1; margin: 24px 0;" />
+<h2 style="color: #1e293b; font-size: 16pt; font-weight: bold; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; margin-top: 22px; margin-bottom: 12px;">7. Environment Variables Configuration</h2>
+<p style="color: #334155; font-size: 11pt; line-height: 1.6; margin: 8px 0;">Create a <code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">.env.local</code> file in the workspace root with the following keys:</p>
+<pre style="background: #0f172a; color: #f8fafc; padding: 14px 18px; border-radius: 6px; font-family: Consolas, monospace; font-size: 9.5pt; line-height: 1.5; margin: 14px 0; border: 1px solid #334155;"><code># Database (PostgreSQL / Neon)
+DATABASE_URL=postgresql://user:password@ep-host.region.neon.tech/neondb?sslmode=require
+
+# LLM Provider (Groq)
+GROQ_API_KEY=gsk_...
+
+# Web Research Search Provider (Exa)
+EXA_API_KEY=...
+# Optional: Set to 'fake' for offline testing without consuming Exa credits
+# SEARCH_PROVIDER=fake
+
+# Authentication &amp; Session Security
+APP_SESSION_SECRET=a_very_long_random_secret_string_minimum_32_characters
+APP_SHARED_PASSWORD=your_shared_team_password
+
+# Application Origin (for CSRF validation in production)
+APP_ORIGIN=http://127.0.0.1:3000</code></pre>
+<hr style="border: none; border-top: 1px solid #cbd5e1; margin: 24px 0;" />
+<h2 style="color: #1e293b; font-size: 16pt; font-weight: bold; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; margin-top: 22px; margin-bottom: 12px;">8. Runbook & Developer Operations</h2>
+<h3 style="color: #334155; font-size: 13pt; font-weight: bold; margin-top: 18px; margin-bottom: 8px;">Starting the Development Server</h3>
+<pre style="background: #0f172a; color: #f8fafc; padding: 14px 18px; border-radius: 6px; font-family: Consolas, monospace; font-size: 9.5pt; line-height: 1.5; margin: 14px 0; border: 1px solid #334155;"><code>npm run dev
+# Server boots at http://127.0.0.1:3000</code></pre>
+<h3 style="color: #334155; font-size: 13pt; font-weight: bold; margin-top: 18px; margin-bottom: 8px;">Running Static Typecheck</h3>
+<pre style="background: #0f172a; color: #f8fafc; padding: 14px 18px; border-radius: 6px; font-family: Consolas, monospace; font-size: 9.5pt; line-height: 1.5; margin: 14px 0; border: 1px solid #334155;"><code>npm run typecheck
+# Runs tsc --noEmit (must pass with 0 errors)</code></pre>
+<h3 style="color: #334155; font-size: 13pt; font-weight: bold; margin-top: 18px; margin-bottom: 8px;">Running the Test Suite</h3>
+<pre style="background: #0f172a; color: #f8fafc; padding: 14px 18px; border-radius: 6px; font-family: Consolas, monospace; font-size: 9.5pt; line-height: 1.5; margin: 14px 0; border: 1px solid #334155;"><code>npm test
+# Executes all 86 unit and integration tests via tsx</code></pre>
+<h3 style="color: #334155; font-size: 13pt; font-weight: bold; margin-top: 18px; margin-bottom: 8px;">Git & Branch Workflow</h3>
+<ul style="margin: 10px 0 14px 28px; padding-left: 0; line-height: 1.6;">
+<li style="margin-bottom: 5px; color: #334155;">Work is conducted on feature branches (e.g., <code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">dev_mal</code>).</li>
+<li style="margin-bottom: 5px; color: #334155;">Pushes require Windows Credential Manager:</li>
+</ul>
+<pre style="background: #0f172a; color: #f8fafc; padding: 14px 18px; border-radius: 6px; font-family: Consolas, monospace; font-size: 9.5pt; line-height: 1.5; margin: 14px 0; border: 1px solid #334155;"><code>  git -c credential.helper=manager push origin dev_mal</code></pre>
+<hr style="border: none; border-top: 1px solid #cbd5e1; margin: 24px 0;" />
+<h2 style="color: #1e293b; font-size: 16pt; font-weight: bold; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; margin-top: 22px; margin-bottom: 12px;">9. Critical Conventions & Guardrails</h2>
+<p style="color: #334155; font-size: 11pt; line-height: 1.6; margin: 8px 0;">1. <strong>Copywriting Tone Rule:</strong> Never use em-dashes (<code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">—</code>) or en-dashes (<code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">–</code>) in outreach copy or message templates. Use hyphens, commas, or direct sentences instead.</p>
+<p style="color: #334155; font-size: 11pt; line-height: 1.6; margin: 8px 0;">2. <strong>PostgreSQL Persistence Rule:</strong> Never store data exclusively in JSON or frontend state if it belongs in the database. Ensure schema updates accompany new fields.</p>
+<p style="color: #334155; font-size: 11pt; line-height: 1.6; margin: 8px 0;">3. <strong>No Unbounded Research:</strong> Background research jobs must always have bounded limits (<code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">maxProspects</code>, bounded search query limits) to prevent runaway API spend.</p>
+<p style="color: #334155; font-size: 11pt; line-height: 1.6; margin: 8px 0;">4. <strong>Link Formatting in Tools:</strong> When generating reports or referencing files, always use clickable markdown links with <code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">file:///</code> and forward slashes.</p>
+<hr style="border: none; border-top: 1px solid #cbd5e1; margin: 24px 0;" />
+<h2 style="color: #1e293b; font-size: 16pt; font-weight: bold; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; margin-top: 22px; margin-bottom: 12px;">10. Contact & Repository Information</h2>
+<ul style="margin: 10px 0 14px 28px; padding-left: 0; line-height: 1.6;">
+<li style="margin-bottom: 5px; color: #334155;"><strong>GitHub Repository:</strong> <a href="https://github.com/Lunim-Corporate/marcom-automation" style="color: #0284c7; text-decoration: underline;">https://github.com/Lunim-Corporate/marcom-automation</a></li>
+<li style="margin-bottom: 5px; color: #334155;"><strong>Primary Branch:</strong> <code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">dev_mal</code></li>
+<li style="margin-bottom: 5px; color: #334155;"><strong>Application Port:</strong> <code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">3000</code> (Local: <code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 9.5pt; font-family: Consolas, monospace;">http://127.0.0.1:3000</code>)</li>
+</ul>
+</div>
+</body>
+</html>
