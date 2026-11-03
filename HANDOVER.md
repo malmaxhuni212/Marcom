@@ -91,6 +91,13 @@ Located in [`src/components/workspace/views/ProspectsView.tsx`](file:///c:/Users
 - When a user clicks on any prospect in the list, a slide-over modal/drawer opens immediately on screen.
 - Users no longer need to scroll to the bottom of the page to inspect prospect information, evidence citations, and generated email drafts.
 
+### 4.4 Reviewer Draft Feedback & Dynamic Rewrites
+Located in `src/components/workspace/DraftFeedbackPanel.tsx` and `src/marcom/personalization/feedback.ts`:
+- Reviewers provide direct qualitative feedback under any generated outreach draft (quick chips like *"Make it shorter"*, *"Less flattering"*, or custom instructions).
+- **Save feedback**: Stores the critique in project memory to condition all future draft generations for that category or project.
+- **Save & rewrite**: Incorporates the critique immediately to generate a real-time rewrite via Groq or deterministic fallback.
+- Feedback memory is injected into both the Strategist and Writer prompts with scoped relevance.
+
 ### 4.3 Campaign Deletion with Full Cascade
 Located in [`src/app/api/projects/[id]/route.ts`](file:///c:/Users/Asus/Downloads/marcom-automation-main/marcom-automation-main/src/app/api/projects/[id]/route.ts) and [`src/components/workspace/CampaignSwitcher.tsx`](file:///c:/Users/Asus/Downloads/marcom-automation-main/marcom-automation-main/src/components/workspace/CampaignSwitcher.tsx):
 - A permanent, high-visibility "Delete Campaign" button is placed at the bottom right of the campaign switcher menu.
