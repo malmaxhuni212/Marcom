@@ -22,6 +22,8 @@ import {
   type PersonalizationStatus,
 } from '@/marcom/schemas/personalization';
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 type DatabaseTransaction = Parameters<Parameters<MarcomDatabase['transaction']>[0]>[0];
 
 function asJsonObject(value: unknown): Record<string, unknown> {

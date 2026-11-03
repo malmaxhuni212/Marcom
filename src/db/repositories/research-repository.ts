@@ -22,6 +22,8 @@ import type { ResearchEntry, ReviewStatus } from '@/marcom/schemas/research-reco
 import { ResearchJobPayloadSchema } from '@/marcom/research/job-contract';
 import { RESEARCH_JOB_MAX_ATTEMPTS } from '@/marcom/research/job-policy';
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 type DatabaseTransaction = Parameters<Parameters<MarcomDatabase['transaction']>[0]>[0];
 
 export interface ResearchBatchInfo {
@@ -182,6 +184,7 @@ export async function listResearch(
   campaignId: string,
   database: MarcomDatabase = getDatabase(),
 ): Promise<ResearchEntry[]> {
+  if (!UUID_REGEX.test(campaignId)) return [];
   const rows = await database
     .selectDistinctOn([campaignProspects.id], { metadata: researchResults.metadata, researchStatus: campaignProspects.researchStatus, reviewNotes: campaignProspects.reviewNotes, reviewedAt: campaignProspects.updatedAt })
     .from(researchResults)
@@ -859,6 +862,7 @@ export async function updateResearchReview(
   note: string | null,
   database: MarcomDatabase = getDatabase(),
 ): Promise<ResearchEntry | null> {
+  if (!UUID_REGEX.test(campaignId)) return null;
   return database.transaction(async (transaction) => {
     const [row] = await transaction
       .select({ result: researchResults, campaignProspect: campaignProspects })

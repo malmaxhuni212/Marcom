@@ -244,16 +244,18 @@ function buildFallbackPersonalizationEntry(
   };
 }
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 async function safeGetSettings(
   actor: ActorContext,
   projectId: string,
   allowFileFallback: boolean,
 ): Promise<PersonalizationSettings> {
-  if (isDatabaseConfigured()) {
+  if (isDatabaseConfigured() && UUID_REGEX.test(projectId)) {
     try {
       return await getDbPersonalizationSettings(actor, projectId);
     } catch (error) {
-      if (!allowFileFallback) throw error;
+      console.warn('DB getPersonalizationSettings failed, falling back to file/memory store:', error);
     }
   }
   return getFilePersonalizationSettings(projectId);
@@ -264,11 +266,12 @@ async function safeListPersonalizations(
   projectId: string,
   allowFileFallback: boolean,
 ): Promise<PersonalizationEntry[]> {
-  if (isDatabaseConfigured()) {
+  if (isDatabaseConfigured() && UUID_REGEX.test(projectId)) {
     try {
-      return await listDbPersonalizations(actor, projectId);
+      const dbEntries = await listDbPersonalizations(actor, projectId);
+      if (dbEntries && dbEntries.length > 0) return dbEntries;
     } catch (error) {
-      if (!allowFileFallback) throw error;
+      console.warn('DB listPersonalizations failed, falling back to file/memory store:', error);
     }
   }
   return listFilePersonalizations(projectId);
@@ -280,11 +283,12 @@ async function safeGetPersonalization(
   recordId: string,
   allowFileFallback: boolean,
 ): Promise<PersonalizationEntry | null> {
-  if (isDatabaseConfigured()) {
+  if (isDatabaseConfigured() && UUID_REGEX.test(projectId)) {
     try {
-      return await getDbPersonalization(actor, projectId, recordId);
+      const dbEntry = await getDbPersonalization(actor, projectId, recordId);
+      if (dbEntry) return dbEntry;
     } catch (error) {
-      if (!allowFileFallback) throw error;
+      console.warn('DB getPersonalization failed, falling back to file/memory store:', error);
     }
   }
   return getFilePersonalization(projectId, recordId);
@@ -296,12 +300,12 @@ async function safeSavePersonalization(
   entry: PersonalizationEntry,
   allowFileFallback: boolean,
 ): Promise<void> {
-  if (isDatabaseConfigured()) {
+  if (isDatabaseConfigured() && UUID_REGEX.test(projectId)) {
     try {
       await saveDbPersonalization(actor, projectId, entry);
       return;
     } catch (error) {
-      if (!allowFileFallback) throw error;
+      console.warn('DB savePersonalization failed, falling back to file/memory store:', error);
     }
   }
   saveFilePersonalization(projectId, entry);
@@ -312,11 +316,12 @@ async function safeListResearch(
   projectId: string,
   allowFileFallback: boolean,
 ): Promise<ResearchEntry[]> {
-  if (isDatabaseConfigured()) {
+  if (isDatabaseConfigured() && UUID_REGEX.test(projectId)) {
     try {
-      return await listDbResearch(actor, projectId);
+      const dbResearch = await listDbResearch(actor, projectId);
+      if (dbResearch && dbResearch.length > 0) return dbResearch;
     } catch (error) {
-      if (!allowFileFallback) throw error;
+      console.warn('DB listResearch failed, falling back to file/memory store:', error);
     }
   }
   return listFileResearch(projectId);
@@ -330,12 +335,12 @@ async function safeUpdateResearchReview(
   note: string | null,
   allowFileFallback: boolean,
 ): Promise<void> {
-  if (isDatabaseConfigured()) {
+  if (isDatabaseConfigured() && UUID_REGEX.test(projectId)) {
     try {
       await updateDbResearchReview(actor, projectId, recordId, status, note);
       return;
     } catch (error) {
-      if (!allowFileFallback) throw error;
+      console.warn('DB updateResearchReview failed, falling back to file/memory store:', error);
     }
   }
   updateFileResearchReview(projectId, recordId, status, note);
@@ -348,11 +353,11 @@ async function safeUpdatePersonalizationCopy(
   copy: OutreachCopy,
   allowFileFallback: boolean,
 ): Promise<PersonalizationEntry | null> {
-  if (isDatabaseConfigured()) {
+  if (isDatabaseConfigured() && UUID_REGEX.test(projectId)) {
     try {
       return await updateDbPersonalizationCopy(actor, projectId, recordId, copy);
     } catch (error) {
-      if (!allowFileFallback) throw error;
+      console.warn('DB updatePersonalizationCopy failed, falling back to file/memory store:', error);
     }
   }
   return updateFilePersonalizationCopy(projectId, recordId, copy);
@@ -366,11 +371,11 @@ async function safeUpdatePersonalizationStatus(
   reviewerNote: string | undefined,
   allowFileFallback: boolean,
 ): Promise<PersonalizationEntry | null> {
-  if (isDatabaseConfigured()) {
+  if (isDatabaseConfigured() && UUID_REGEX.test(projectId)) {
     try {
       return await updateDbPersonalizationStatus(actor, projectId, recordId, status, reviewerNote);
     } catch (error) {
-      if (!allowFileFallback) throw error;
+      console.warn('DB updatePersonalizationStatus failed, falling back to file/memory store:', error);
     }
   }
   return updateFilePersonalizationStatus(projectId, recordId, status, reviewerNote);
@@ -382,11 +387,11 @@ async function safeSaveSettings(
   partial: Partial<PersonalizationSettings>,
   allowFileFallback: boolean,
 ): Promise<PersonalizationSettings> {
-  if (isDatabaseConfigured()) {
+  if (isDatabaseConfigured() && UUID_REGEX.test(projectId)) {
     try {
       return await saveDbPersonalizationSettings(actor, projectId, partial);
     } catch (error) {
-      if (!allowFileFallback) throw error;
+      console.warn('DB savePersonalizationSettings failed, falling back to file/memory store:', error);
     }
   }
   return saveFilePersonalizationSettings(projectId, partial);
@@ -398,11 +403,11 @@ async function safeDeletePersonalization(
   recordId: string,
   allowFileFallback: boolean,
 ): Promise<boolean> {
-  if (isDatabaseConfigured()) {
+  if (isDatabaseConfigured() && UUID_REGEX.test(projectId)) {
     try {
       return await deleteDbPersonalization(actor, projectId, recordId);
     } catch (error) {
-      if (!allowFileFallback) throw error;
+      console.warn('DB deletePersonalization failed, falling back to file/memory store:', error);
     }
   }
   return deleteFilePersonalization(projectId, recordId);

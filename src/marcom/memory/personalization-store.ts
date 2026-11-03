@@ -23,17 +23,29 @@ const fileFor = (projectId: string) => path.join(PERSONALIZATION_DIR, `${safeId(
 const settingsFileFor = (projectId: string) =>
   path.join(PERSONALIZATION_DIR, `${safeId(projectId)}-settings.json`);
 
+const inMemoryEntries = new Map<string, PersonalizationEntry[]>();
+const inMemorySettings = new Map<string, PersonalizationSettings>();
+
 function ensureDir() {
-  if (!existsSync(PERSONALIZATION_DIR)) {
-    mkdirSync(PERSONALIZATION_DIR, { recursive: true });
+  try {
+    if (!existsSync(PERSONALIZATION_DIR)) {
+      mkdirSync(PERSONALIZATION_DIR, { recursive: true });
+    }
+  } catch {
+    // Read-only filesystem in serverless environments
   }
 }
 
 export function listPersonalizations(projectId: string): PersonalizationEntry[] {
+  if (inMemoryEntries.has(projectId)) {
+    return inMemoryEntries.get(projectId)!;
+  }
   const f = fileFor(projectId);
   if (!existsSync(f)) return [];
   try {
-    return JSON.parse(readFileSync(f, 'utf8')) as PersonalizationEntry[];
+    const parsed = JSON.parse(readFileSync(f, 'utf8')) as PersonalizationEntry[];
+    inMemoryEntries.set(projectId, parsed);
+    return parsed;
   } catch {
     return [];
   }
@@ -45,11 +57,16 @@ export function getPersonalization(projectId: string, recordId: string): Persona
 }
 
 function writeEntries(projectId: string, entries: PersonalizationEntry[]): void {
-  ensureDir();
-  const file = fileFor(projectId);
-  const tempFile = `${file}.tmp`;
-  writeFileSync(tempFile, JSON.stringify(entries, null, 2), 'utf8');
-  renameSync(tempFile, file);
+  inMemoryEntries.set(projectId, entries);
+  try {
+    ensureDir();
+    const file = fileFor(projectId);
+    const tempFile = `${file}.tmp`;
+    writeFileSync(tempFile, JSON.stringify(entries, null, 2), 'utf8');
+    renameSync(tempFile, file);
+  } catch (err) {
+    console.warn('Could not persist personalizations to disk (read-only serverless environment):', err);
+  }
 }
 
 export function savePersonalization(projectId: string, entry: PersonalizationEntry): void {
@@ -132,10 +149,16 @@ export function deletePersonalization(projectId: string, recordId: string): bool
 }
 
 export function deleteProjectPersonalizations(projectId: string): void {
-  const f = fileFor(projectId);
-  if (existsSync(f)) unlinkSync(f);
-  const sf = settingsFileFor(projectId);
-  if (existsSync(sf)) unlinkSync(sf);
+  inMemoryEntries.delete(projectId);
+  inMemorySettings.delete(projectId);
+  try {
+    const f = fileFor(projectId);
+    if (existsSync(f)) unlinkSync(f);
+    const sf = settingsFileFor(projectId);
+    if (existsSync(sf)) unlinkSync(sf);
+  } catch (err) {
+    console.warn('Could not delete personalization files from disk:', err);
+  }
 }
 
 /* ------------------------------------------------------------------ */
@@ -143,15 +166,24 @@ export function deleteProjectPersonalizations(projectId: string): void {
 /* ------------------------------------------------------------------ */
 
 export function getPersonalizationSettings(projectId: string): PersonalizationSettings {
+  if (inMemorySettings.has(projectId)) {
+    return inMemorySettings.get(projectId)!;
+  }
   const f = settingsFileFor(projectId);
   if (!existsSync(f)) {
-    return PersonalizationSettingsSchema.parse({});
+    const fallback = PersonalizationSettingsSchema.parse({});
+    inMemorySettings.set(projectId, fallback);
+    return fallback;
   }
   try {
     const raw = JSON.parse(readFileSync(f, 'utf8'));
-    return PersonalizationSettingsSchema.parse(raw);
+    const parsed = PersonalizationSettingsSchema.parse(raw);
+    inMemorySettings.set(projectId, parsed);
+    return parsed;
   } catch {
-    return PersonalizationSettingsSchema.parse({});
+    const fallback = PersonalizationSettingsSchema.parse({});
+    inMemorySettings.set(projectId, fallback);
+    return fallback;
   }
 }
 
@@ -159,7 +191,6 @@ export function savePersonalizationSettings(
   projectId: string,
   settings: Partial<PersonalizationSettings>,
 ): PersonalizationSettings {
-  ensureDir();
   const current = getPersonalizationSettings(projectId);
   const updated: PersonalizationSettings = {
     ...current,
@@ -167,10 +198,16 @@ export function savePersonalizationSettings(
     updated_at: new Date().toISOString(),
   };
   const parsed = PersonalizationSettingsSchema.parse(updated);
-  const file = settingsFileFor(projectId);
-  const tempFile = `${file}.tmp`;
-  writeFileSync(tempFile, JSON.stringify(parsed, null, 2), 'utf8');
-  renameSync(tempFile, file);
+  inMemorySettings.set(projectId, parsed);
+  try {
+    ensureDir();
+    const file = settingsFileFor(projectId);
+    const tempFile = `${file}.tmp`;
+    writeFileSync(tempFile, JSON.stringify(parsed, null, 2), 'utf8');
+    renameSync(tempFile, file);
+  } catch (err) {
+    console.warn('Could not persist personalization settings to disk (read-only serverless environment):', err);
+  }
   return parsed;
 }
 

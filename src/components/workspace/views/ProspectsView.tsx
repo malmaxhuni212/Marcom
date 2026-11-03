@@ -28,6 +28,7 @@ import CampaignSettingsModal from '@/components/personalization/CampaignSettings
 import { PageFrame, ProjectGate } from '../AppShell';
 import { useWorkspace } from '../WorkspaceContext';
 import DraftsDrawer from '../DraftsDrawer';
+import DraftFeedbackPanel from '../DraftFeedbackPanel';
 import {
   FitList,
   KeyContactsList,
@@ -926,7 +927,7 @@ function ProspectsBody({ initialTab }: { initialTab?: TabId }) {
         ),
       });
       const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error || 'Personalisation could not be completed.');
+      if (!response.ok) throw new Error(data.error || data.detail || 'Personalisation could not be completed.');
       if (data.settings) {
         setSettings(data.settings as PersonalizationSettings);
       }
@@ -3200,6 +3201,23 @@ function ProspectDetailPanel({
                   Rewrite
                 </button>
               </div>
+
+              {/* Inline Reviewer Feedback & Rewrite Panel */}
+              <DraftFeedbackPanel
+                projectId={projectId}
+                record={entry.record}
+                settings={settings}
+                disabled={personalising}
+                onDraftUpdated={(updatedDraft) => {
+                  onDraftUpdated(updatedDraft);
+                  setDraftEdits({
+                    email: updatedDraft.copy?.email_body ?? '',
+                    linkedin: updatedDraft.copy?.linkedin_message ?? '',
+                    follow_up: updatedDraft.copy?.follow_up_body ?? '',
+                  });
+                }}
+                onSettingsUpdated={onSettingsUpdated}
+              />
             </>
           ) : (
             <>
