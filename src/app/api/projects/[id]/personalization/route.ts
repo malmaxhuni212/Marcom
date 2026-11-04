@@ -860,7 +860,8 @@ export async function POST(req: Request, { params }: RouteCtx) {
       : existing?.previous_versions ?? [];
 
     try {
-      let generated = await runPersonalizationAgent({
+      // Guard against serverless execution exceeding edge/gateway timeouts (e.g. Netlify 26s limit)
+      const agentPromise = runPersonalizationAgent({
         projectId,
         brief: project.structured_brief,
         entry: researchEntry,
@@ -874,6 +875,16 @@ export async function POST(req: Request, { params }: RouteCtx) {
         rewriteFeedback,
         previousCopy: existing?.copy ?? null,
       });
+
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        const timer = setTimeout(
+          () => reject(new Error('Personalization generation exceeded time window; falling back gracefully.')),
+          20_000,
+        );
+        agentPromise.finally(() => clearTimeout(timer));
+      });
+
+      let generated = await Promise.race([agentPromise, timeoutPromise]);
 
       // Guarantee that every personalized lead has full 5-channel outreach drafts
       if (!generated.copy || generated.status === 'failed') {

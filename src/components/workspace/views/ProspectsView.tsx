@@ -928,13 +928,7 @@ function ProspectsBody({ initialTab }: { initialTab?: TabId }) {
         ),
       });
       const data = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        throw new Error(
-          data.error ||
-          data.detail ||
-          (response.status === 504 ? 'Request timed out on the server. Please retry in a moment.' : 'Personalisation could not be completed.'),
-        );
-      }
+      if (!response.ok) throw new Error(data.error || data.detail || 'Personalisation could not be completed.');
       if (data.settings) {
         setSettings(data.settings as PersonalizationSettings);
       }

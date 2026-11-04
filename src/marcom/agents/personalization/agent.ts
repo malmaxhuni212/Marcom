@@ -1192,6 +1192,9 @@ export function buildAdaptivePersonalizationEntry(params: {
       : leadCfg.tone === 'friendly' || leadCfg.tone === 'conversational'
         ? 'Warmly,'
         : 'Best regards,';
+  const fullSignoff = /^(?:warmly|best|regards|sincerely|yours|cheers|thank you|thanks)\b/i.test(senderSignoff)
+    ? senderSignoff
+    : `${signoffClosing}\n${senderSignoff}`;
 
   // Research hook clause calibrated to Personalization Depth (light / moderate / deep)
   let researchClause = '';
@@ -1353,7 +1356,7 @@ export function buildAdaptivePersonalizationEntry(params: {
       }
 
       if (contextualValues.secondaryWorkDetail) {
-        let cleanSecondary = contextualValues.secondaryWorkDetail.replace(/^your\s+/i, '');
+        let cleanSecondary = contextualValues.secondaryWorkDetail.replace(/^(?:your\s+)?(?:work\s+on\s+)?/i, '').trim();
         if (rec.organisation && contextualValues.verifiedWorkDetail.includes(rec.organisation)) {
           cleanSecondary = cleanSecondary.split(' at ')[0] || cleanSecondary;
         }
@@ -1373,28 +1376,20 @@ export function buildAdaptivePersonalizationEntry(params: {
     ) {
       resolvedParas[1] = `${warmCheckIn}${resolvedParas[1]}`;
     }
-    const lastPara = resolvedParas[resolvedParas.length - 1] || '';
-    if (
-      !/^(?:warmly|best|regards|sincerely|yours|cheers|thank you|thanks)[,\n]/im.test(lastPara) &&
-      !lastPara.includes(senderSignoff.split('\n')[0])
-    ) {
-      resolvedParas.push(`${signoffClosing}\n${senderSignoff}`);
+    const hasExistingSignoff = resolvedParas.some((p) =>
+      /^(?:warmly|best|regards|sincerely|yours|cheers|thank you|thanks)\b/im.test(p) ||
+      (settings.sender_name && p.includes(settings.sender_name)) ||
+      (settings.organisation && p.includes(settings.organisation)),
+    );
+    if (!hasExistingSignoff) {
+      resolvedParas.push(fullSignoff);
     }
 
     if (leadCfg.message_length === 'very_short' && resolvedParas.length > 2) {
       const corePara = resolvedParas.find((p) => p.includes(work1) || p.includes(contextualValues.verifiedWorkDetail)) || resolvedParas[1] || '';
-      const ctaPara = resolvedParas.find((p) => p.includes('?')) || `${ctaSentence}\n\n${signoffClosing}\n${senderSignoff}`;
+      const ctaQuestion = resolvedParas.find((p) => p.includes('?')) || ctaSentence;
+      const ctaPara = `${ctaQuestion}\n\n${fullSignoff}`;
       emailParagraphs = [greeting, corePara, ctaPara];
-    } else if (leadCfg.message_length === 'detailed' && leadCfg.explanation_level === 'detailed') {
-      const detailedContextPara =
-        achievement1 && achievement1 !== work1
-          ? `When we reviewed both ${work1} and your recognition with ${achievement1}, it was clear that your perspective brings the exact depth that makes ${campaignName} valuable for participants.`
-          : work2 && work2 !== work1
-            ? `When we reviewed both ${work1} and ${work2}, it was clear that your perspective brings the exact depth that makes ${campaignName} valuable for participants.`
-            : `Given your track record with ${work1}, we believe ${campaignName} offers a timely and relevant fit without requiring a heavy time commitment upfront.`;
-      const insertIdx = Math.max(1, resolvedParas.length - 1);
-      resolvedParas.splice(insertIdx, 0, detailedContextPara);
-      emailParagraphs = resolvedParas;
     } else {
       emailParagraphs = resolvedParas;
     }
@@ -1408,7 +1403,7 @@ export function buildAdaptivePersonalizationEntry(params: {
       greeting,
       openingParagraph,
       templateMiddle,
-      `${resolvedCta}\n\n${signoffClosing}\n${senderSignoff}`,
+      `${resolvedCta}\n\n${fullSignoff}`,
     ];
   } else if (templateDecision.mode === 'adapt' && templatePositioningPara) {
     const firstTemplateSentence = strip(templatePositioningPara.split(/(?<=\.)\s+/)[0] || templatePositioningPara);
@@ -1417,27 +1412,27 @@ export function buildAdaptivePersonalizationEntry(params: {
       greeting,
       openingParagraph,
       adaptedExplanation,
-      `${ctaSentence}\n\n${signoffClosing}\n${senderSignoff}`,
+      `${ctaSentence}\n\n${fullSignoff}`,
     ];
   } else if (leadCfg.message_length === 'very_short') {
     emailParagraphs = [
       greeting,
       `${openingParagraph} ${leadCfg.explanation_level === 'minimal' ? `Through ${campaignName}, ${recipientBenefit}.` : explanationBlock}`,
-      `${ctaSentence}\n\n${signoffClosing}\n${senderSignoff}`,
+      `${ctaSentence}\n\n${fullSignoff}`,
     ];
   } else if (leadCfg.message_length === 'short') {
     emailParagraphs = [
       greeting,
       openingParagraph,
       `${explanationBlock} ${ctaSentence}`,
-      `${signoffClosing}\n${senderSignoff}`,
+      `${fullSignoff}`,
     ];
   } else if (leadCfg.message_length === 'balanced') {
     emailParagraphs = [
       greeting,
       openingParagraph,
       explanationBlock,
-      `${ctaSentence}\n\n${signoffClosing}\n${senderSignoff}`,
+      `${ctaSentence}\n\n${fullSignoff}`,
     ];
   } else {
     // detailed
@@ -1450,7 +1445,7 @@ export function buildAdaptivePersonalizationEntry(params: {
       openingParagraph,
       explanationBlock,
       contextPara,
-      `${ctaSentence}\n\n${signoffClosing}\n${senderSignoff}`,
+      `${ctaSentence}\n\n${fullSignoff}`,
     ];
   }
 
@@ -1468,7 +1463,7 @@ export function buildAdaptivePersonalizationEntry(params: {
 
   const followUpBody = applyFeedbackTextRules(
     strip(
-      `${greeting}\n\nFollowing up briefly on my note regarding ${campaignName} and how it connects to ${work1}. ${ctaSentence}\n\n${signoffClosing}\n${senderSignoff}`,
+      `${greeting}\n\nFollowing up briefly on my note regarding ${campaignName} and how it connects to ${work1}. ${ctaSentence}\n\n${fullSignoff}`,
     ),
     activeFeedback,
   );
