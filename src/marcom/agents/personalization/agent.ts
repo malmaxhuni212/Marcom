@@ -808,7 +808,7 @@ export async function runPersonalizationAgent(options: RunPersonalizationOptions
       {
         system: `${prompts.globalRules}\n\n${prompts.strategist}`,
         user: strategistPrompt,
-        maxTokens: 4096,
+        maxTokens: 2500,
       },
       { temperature: 0.15, reasoningEffort: 'low' },
     );
@@ -902,7 +902,7 @@ export async function runPersonalizationAgent(options: RunPersonalizationOptions
         {
           system: `${prompts.globalRules}\n\n${prompts.writer}`,
           user: currentWriterPrompt,
-          maxTokens: 4096,
+          maxTokens: 2500,
         },
         { temperature: 0.2 + attempt * 0.05, reasoningEffort: 'low' },
       );
@@ -916,65 +916,6 @@ export async function runPersonalizationAgent(options: RunPersonalizationOptions
         brief,
         settings,
       );
-
-      // Enforce Category Template fidelity when mode is "use" or "adapt" and the template has contextual directives
-      // so the LLM never discards the configured template structure/facts in favour of a generic 2-paragraph summary.
-      const activeCategoryTemplate = resolveCategoryTemplateForProspect(record, brief, settings);
-      const effectiveTemplateMode =
-        strategy.template_usage_mode ??
-        decideTemplateUsageMode(record, brief, activeCategoryTemplate?.template, resolvedLeadSettings).mode;
-      if (
-        activeCategoryTemplate &&
-        activeCategoryTemplate.isCustom &&
-        (effectiveTemplateMode === 'use' || effectiveTemplateMode === 'adapt')
-      ) {
-        const ctxValues = buildContextualTemplateValues(
-          record,
-          brief,
-          settings,
-          activeCategoryTemplate.template,
-        );
-        const tplDirectives = extractTemplateDirectives(
-          activeCategoryTemplate.template.body,
-          ctxValues,
-        );
-        // Check if the template has static anchor phrases (e.g. non-directive body sentences) that the LLM dropped
-        const staticAnchors = activeCategoryTemplate.template.body
-          .split(/\n\s*\n/)
-          .map((p) => p.trim())
-          .filter(
-            (p) =>
-              p.length > 25 &&
-              !/\[[^\]]+\]/.test(p) &&
-              !/^(?:hi|hello|dear|best|warm|regards|sincerely)\b/i.test(p),
-          )
-          .map((p) => p.slice(0, 36).toLowerCase());
-        const emailLower = copy.email_body.toLowerCase();
-        const missingStaticAnchors =
-          staticAnchors.length > 0 &&
-          staticAnchors.filter((anchor) => emailLower.includes(anchor)).length <
-            Math.ceil(staticAnchors.length * 0.6);
-
-        if (tplDirectives.length > 0 && missingStaticAnchors) {
-          const templateAligned = buildAdaptivePersonalizationEntry({
-            projectId,
-            researchEntry: entry,
-            brief,
-            settings,
-            leadSettings: resolvedLeadSettings,
-            rewriteFeedback: options.rewriteFeedback,
-          });
-          if (templateAligned.copy) {
-            copy = {
-              ...copy,
-              email_body: templateAligned.copy.email_body,
-              subject_lines: templateAligned.copy.subject_lines,
-              follow_up_body: templateAligned.copy.follow_up_body,
-              linkedin_message: templateAligned.copy.linkedin_message,
-            };
-          }
-        }
-      }
 
       // Safety net: enforce concrete wording-level reviewer feedback (e.g. "don't mention X", drop check-ins)
       if (learnedFeedback.length > 0) {

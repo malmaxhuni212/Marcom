@@ -1193,6 +1193,22 @@ function formatWorkFactAsNaturalNounPhrase(
     .replace(/\*+/g, '')
     .replace(/\.$/, '')
     .trim();
+  // If multi-sentence scraped paragraph, take the first sentence
+  if (cleaned.includes('. ')) {
+    cleaned = cleaned.split(/\.\s+/)[0]!.trim();
+  }
+  // If still very long (> 85 chars), trim to the first clean clause under 75 chars
+  if (cleaned.length > 85) {
+    const commaSplit = cleaned.split(/,\s*/);
+    if (commaSplit[0] && commaSplit[0].length >= 25 && commaSplit[0].length <= 80) {
+      cleaned = commaSplit[0].trim();
+    } else {
+      const trimmed = cleaned.slice(0, 75);
+      const lastSp = trimmed.lastIndexOf(' ');
+      cleaned = (lastSp > 20 ? trimmed.slice(0, lastSp) : trimmed).trim();
+    }
+  }
+
   if (
     !cleaned ||
     /^(?:no evidence|no legitimate|all required criteria|unverified|none|n\/a|unknown)\b/i.test(cleaned)
