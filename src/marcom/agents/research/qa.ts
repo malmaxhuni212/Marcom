@@ -424,8 +424,32 @@ export function normalizeAndQA(raw: unknown, ctx: NormalizeContext): { record: R
   const contradictions = strArr(d.contradictions);
   if (contradictions.length) issue('warning', 'contradictions', `${contradictions.length} contradiction(s) between sources.`);
 
-  // ---------- fit score (capped by evidence strength) ----------
-  let score = Math.round(Number(d.fit_score));
+  // ---------- fit score (scale normalization & capped by evidence strength) ----------
+  let rawScore = typeof d.fit_score === 'number' ? d.fit_score : parseFloat(String(d.fit_score ?? ''));
+
+  // 1. Detect 0.0 - 1.0 probability or fractional rating (e.g. 0.85 -> 85, 1.0 -> 100)
+  if (Number.isFinite(rawScore) && rawScore > 0 && rawScore <= 1.0) {
+    rawScore = rawScore * 100;
+  } else if (Number.isFinite(rawScore) && rawScore > 1.0 && rawScore <= 10.0) {
+    // 2. Detect 1 - 10 rating scale (e.g. 8/10 -> 80)
+    rawScore = rawScore * 10;
+  }
+
+  // 3. Fallback calibration: if LLM returned <= 20 despite finding verified qualification criteria
+  const metCriteria = criteria.filter((c) => c.status === 'met').length;
+  const partiallyMetCriteria = criteria.filter((c) => c.status === 'partially_met').length;
+  const totalCriteria = criteria.length;
+  if (
+    (!Number.isFinite(rawScore) || rawScore <= 20) &&
+    totalCriteria > 0 &&
+    (metCriteria > 0 || partiallyMetCriteria > 0)
+  ) {
+    const ratio = (metCriteria * 1.0 + partiallyMetCriteria * 0.5) / totalCriteria;
+    rawScore = Math.round(30 + ratio * 55);
+    issue('info', 'fit_recalibrated', `Fit score calibrated to ${rawScore} from verified qualification criteria.`);
+  }
+
+  let score = Math.round(rawScore);
   if (!Number.isFinite(score)) score = 0;
   score = Math.max(0, Math.min(100, score));
   const original = score;
@@ -434,6 +458,10 @@ export function normalizeAndQA(raw: unknown, ctx: NormalizeContext): { record: R
   if (!identityVerified) score = Math.min(score, 40);
   if (score !== original) issue('info', 'fit_capped', `Fit score capped from ${original} to ${score} due to limited verified evidence.`);
   let rationale = str(d.fit_rationale) ?? '';
+  if (/no contact|no email|cannot reach|unable to reach|no public contact/i.test(rationale) && (metCriteria > 0 || partiallyMetCriteria > 0)) {
+    const metNames = criteria.filter((c) => c.status === 'met').map((c) => c.criterion).slice(0, 2).join('; ');
+    rationale = `Matches qualification criteria (${metNames || 'criteria met based on verified evidence'}). Contact route requires manual lookup.`;
+  }
   const summary = str(d.summary) ?? '';
 
   if (OUTREACH_PATTERN.test(summary) || OUTREACH_PATTERN.test(rationale)) {
