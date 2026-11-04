@@ -60,6 +60,16 @@
       "call_to_action": "soft",
       "additional_instructions": "",
       "updated_at": "2026-11-02T11:06:42.891Z"
+    },
+    "r-simon-schuster-uk-mvp4kyuk": {
+      "tone": "professional",
+      "message_length": "short",
+      "personalization_depth": "moderate",
+      "communication_approach": "incentive_driven",
+      "explanation_level": "balanced",
+      "call_to_action": "specific_request",
+      "additional_instructions": "",
+      "updated_at": "2026-11-04T15:01:39.396Z"
     }
   },
   "category_templates": {
@@ -104,5 +114,47 @@
       "updated_at": "2026-11-02T11:19:06.065Z"
     }
   },
-  "updated_at": "2026-11-02T11:22:15.312Z"
+  "feedback_memory": [
+    {
+      "id": "fb_mw28ad2d_oj19bh",
+      "text": "Follow the template given for these kind of leads",
+      "scope": "project",
+      "record_id": "r-simon-schuster-uk-mvp4kyuk",
+      "prospect_name": "Simon & Schuster UK",
+      "target_type": "Publishers & Book‑Industry Organisations",
+      "target_id": "target-3",
+      "created_at": "2026-11-04T14:44:57.637Z"
+    },
+    {
+      "id": "fb_mw28h6x5_j61vcd",
+      "text": "i like the lenght of the message and the structure is nice and has potential, but it just sounds awkward, not clear, not convincing",
+      "scope": "project",
+      "record_id": "r-simon-schuster-uk-mvp4kyuk",
+      "prospect_name": "Simon & Schuster UK",
+      "target_type": "Publishers & Book‑Industry Organisations",
+      "target_id": "target-3",
+      "created_at": "2026-11-04T14:50:16.265Z"
+    },
+    {
+      "id": "fb_mw28kbmb_9h0fcv",
+      "text": "The message is clearer and more natural, but it has lost meaningful personalisation. Start with a relevant, verified detail about the recipient and establish a genuine connection to Maya before introducing the competition.\n\nMake the transition natural, explain why the partnership makes sense for them, and tailor the value proposition to their organization.\n\nKeep the current length and structure. Improve the personal connection, relevance and persuasiveness without making the message generic.",
+      "scope": "project",
+      "record_id": "r-simon-schuster-uk-mvp4kyuk",
+      "prospect_name": "Simon & Schuster UK",
+      "target_type": "Publishers & Book‑Industry Organisations",
+      "target_id": "target-3",
+      "created_at": "2026-11-04T14:52:42.323Z"
+    },
+    {
+      "id": "fb_mw28n1w7_1oufht",
+      "text": "This version is clearer and more professional. Keep the current length and structure, but improve the transitions between the personalised opening, the introduction of Maya and the partnership proposition. The message should read as one natural conversation rather than separate sections joined together. Make each idea flow logically into the next, creating a comfortable reading experience while maintaining meaningful personalisation and a convincing value proposition.",
+      "scope": "project",
+      "record_id": "r-simon-schuster-uk-mvp4kyuk",
+      "prospect_name": "Simon & Schuster UK",
+      "target_type": "Publishers & Book‑Industry Organisations",
+      "target_id": "target-3",
+      "created_at": "2026-11-04T14:54:49.687Z"
+    }
+  ],
+  "updated_at": "2026-11-04T15:02:20.810Z"
 }

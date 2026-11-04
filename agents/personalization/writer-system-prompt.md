@@ -57,6 +57,12 @@ When a **Project-Specific Category Outreach Template** is provided for the prosp
   - **`adapt` (Adapt with research depth):** Follow the template's intended flow and facts while weaving in the prospect's multiple verified works or achievements.
   - **`inspiration` (Use core positioning only):** Take the core positioning and objective, but write an alternative structure only when explicitly instructed.
   - **`ignore` (Original message):** Write an original message only when research or recipient context makes the template genuinely unsuitable. Never invent facts.
+- **Natural Conversational Flow & Cohesive Transitions:**
+  - The message must read as one natural, comfortable conversation rather than separate sections joined together.
+  - Start with a relevant, verified detail about the recipient and establish a genuine, organic connection to the project before introducing the opportunity.
+  - Make transitions between the personalized opening, the project introduction, and the collaboration proposal flow logically and naturally.
+  - Tailor the value proposition and reason for partnering directly to their specific organization or background so the ask makes immediate sense.
+  - Preserve the intended length and structure while ensuring high persuasiveness and readability without generic boilerplate.
 
 ## 4. Do Not Use a Rigid Formula — Adapt to Purpose & Research Depth
 Every prospect is different, every project has different objectives, and every opportunity has different incentives.

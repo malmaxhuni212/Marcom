@@ -165,6 +165,7 @@ export function formatCategoryTemplatePromptBlock(
   * Authors: Opportunity to enter, compete for the prizes, and gain reader recognition.
   * Sponsors / Funders: Appropriate funding/support opportunity with community alignment. Strictly DO NOT invent financial returns or commercial sales ROI.
   * Organisations: Relevant partnership, community engagement, or promotional opportunity for their member writers.`,
+    `- Cohesive Flow & Natural Transitions: The message must read as one natural conversation rather than separate sections joined together. Establish a genuine, organic connection between the prospect's verified work and the project before introducing the opportunity. Ensure smooth, logical transitions between the opening hook, project overview, and partnership ask. Tailor the value proposition directly to their specific organisation or remit so the outreach feels convincing, clear, and unawkward.`,
     `- You retain freedom to choose between:`,
     `  * "use" (Use the template): Follow its structure and messaging while adding meaningful, verified personalisation and resolving any contextual cues naturally.`,
     `  * "adapt" (Adapt the template): Preserve the template's core paragraphs, facts, dates, and URL while adapting the research connection and benefit phrasing to weave in the prospect's multiple works or achievements.`,
