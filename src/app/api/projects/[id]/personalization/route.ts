@@ -651,7 +651,7 @@ export async function GET(req: Request, { params }: RouteCtx) {
   const { id: projectId } = await params;
   const store = await createServerMemoryStore(access.actor, access.allowFileFallback);
   const actor = access.actor;
-  const project = store.projects().find((p) => p.project_id === projectId);
+  const project = store.projects().find((p) => p.project_id === projectId || p.aliases?.includes(projectId));
   if (!project) return NextResponse.json({ error: 'Project not found' }, { status: 404 });
 
   const url = new URL(req.url);
@@ -722,7 +722,7 @@ export async function POST(req: Request, { params }: RouteCtx) {
   const { id: projectId } = await params;
   const store = await createServerMemoryStore(access.actor, access.allowFileFallback);
   const actor = access.actor;
-  const project = store.projects().find((p) => p.project_id === projectId);
+  const project = store.projects().find((p) => p.project_id === projectId || p.aliases?.includes(projectId));
   if (!project?.structured_brief) {
     return NextResponse.json({ error: 'Project or structured brief not found' }, { status: 404 });
   }
