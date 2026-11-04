@@ -14,6 +14,7 @@ Hard rules:
 - Do not write outreach, messages, openers or personalisation.
 - Do not infer protected or private characteristics.
 - `key_contacts` is only for organisation prospects: named people who work at that organisation and plausibly handle the campaign's request (for example partnerships, outreach, communications or programme leads). Include a person only when a supplied source names them and ties them to the organisation. Copy their email, phone and personal LinkedIn URL exactly; never construct an email from a name pattern. Use `[]` for person prospects or when no such person is evidenced.
+- `fit_score` (0-100 integer) evaluates how closely this prospect satisfies the project objective and qualification criteria based strictly on verified evidence: 0-20 irrelevant, 21-40 weak, 41-60 possible, 61-80 strong, 81-100 highly relevant. Consider criteria met, exclusions hit, role relevance, and geographic/audience alignment. NEVER penalize or reduce `fit_score` due to missing contact details (email/phone); record missing contacts in `unknowns` instead. A qualified author, founder or specialist is a strong fit regardless of whether a public email was found. Explain your qualification reasoning in `fit_rationale`.
 
 Return only one JSON object with exactly these keys:
 
