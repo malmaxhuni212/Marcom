@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import type { PersonalizationEntry } from '@/marcom/schemas/personalization';
 import type { ResearchEntry } from '@/marcom/schemas/research-record';
 import DraftViewer from './DraftViewer';
 import { useWorkspace } from './WorkspaceContext';
 import { CloseButton, Icon } from './ui';
 import { draftTargets, type DraftChannel } from './format';
+import { downloadProspectMarkdown } from './export-dossier';
 
 /** Right-hand slide-over showing a prospect's drafted messages (view, edit and copy only). */
 export default function DraftsDrawer({
@@ -27,6 +28,7 @@ export default function DraftsDrawer({
   initialChannel?: DraftChannel;
 }) {
   const { bundle, updateDraft, setSettings, reload } = useWorkspace();
+  const [downloaded, setDownloaded] = useState(false);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -58,6 +60,30 @@ export default function DraftsDrawer({
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {researchEntry && (
+              <button
+                type="button"
+                onClick={() => {
+                  downloadProspectMarkdown({
+                    entry: researchEntry,
+                    draft,
+                    projectName: bundle?.project.name,
+                  });
+                  setDownloaded(true);
+                  setTimeout(() => setDownloaded(false), 2500);
+                }}
+                aria-label="Download dossier as Markdown"
+                title="Download full intelligence dossier (.md)"
+                className={`inline-flex h-9 items-center gap-1.5 rounded-xl border px-3 text-xs font-semibold transition ${
+                  downloaded
+                    ? 'border-[#2F6B4B] bg-[#10261B] text-[#8EE6B6]'
+                    : 'border-[#2A2F39] bg-[#171A20] text-[#F1F2F4] hover:border-[#3B3577] hover:bg-[#1D1B30] hover:text-[#CFC8FF]'
+                }`}
+              >
+                <Icon name={downloaded ? 'check' : 'download'} size={13} stroke={2.4} />
+                <span>{downloaded ? 'Downloaded' : 'Download .md'}</span>
+              </button>
+            )}
             {onToggleSent && (
               <button
                 type="button"
