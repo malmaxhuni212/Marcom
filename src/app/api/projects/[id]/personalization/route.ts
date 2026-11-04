@@ -266,10 +266,16 @@ async function safeGetSettings(
         }
       }
 
-      const mergedCategoryTemplates = {
+      const rawCombined = {
         ...(fileSettings.category_templates ?? {}),
         ...(dbSettings.category_templates ?? {}),
       };
+      const mergedCategoryTemplates: Record<string, any> = {};
+      for (const [k, v] of Object.entries(rawCombined)) {
+        if (v && typeof v === 'object' && v.body && !/i came across/i.test(v.body)) {
+          mergedCategoryTemplates[k] = v;
+        }
+      }
 
       const mergedLeadSettings = {
         ...(fileSettings.lead_settings ?? {}),
@@ -299,7 +305,16 @@ async function safeGetSettings(
       console.warn('DB getPersonalizationSettings failed, falling back to file/memory store:', error);
     }
   }
-  return fileSettings;
+  const cleanedFileCategoryTemplates: Record<string, any> = {};
+  for (const [k, v] of Object.entries(fileSettings.category_templates ?? {})) {
+    if (v && typeof v === 'object' && v.body && !/i came across/i.test(v.body)) {
+      cleanedFileCategoryTemplates[k] = v;
+    }
+  }
+  return {
+    ...fileSettings,
+    category_templates: cleanedFileCategoryTemplates,
+  };
 }
 
 async function safeListPersonalizations(

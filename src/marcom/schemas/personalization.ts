@@ -903,7 +903,7 @@ export function getProjectCategoryTemplates(
     const byRawType = savedMap[target.target_type];
     const saved = byId ?? byNormType ?? byRawType;
 
-    if (saved && saved.body.trim().length > 0) {
+    if (saved && saved.body.trim().length > 0 && !/i came across/i.test(saved.body)) {
       return {
         ...saved,
         target_id: target.id,
@@ -971,7 +971,7 @@ export function resolveCategoryTemplateForProspect(
 
   for (const key of candidateKeys) {
     const saved = savedMap[key];
-    if (saved && saved.body.trim().length > 0) {
+    if (saved && saved.body.trim().length > 0 && !/i came across/i.test(saved.body)) {
       return {
         template: {
           ...saved,
@@ -989,7 +989,7 @@ export function resolveCategoryTemplateForProspect(
   if (normRecType) {
     const recTokens = normRecType.split('-').filter((w) => w.length >= 3);
     for (const saved of Object.values(savedMap)) {
-      if (!saved?.body?.trim()) continue;
+      if (!saved?.body?.trim() || /i came across/i.test(saved.body)) continue;
       const savedNorm = normalizeCategoryKey(saved.target_type);
       const isMatch =
         savedNorm === normRecType ||
@@ -1011,11 +1011,14 @@ export function resolveCategoryTemplateForProspect(
 
   // 3. If no custom saved template exists, build the default template for the matched target category
   if (matchedTarget && brief) {
-    return {
-      template: buildDefaultCategoryTemplate(brief, matchedTarget, settings),
-      target: matchedTarget,
-      isCustom: false,
-    };
+    const defaultTpl = buildDefaultCategoryTemplate(brief, matchedTarget, settings);
+    if (defaultTpl && !/i came across/i.test(defaultTpl.body)) {
+      return {
+        template: defaultTpl,
+        target: matchedTarget,
+        isCustom: false,
+      };
+    }
   }
 
   return null;

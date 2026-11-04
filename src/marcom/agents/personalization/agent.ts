@@ -154,24 +154,19 @@ export function formatCategoryTemplatePromptBlock(
   return [
     `\n=== PROJECT-SPECIFIC CATEGORY OUTREACH TEMPLATE (Category: ${template.target_type}) ===`,
     `Template Source: ${isCustom ? 'Edited & Saved by Project Team' : 'Pre-Built from Project Brief'}`,
-    template.subject_line ? `Reference Subject Line: ${template.subject_line}` : '',
+    template.subject_line ? `Reference Category Subject: ${template.subject_line} (Context only: AI Copywriter must write 3 original, short, relevant, and attention-grabbing subject lines)` : '',
     `Reference Message Template:\n${template.body}`,
     directivesSection,
     `\n=== HOW TO USE THIS CATEGORY TEMPLATE FOR ${prospectName.toUpperCase()} ===`,
-    `- Primary Reference Framework (NOT Mail-Merge): This template establishes consistent messaging, positioning, and outreach objectives for ${template.target_type}.`,
-    `- Recommended Decision for ${prospectName}: ${modeInfo.label.toUpperCase()} (${decision.mode}) — ${decision.reason}`,
-    `- CRITICAL IN "use" OR "adapt" MODE: Follow the template's paragraph flow, positioning, confirmed dates (e.g. 4 Jan 2027), prize amounts (e.g. £7,000 / £3,000), and links (e.g. https://poetrybookawards.co.uk). Fulfill every placeholder with natural, prospect-specific verified research. NEVER output raw brackets.
-- Category Incentives & Requests:
-  * Authors: Opportunity to enter, compete for the prizes, and gain reader recognition.
-  * Sponsors / Funders: Appropriate funding/support opportunity with community alignment. Strictly DO NOT invent financial returns or commercial sales ROI.
-  * Organisations: Relevant partnership, community engagement, or promotional opportunity for their member writers.`,
-    `- Cohesive Flow & Natural Transitions: The message must read as one natural conversation rather than separate sections joined together. Establish a genuine, organic connection between the prospect's verified work and the project before introducing the opportunity. Ensure smooth, logical transitions between the opening hook, project overview, and partnership ask. Tailor the value proposition directly to their specific organisation or remit so the outreach feels convincing, clear, and unawkward.`,
-    `- You retain freedom to choose between:`,
-    `  * "use" (Use the template): Follow its structure and messaging while adding meaningful, verified personalisation and resolving any contextual cues naturally.`,
-    `  * "adapt" (Adapt the template): Preserve the template's core paragraphs, facts, dates, and URL while adapting the research connection and benefit phrasing to weave in the prospect's multiple works or achievements.`,
-    `  * "inspiration" (Use it as inspiration): Take the core positioning and objectives, but write a substantially different message.`,
-    `  * "ignore" (Ignore the template): Write an entirely original message when the template would produce an irrelevant, unnatural, or less effective result.`,
-    `- Never sacrifice message quality or genuine personalisation simply to follow the template.`,
+    `- MANDATORY FORMAT: Follow this category template's flow, messaging, and structure for ${template.target_type}.`,
+    `- All 4-5 core template paragraphs must be present:`,
+    `  1. Greeting & Opening: Warm opening connecting their verified work naturally to the project.`,
+    `  2. Project Overview: Clear explanation of the opportunity, including prize details (£7,000 in prizes, £3,000 top prize) and scope.`,
+    `  3. Tailored Collaboration Proposal: Concrete partnership or submission opportunity explaining why it benefits their writers/community.`,
+    `  4. Key Dates & Official Link: Include the confirmed opening date (4 January 2027) and website link (https://poetrybookawards.co.uk).`,
+    `  5. Low-Friction Call to Action & Sign-off: Simple, respectful closing question asking if they would be open to exploring further.`,
+    `- Fulfill every contextual cue using verified research. NEVER output raw brackets or placeholder text.`,
+    `- Natural Conversational Flow: Ensure smooth, organic transitions between paragraphs so the email reads as a cohesive, compelling personal note.`,
   ]
     .filter(Boolean)
     .join('\n');
@@ -650,7 +645,9 @@ export function buildWriterUserPrompt(
     `2. Explain the Project Clearly (Calibrated to Explanation Level: ${resolvedLeadSettings ? LEAD_EXPLANATION_LABELS[resolvedLeadSettings.explanation_level].label : 'Balanced'}): The recipient may not know ${brief?.project?.name || settings.organisation || 'our project'} yet. Introduce what the project offers and why it matters clearly, and prioritize what the recipient stands to gain (Recipient Incentive).`,
     `3. Concise, Human Voice (Target Length: ${resolvedLeadSettings ? LEAD_LENGTH_LABELS[resolvedLeadSettings.message_length] : 'Short and concise'}): Use plain, everyday English that feels individually written. Avoid repetitive explanations, excessive compliments, and corporate jargon.`,
     `4. NO EM-DASHES (—) OR ASTERISKS (*): Never use the "—" character or markdown asterisks (*title*) anywhere in the message text or subject lines. Use commas or periods instead.`,
-    `5. Clear Next Step (CTA Style: ${resolvedLeadSettings ? LEAD_CTA_LABELS[resolvedLeadSettings.call_to_action].label : 'Soft and low-pressure'}): Make the requested action clear and easy to reply to. Output JSON only.`,
+    `5. Clear Next Step (CTA Style: ${resolvedLeadSettings ? LEAD_CTA_LABELS[resolvedLeadSettings.call_to_action].label : 'Soft and low-pressure'}): Make the requested action clear and easy to reply to.`,
+    `\n=== SUBJECT LINE REQUIREMENTS (Always Written by AI Model) ===`,
+    `Generate exactly 3 short, relevant, and attention-grabbing subject lines (under 50 characters each for mobile previews):\n- Direct: Punchy and clear, naming their specific work, brand, or project (e.g. "Bloomsbury USA / Maya", "Question regarding Bloomsbury USA").\n- Curiosity: An intriguing, natural question hooking their focus (e.g. "Quick question on Bloomsbury poetry").\n- Value: Specific incentive or mutual benefit (e.g. "£7,000 poetry prizes for your writers").\nStrictly avoid long generic boilerplate like "Collaboration with Maya Poetry Book Awards for...". Keep them short, punchy, and human. Output JSON only.`,
   ]
     .filter(Boolean)
     .join('\n');

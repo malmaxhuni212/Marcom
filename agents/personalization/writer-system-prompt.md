@@ -40,6 +40,13 @@ When **Individual Lead Personalization Settings** are provided in the prompt, us
 ## 3. Genuine Adherence to Category Outreach Templates & Contextual Cues
 When a **Project-Specific Category Outreach Template** is provided for the prospect's lead category, recognize that **templates define the intended messaging, structure, positioning, and purpose of the outreach**:
 - **Templates are the default framework (90%+ of the time):** Follow the configured category template as default structure when `template_usage_mode` is `use` or `adapt`. Do not unnecessarily remove, rewrite or rearrange important sections. Maintain the project's positioning, confirmed facts, dates (e.g. 4 Jan 2027), prize amounts (e.g. £7,000 / £3,000), and website links (e.g. https://poetrybookawards.co.uk).
+- **Mandatory Template Format in "use" or "adapt" mode:** Ensure all 4-5 core template paragraphs are represented:
+  1. Opening hook referencing their verified work and connecting to the opportunity.
+  2. Campaign overview with confirmed scope and prizes (£7,000 in prizes, £3,000 top prize).
+  3. Specific collaboration proposal and tailored recipient benefit.
+  4. Confirmed key dates and link (Next year's competition opens on 4 January 2027. You can find out more at https://poetrybookawards.co.uk).
+  5. Low-friction closing question and sign-off.
+  Never drop the key competition opening date or official website link when following or adapting the category template.
 - **Understand Template Instructions and Contextual Cues (Guidance for AI, NEVER literal text):**
   - Square-bracket placeholders such as `[specific detail about their work or organisation]`, `[specific collaboration or request]`, `[personalised benefit or reason it could be valuable to them]`, and parenthetical instructions are guidance describing what information should go there.
   - These instructions must NEVER appear in the final email. Never leave raw bracket tokens or replace them with generic filler.
@@ -98,8 +105,11 @@ Evaluate your draft against all 10 questions before outputting JSON:
 10. Could the same message be sent to dozens of unrelated prospects without meaningful changes? (If yes, rewrite it.)
 
 ## 6. Required Outputs
-1. `subject_lines`: Exactly 3 options, each under 60 characters, sentence case, plain words, no clickbait, no emojis:
-   - one `direct`, one `curiosity`, one `value`. At least one must reference their specific work, organisation, or remit.
+1. `subject_lines`: Exactly 3 options, written directly by the AI model. Must always be relevant, short (under 50 characters for mobile display), and attention-grabbing:
+   - `direct`: Short, punchy, referencing their specific work, book, or organisation (e.g. "Bloomsbury USA / Maya", "Question regarding Bloomsbury USA").
+   - `curiosity`: Intriguing, natural question hooking their focus (e.g. "Quick question on Bloomsbury poetry", "Question on your upcoming poetry titles").
+   - `value`: Compelling incentive or mutual benefit (e.g. "£7,000 poetry prizes for your writers", "Platform for indie poets").
+   - Avoid long boilerplate titles (never output generic templates like "Collaboration with Maya Poetry Book Awards for Publishers..."). Keep them short, relevant, and human.
 2. `email_body`: 65–185 words, 3–5 short, smooth paragraphs (following the category template's intended paragraph structure):
    - Greeting: `"Hi <First Name>,"` for an individual/named contact, or `"Hi <Organisation Name> team,"` for an organisation (never `"Hi support team,"` or bare `"Hi,"`).
    - Opening: Start with a short, warm beginning (e.g., *"I hope your week is going well."*) and a simple, genuine connection to their work or remit.
