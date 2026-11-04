@@ -11,7 +11,7 @@ import {
   idempotencyRecords,
   storedFiles,
 } from '../schema';
-import { StructuredBriefSchema, type StructuredBrief } from '@/marcom/schemas/structured-brief';
+import { STRUCTURED_BRIEF_VERSION, StructuredBriefSchema, type StructuredBrief } from '@/marcom/schemas/structured-brief';
 import type { ProjectMemory } from '@/marcom/memory/types';
 
 type CampaignRow = typeof campaigns.$inferSelect;
@@ -104,7 +104,72 @@ function readStructuredBrief(config: ConfigurationRow | null): StructuredBrief |
 }
 
 function toProjectMemory(campaign: CampaignRow, config: ConfigurationRow | null): ProjectMemory {
-  const structuredBrief = readStructuredBrief(config);
+  let structuredBrief = readStructuredBrief(config);
+  if (!structuredBrief) {
+    try {
+      const { JsonFileMemoryStore } = require('@/marcom/memory/store');
+      const fileStore = new JsonFileMemoryStore();
+      const match = fileStore.projects().find((p: any) => p.project_id === campaign.id || p.name?.toLowerCase() === campaign.title?.toLowerCase());
+      if (match?.structured_brief) {
+        structuredBrief = match.structured_brief;
+      }
+    } catch {}
+  }
+  if (!structuredBrief) {
+    structuredBrief = {
+      structured_brief_version: STRUCTURED_BRIEF_VERSION,
+      project: {
+        name: campaign.title,
+        description: campaign.description || campaign.title,
+        primary_objective: campaign.description || campaign.title,
+        secondary_objectives: [],
+        success_metrics: [],
+      },
+      targets: [
+        {
+          id: 'default',
+          target_type: 'General',
+          entity_kind: 'person',
+          description: campaign.description || campaign.title,
+          geography: [],
+          qualification_criteria: [],
+          exclusion_criteria: [],
+          priority: 'primary',
+        },
+      ],
+      research: {
+        required_fields: ['name'],
+        preferred_source_types: ['web'],
+        evidence_requirements: [],
+        verification_requirements: [],
+        unknown_handling: 'skip',
+      },
+      personalization: {
+        allowed: [],
+        preferred_details: [],
+        tone: ['professional'],
+        avoid: [],
+      },
+      outreach: {
+        channels: ['email', 'linkedin'],
+        tone: ['professional'],
+        objectives: [campaign.description || campaign.title],
+        approval_required: true,
+      },
+      database: {
+        fields: [{ name: 'name', required: true, purpose: 'Recipient name', expected_source: 'research' }],
+      },
+      human_review: {
+        requirements: [],
+        approval_points: ['outreach'],
+      },
+      constraints: [],
+      conflicts: [],
+      approximations: [],
+      unknowns_requiring_confirmation: [],
+    };
+  }
+
   const sourceName = typeof config?.approvedFacts.sourceName === 'string'
     ? config.approvedFacts.sourceName
     : 'Stored campaign brief';
@@ -113,14 +178,14 @@ function toProjectMemory(campaign: CampaignRow, config: ConfigurationRow | null)
     project_id: campaign.id,
     name: campaign.title,
     aliases: [],
-    summary: campaign.description ?? structuredBrief?.project.description ?? '',
+    summary: campaign.description ?? structuredBrief?.project?.description ?? '',
     status: databaseStatusToMemory(campaign.status),
     structured_brief: structuredBrief,
-    target_definitions: structuredBrief?.targets.map((target) => ({
+    target_definitions: (structuredBrief?.targets || []).map((target) => ({
       target_type: target.target_type,
       definition: target.description,
       aliases: [],
-    })) ?? [],
+    })),
     notes: [`Original Brief Source: ${sourceName}`],
     configuration_revision: config?.version ?? campaign.rowVersion,
     configuration_updated_at: (config?.updatedAt ?? campaign.updatedAt).toISOString(),

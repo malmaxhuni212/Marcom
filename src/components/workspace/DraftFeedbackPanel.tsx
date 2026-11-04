@@ -32,6 +32,9 @@ export default function DraftFeedbackPanel({
   disabled = false,
   onDraftUpdated,
   onSettingsUpdated,
+  isOpen,
+  onToggleOpen,
+  id,
 }: {
   projectId: string;
   record: ResearchRecord;
@@ -39,8 +42,13 @@ export default function DraftFeedbackPanel({
   disabled?: boolean;
   onDraftUpdated: (entry: PersonalizationEntry) => void;
   onSettingsUpdated?: (settings: PersonalizationSettings) => void;
+  isOpen?: boolean;
+  onToggleOpen?: () => void;
+  id?: string;
 }) {
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = isOpen !== undefined ? isOpen : internalOpen;
+  const toggleOpen = onToggleOpen ?? (() => setInternalOpen((v) => !v));
   const [text, setText] = useState('');
   const [scope, setScope] = useState<FeedbackScope>('project');
   const [busy, setBusy] = useState<'save' | 'rewrite' | 'remove' | null>(null);
@@ -92,9 +100,14 @@ export default function DraftFeedbackPanel({
         }),
       });
       const data = await response.json().catch(() => ({}));
-      const updated = (data.items as PersonalizationEntry[] | undefined)?.find(
-        (item) => item.record_id === record.record_id,
-      );
+      const updated =
+        (data.items as PersonalizationEntry[] | undefined)?.find(
+          (item) => item.record_id === record.record_id,
+        ) ||
+        data.entry ||
+        (data.results as PersonalizationEntry[] | undefined)?.find(
+          (item) => item.record_id === record.record_id,
+        );
       if (!response.ok || !updated) throw new Error(data.error || 'The draft could not be rewritten.');
       if (data.settings) onSettingsUpdated?.(data.settings as PersonalizationSettings);
       onDraftUpdated(updated);
@@ -132,7 +145,7 @@ export default function DraftFeedbackPanel({
     <div className="flex flex-col rounded-xl border border-[#2A2F39] bg-[#12151A]">
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={toggleOpen}
         aria-expanded={open}
         className="flex items-center justify-between gap-2 px-3.5 py-2.5 text-left"
       >

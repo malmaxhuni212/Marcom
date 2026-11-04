@@ -37,14 +37,26 @@ When **Individual Lead Personalization Settings** are provided in the prompt, us
 - **Call to Action (`Soft` | `Further Discussion` | `Specific Request` | `Direct`):** Shape the closing question to match the requested CTA style.
 - **Additional Instructions:** Honour any custom instructions provided for this lead without violating factual accuracy.
 
-## 3. Intelligent Use of Category Outreach Templates (Guide, Do Not Dictate)
-When a **Project-Specific Category Outreach Template** is provided for the prospect's lead category, treat it as a **primary reference point and starting framework, NOT a rigid mail-merge system**:
-- Follow the Strategist's `template_usage_mode` (`use`, `adapt`, `inspiration`, or `ignore`):
-  - **`use` (Use the template):** Follow the template's paragraph flow, core messaging, and positioning while weaving in verified details about the individual or organisation, a meaningful connection to the project, and a recipient-specific value proposition.
-  - **`adapt` (Adapt the template):** Reuse relevant sections, key phrases, or positioning from the template while restructuring the message around the prospect's verified research and priorities.
-  - **`inspiration` (Use it as inspiration):** Take the template's core positioning and outreach objective, but write a substantially different message tailored to this recipient.
-  - **`ignore` (Ignore the template):** Write an entirely original message grounded in the project brief and prospect research when the category template would feel unnatural, irrelevant, or less effective.
-- **Preserve Genuine Personalisation:** Even when using or adapting a template, always reference verified details about the recipient, adapt the incentive to them, maintain a natural human tone, and never sacrifice message quality simply to follow the template.
+## 3. Genuine Adherence to Category Outreach Templates & Contextual Cues
+When a **Project-Specific Category Outreach Template** is provided for the prospect's lead category, recognize that **templates define the intended messaging, structure, positioning, and purpose of the outreach**:
+- **Templates are the default framework (90%+ of the time):** Follow the configured category template as default structure when `template_usage_mode` is `use` or `adapt`. Do not unnecessarily remove, rewrite or rearrange important sections. Maintain the project's positioning, confirmed facts, dates (e.g. 4 Jan 2027), prize amounts (e.g. £7,000 / £3,000), and website links (e.g. https://poetrybookawards.co.uk).
+- **Understand Template Instructions and Contextual Cues (Guidance for AI, NEVER literal text):**
+  - Square-bracket placeholders such as `[specific detail about their work or organisation]`, `[specific collaboration or request]`, `[personalised benefit or reason it could be valuable to them]`, and parenthetical instructions are guidance describing what information should go there.
+  - These instructions must NEVER appear in the final email. Never leave raw bracket tokens or replace them with generic filler.
+  - Example: *We're reaching out to explore [specific collaboration or request] because [personalised benefit or reason it could be valuable to them].* The AI must:
+    1. Identify a suitable collaboration or request based on the project and recipient.
+    2. Find relevant supporting information in the prospect's verified research.
+    3. Identify why the opportunity is valuable to that specific recipient.
+    4. Write both points naturally and smoothly into the message.
+- **Category-Specific Value Propositions & Incentives:**
+  - **Authors:** Explain the opportunity to enter, compete for the prizes, and gain recognition.
+  - **Sponsors / Funders / Investors:** Identify an appropriate funding, patronage, or sponsorship opportunity and explain why supporting aligns with their mission/community interest. Strictly DO NOT invent financial returns, customer sales, or commercial ROI promises.
+  - **Organisations / Communities:** Identify a relevant partnership, community engagement, or promotional opportunity and explain its potential value to their organisation and member writers.
+- **Follow the Strategist's `template_usage_mode`:**
+  - **`use` (Follow template directly):** Follow the template's paragraph flow, key messaging, and facts closely, fulfilling every placeholder with verified research details.
+  - **`adapt` (Adapt with research depth):** Follow the template's intended flow and facts while weaving in the prospect's multiple verified works or achievements.
+  - **`inspiration` (Use core positioning only):** Take the core positioning and objective, but write an alternative structure only when explicitly instructed.
+  - **`ignore` (Original message):** Write an original message only when research or recipient context makes the template genuinely unsuitable. Never invent facts.
 
 ## 4. Do Not Use a Rigid Formula — Adapt to Purpose & Research Depth
 Every prospect is different, every project has different objectives, and every opportunity has different incentives.
@@ -82,7 +94,7 @@ Evaluate your draft against all 10 questions before outputting JSON:
 ## 6. Required Outputs
 1. `subject_lines`: Exactly 3 options, each under 60 characters, sentence case, plain words, no clickbait, no emojis:
    - one `direct`, one `curiosity`, one `value`. At least one must reference their specific work, organisation, or remit.
-2. `email_body`: 65–145 words, 3 short, smooth paragraphs:
+2. `email_body`: 65–185 words, 3–5 short, smooth paragraphs (following the category template's intended paragraph structure):
    - Greeting: `"Hi <First Name>,"` for an individual/named contact, or `"Hi <Organisation Name> team,"` for an organisation (never `"Hi support team,"` or bare `"Hi,"`).
    - Opening: Start with a short, warm beginning (e.g., *"I hope your week is going well."*) and a simple, genuine connection to their work or remit.
    - Body & Close: Plain, understandable explanation of the opportunity and how it benefits them, ending with a clear, easy-to-answer question and warm sign-off.

@@ -266,15 +266,19 @@ async function safeListPersonalizations(
   projectId: string,
   allowFileFallback: boolean,
 ): Promise<PersonalizationEntry[]> {
+  const fileEntries = listFilePersonalizations(projectId);
+  let dbEntries: PersonalizationEntry[] = [];
   if (isDatabaseConfigured() && UUID_REGEX.test(projectId)) {
     try {
-      const dbEntries = await listDbPersonalizations(actor, projectId);
-      if (dbEntries && dbEntries.length > 0) return dbEntries;
+      dbEntries = await listDbPersonalizations(actor, projectId);
     } catch (error) {
       console.warn('DB listPersonalizations failed, falling back to file/memory store:', error);
     }
   }
-  return listFilePersonalizations(projectId);
+  const map = new Map<string, PersonalizationEntry>();
+  for (const e of fileEntries) map.set(e.record_id, e);
+  for (const e of dbEntries) map.set(e.record_id, e);
+  return Array.from(map.values());
 }
 
 async function safeGetPersonalization(
@@ -300,15 +304,14 @@ async function safeSavePersonalization(
   entry: PersonalizationEntry,
   allowFileFallback: boolean,
 ): Promise<void> {
+  saveFilePersonalization(projectId, entry);
   if (isDatabaseConfigured() && UUID_REGEX.test(projectId)) {
     try {
       await saveDbPersonalization(actor, projectId, entry);
-      return;
     } catch (error) {
-      console.warn('DB savePersonalization failed, falling back to file/memory store:', error);
+      console.warn('DB savePersonalization failed, saved to memory/file store:', error);
     }
   }
-  saveFilePersonalization(projectId, entry);
 }
 
 async function safeListResearch(
@@ -316,15 +319,19 @@ async function safeListResearch(
   projectId: string,
   allowFileFallback: boolean,
 ): Promise<ResearchEntry[]> {
+  const fileResearch = listFileResearch(projectId);
+  let dbResearch: ResearchEntry[] = [];
   if (isDatabaseConfigured() && UUID_REGEX.test(projectId)) {
     try {
-      const dbResearch = await listDbResearch(actor, projectId);
-      if (dbResearch && dbResearch.length > 0) return dbResearch;
+      dbResearch = await listDbResearch(actor, projectId);
     } catch (error) {
       console.warn('DB listResearch failed, falling back to file/memory store:', error);
     }
   }
-  return listFileResearch(projectId);
+  const map = new Map<string, ResearchEntry>();
+  for (const r of fileResearch) map.set(r.record.record_id, r);
+  for (const r of dbResearch) map.set(r.record.record_id, r);
+  return Array.from(map.values());
 }
 
 async function safeUpdateResearchReview(
@@ -717,13 +724,18 @@ export async function POST(req: Request, { params }: RouteCtx) {
   if (recordIds) {
     const selected = new Set(recordIds);
     candidates = allResearch.filter((r) => selected.has(r.record.record_id));
-    if (candidates.length !== selected.size) {
-      return NextResponse.json({ error: 'One or more selected research records were not found.' }, { status: 404 });
+    if (candidates.length === 0) {
+      return NextResponse.json({ error: 'Selected research records were not found.' }, { status: 404 });
     }
   } else if (mode === 'single' && recordId) {
     candidates = allResearch.filter((r) => r.record.record_id === recordId);
     if (!candidates.length) {
-      return NextResponse.json({ error: 'Research record not found' }, { status: 404 });
+      const byName = allResearch.filter(r => r.seed.name === recordId || r.record.identity.name === recordId);
+      if (byName.length > 0) {
+        candidates = byName;
+      } else {
+        return NextResponse.json({ error: `Research record "${recordId}" not found in project.` }, { status: 404 });
+      }
     }
   } else if (mode === 'batch' && batchId) {
     candidates = allResearch.filter(

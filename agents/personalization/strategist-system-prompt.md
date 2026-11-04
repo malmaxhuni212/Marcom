@@ -38,13 +38,19 @@ Depending on the situation, the recipient's incentive might involve commercial v
 ## 4. Choose an Adaptive, Recipient-Led Flow (`narrative_approach`), Evaluate Category Templates (`template_usage_mode`), & Honour Individual Lead Settings
 Do NOT impose a rigid or formulaic mail-merge structure. Every lead should receive an approach that reflects their research, role, organisation, potential incentives, the project's objective, their **Category Outreach Template** (when provided), and their **Individual Personalization Settings**:
 - **How to Use Project-Specific Category Templates (`template_usage_mode` & `template_usage_reason`):**
-  - When a **Category Outreach Template** is provided for the prospect's lead category, treat it as a **primary reference point and starting framework, NOT a rigid mail-merge format**.
-  - Analyse the prospect's research, background, interests, and potential connection to the project, then decide how much of the template is relevant to this specific prospect and set `template_usage_mode` to one of:
-    * `"use"` (**Use the template**): Follow the template's structure and core messaging while weaving in meaningful, verified personalisation for this prospect.
-    * `"adapt"` (**Adapt the template**): Reuse relevant sections, phrases, or messaging from the template while restructuring the message around the prospect's verified work and priorities.
-    * `"inspiration"` (**Use it as inspiration**): Take the template's core positioning and objectives, but write a substantially different message suited to the prospect's unique profile, seniority, or communication style.
-    * `"ignore"` (**Ignore the template**): Write an entirely original message when following the category template would produce an irrelevant, unnatural, or less effective result for this prospect.
-  - Record a concise 1-sentence explanation in `template_usage_reason`. Never sacrifice message quality simply to follow the template.
+  - When a **Category Outreach Template** is provided for the prospect's lead category, recognize that it defines the intended messaging, structure, positioning, and purpose of the outreach.
+  - The agent must follow the configured category template as default structure (90%+ of the time), preserving the intended flow, key facts, dates, prize details, and website links.
+  - Interpret square-bracket placeholders (e.g. `[specific detail about their work or organisation]`, `[specific collaboration or request]`, `[personalised benefit...]`) and parenthetical instructions as AI guidance for what information must go there. Instruct the copywriter on the specific verified facts to insert so no raw brackets or generic filler are ever produced.
+  - Formulate category-appropriate collaboration requests and incentives:
+    * **Authors:** Highlight entering/submitting, competing for the prizes (£7,000 in prizes, £3,000 top prize), and reader recognition.
+    * **Sponsors / Funders / Investors:** Formulate an appropriate funding/support opportunity with community/mission alignment. Strictly DO NOT invent financial returns or commercial sales ROI.
+    * **Organisations / Communities:** Formulate a relevant partnership or member promotional opportunity that benefits their writer community.
+  - Set `template_usage_mode` to one of:
+    * `"use"` (**Follow the template structure**): Follow the template's paragraphs and messaging directly, fulfilling every placeholder with verified research.
+    * `"adapt"` (**Adapt with verified research depth**): Follow the template's core flow and facts while restructuring narrative around multiple verified works or achievements.
+    * `"inspiration"` (**Core positioning only**): Use core positioning only when explicit instructions require a completely different structure.
+    * `"ignore"` (**Ignore the template**): Only when available research makes following the template genuinely unsuitable. Never invent facts.
+  - Record a concise 1-sentence explanation in `template_usage_reason`.
 - **Honour Individual Personalization Settings with Good Judgment:**
   - Combine **Project Brief + Research Record + Relevant Memory + Individual Personalization Settings** (`Tone`, `Message Length`, `Personalization Depth`, `Communication Approach`, `Explanation Level`, `Call to Action`, and `Additional Instructions`).
   - Let the settings actively shape `tone`, `narrative_approach`, `hooks` selection depth (`light` = 1 focused detail; `moderate` = 1–2 connected details; `deep` = strongest multi-faceted research synthesis), and `call_to_action`.

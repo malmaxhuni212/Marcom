@@ -160,7 +160,11 @@ export function formatCategoryTemplatePromptBlock(
     `\n=== HOW TO USE THIS CATEGORY TEMPLATE FOR ${prospectName.toUpperCase()} ===`,
     `- Primary Reference Framework (NOT Mail-Merge): This template establishes consistent messaging, positioning, and outreach objectives for ${template.target_type}.`,
     `- Recommended Decision for ${prospectName}: ${modeInfo.label.toUpperCase()} (${decision.mode}) — ${decision.reason}`,
-    `- CRITICAL WHEN MODE IS "use" OR "adapt": You MUST follow the Reference Message Template's paragraphs, key facts (prizes, dates, links), and structure closely, filling in the contextual cues ([Name], [specific detail...], [specific collaboration...], [personalised benefit...]) with natural, prospect-specific details grounded in verified research. Do NOT replace the template with a generic 2-paragraph summary.`,
+    `- CRITICAL IN "use" OR "adapt" MODE: Follow the template's paragraph flow, positioning, confirmed dates (e.g. 4 Jan 2027), prize amounts (e.g. £7,000 / £3,000), and links (e.g. https://poetrybookawards.co.uk). Fulfill every placeholder with natural, prospect-specific verified research. NEVER output raw brackets.
+- Category Incentives & Requests:
+  * Authors: Opportunity to enter, compete for the prizes, and gain reader recognition.
+  * Sponsors / Funders: Appropriate funding/support opportunity with community alignment. Strictly DO NOT invent financial returns or commercial sales ROI.
+  * Organisations: Relevant partnership, community engagement, or promotional opportunity for their member writers.`,
     `- You retain freedom to choose between:`,
     `  * "use" (Use the template): Follow its structure and messaging while adding meaningful, verified personalisation and resolving any contextual cues naturally.`,
     `  * "adapt" (Adapt the template): Preserve the template's core paragraphs, facts, dates, and URL while adapting the research connection and benefit phrasing to weave in the prospect's multiple works or achievements.`,
@@ -1317,8 +1321,8 @@ export function buildAdaptivePersonalizationEntry(params: {
   const templateBodyHasWarmCheckIn = resolvedTemplate
     ? /\b(?:i hope\b|hope\s+(?:you|your)\b)/i.test(resolvedTemplate.template.body)
     : false;
-  if (templateDecision.mode === 'use' && templateDirectives.length > 0 && resolvedFullTemplateBody) {
-    // Template uses contextual cues like [Name], [specific detail...], [personalised benefit...]
+  if ((templateDecision.mode === 'use' || templateDecision.mode === 'adapt') && resolvedFullTemplateBody) {
+    // Template defines intended structure, messaging, and positioning: preserve all paragraphs!
     const resolvedParas = resolvedFullTemplateBody
       .split(/\n\s*\n/)
       .map((p) => strip(p))
@@ -1327,49 +1331,72 @@ export function buildAdaptivePersonalizationEntry(params: {
       resolvedParas[0] = greeting;
     } else {
       resolvedParas.unshift(greeting);
+    }
+    if (templateDecision.mode === 'use' && templateDirectives.length === 0 && resolvedParas.length > 1) {
+      if (!resolvedParas.some((p) => p.toLowerCase().includes(work1.toLowerCase()))) {
+        resolvedParas[1] = `${resolvedParas[1]} Following your work on ${work1}, we thought of you immediately.`;
+      }
+    }
+    if (templateDecision.mode === 'adapt' && resolvedParas.length > 1) {
+      const hasWork1 = resolvedParas.some((p) => p.toLowerCase().includes(work1.toLowerCase()));
+      const hasAchievement = achievement1 && resolvedParas.some((p) => p.includes(achievement1));
+      
+      if (achievement1 && !hasAchievement) {
+        if (!hasWork1) {
+          resolvedParas[1] = `${resolvedParas[1]} Following your work on ${work1} alongside ${achievement1}, this connects directly to our initiative.`;
+        } else {
+          resolvedParas[1] = `${resolvedParas[1]} Alongside your recognition with ${achievement1}, this offers a compelling fit.`;
+        }
+      } else if (!hasWork1) {
+        resolvedParas[1] = `${resolvedParas[1]} Following your work on ${work1}, we wanted to reach out directly.`;
+      }
+
+      if (contextualValues.secondaryWorkDetail) {
+        let cleanSecondary = contextualValues.secondaryWorkDetail.replace(/^your\s+/i, '');
+        if (rec.organisation && contextualValues.verifiedWorkDetail.includes(rec.organisation)) {
+          cleanSecondary = cleanSecondary.split(' at ')[0] || cleanSecondary;
+        }
+        if (resolvedParas[1]!.includes(contextualValues.verifiedWorkDetail)) {
+          resolvedParas[1] = resolvedParas[1]!.replace(
+            contextualValues.verifiedWorkDetail,
+            `${contextualValues.verifiedWorkDetail} and ${cleanSecondary}`,
+          );
+        }
+      }
     }
     if (
       templateBodyHasWarmCheckIn &&
       warmCheckIn &&
       resolvedParas.length > 1 &&
-      !/^(?:i hope\b|hope\s+(?:you|your)\b)/i.test(resolvedParas[1]!)
+      !/^(?:i hope\b|hope\s+(?:you|your))/i.test(resolvedParas[1]!)
     ) {
       resolvedParas[1] = `${warmCheckIn}${resolvedParas[1]}`;
     }
-    emailParagraphs = resolvedParas;
-  } else if (
-    templateDecision.mode === 'adapt' &&
-    templateDirectives.length > 0 &&
-    resolvedFullTemplateBody
-  ) {
-    // Template uses contextual cues, adapted with the prospect's multi-faceted verified research (work2 / achievement1)
-    const resolvedParas = resolvedFullTemplateBody
-      .split(/\n\s*\n/)
-      .map((p) => strip(p))
-      .filter(Boolean);
-    if (resolvedParas.length > 0 && /^(?:hi|hello|dear)\b/i.test(resolvedParas[0]!)) {
-      resolvedParas[0] = greeting;
-    } else {
-      resolvedParas.unshift(greeting);
-    }
+    const lastPara = resolvedParas[resolvedParas.length - 1] || '';
     if (
-      resolvedParas.length > 1 &&
-      contextualValues.secondaryWorkDetail &&
-      resolvedParas[1]!.includes(contextualValues.verifiedWorkDetail)
+      !/^(?:warmly|best|regards|sincerely|yours|cheers|thank you|thanks)[,\n]/im.test(lastPara) &&
+      !lastPara.includes(senderSignoff.split('\n')[0])
     ) {
-      let cleanSecondary = contextualValues.secondaryWorkDetail.replace(/^your\s+/i, '');
-      if (rec.organisation && contextualValues.verifiedWorkDetail.includes(rec.organisation)) {
-        cleanSecondary = cleanSecondary.replace(
-          new RegExp(`\\s+at\\s+${rec.organisation.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&')}`, 'gi'),
-          '',
-        );
-      }
-      resolvedParas[1] = resolvedParas[1]!.replace(
-        contextualValues.verifiedWorkDetail,
-        `${contextualValues.verifiedWorkDetail} and ${cleanSecondary}`,
-      );
+      resolvedParas.push(`${signoffClosing}\n${senderSignoff}`);
     }
-    emailParagraphs = resolvedParas;
+
+    if (leadCfg.message_length === 'very_short' && resolvedParas.length > 2) {
+      const corePara = resolvedParas.find((p) => p.includes(work1) || p.includes(contextualValues.verifiedWorkDetail)) || resolvedParas[1] || '';
+      const ctaPara = resolvedParas.find((p) => p.includes('?')) || `${ctaSentence}\n\n${signoffClosing}\n${senderSignoff}`;
+      emailParagraphs = [greeting, corePara, ctaPara];
+    } else if (leadCfg.message_length === 'detailed' && leadCfg.explanation_level === 'detailed') {
+      const detailedContextPara =
+        achievement1 && achievement1 !== work1
+          ? `When we reviewed both ${work1} and your recognition with ${achievement1}, it was clear that your perspective brings the exact depth that makes ${campaignName} valuable for participants.`
+          : work2 && work2 !== work1
+            ? `When we reviewed both ${work1} and ${work2}, it was clear that your perspective brings the exact depth that makes ${campaignName} valuable for participants.`
+            : `Given your track record with ${work1}, we believe ${campaignName} offers a timely and relevant fit without requiring a heavy time commitment upfront.`;
+      const insertIdx = Math.max(1, resolvedParas.length - 1);
+      resolvedParas.splice(insertIdx, 0, detailedContextPara);
+      emailParagraphs = resolvedParas;
+    } else {
+      emailParagraphs = resolvedParas;
+    }
   } else if (templateDecision.mode === 'use' && templatePositioningPara) {
     const templateMiddle =
       templatePositioningPara.toLowerCase().includes(recipientBenefit.slice(0, 20).toLowerCase())
@@ -1529,18 +1556,23 @@ export function buildAdaptivePersonalizationEntry(params: {
   const copy: OutreachCopy = {
     subject_lines: [
       {
-        text: strip(`${work1.slice(0, 32)} / ${campaignName}`).slice(0, 58),
+        text:
+          contextualValues.tailoredSubjectLines?.direct ||
+          strip(`${work1.slice(0, 32)} / ${campaignName}`).slice(0, 58),
         style: 'direct',
       },
       {
         text:
+          contextualValues.tailoredSubjectLines?.curiosity ||
+          strip(`Question for ${cleanFirstName} regarding ${work1.slice(0, 28)}`).slice(0, 58),
+        style: 'curiosity',
+      },
+      {
+        text:
+          contextualValues.tailoredSubjectLines?.value ||
           templateSubject ||
           strip(`${campaignName}: opportunity for ${isOrg ? prospectName : cleanFirstName}`).slice(0, 58),
         style: 'value',
-      },
-      {
-        text: strip(`Question for ${cleanFirstName} regarding ${work1.slice(0, 28)}`).slice(0, 58),
-        style: 'curiosity',
       },
     ],
     email_body: emailBody,
