@@ -1062,7 +1062,7 @@ export function decideTemplateUsageMode(
 
   // 1. Check when the template should be IGNORED ('ignore'):
   // - Explicit user instruction to ignore template / write from scratch
-  // - Contradictions or research notes indicating the standard category pitch is inappropriate or off-limits
+  // - Prohibitive constraints indicating the standard category pitch is off-limits (e.g. paused submissions / no sponsorship)
   // - Severe mismatch between what the template pitches and the prospect's actual profile/remit
   if (
     /\b(?:ignore template|do not use template|original message|bespoke angle|custom pitch only)\b/i.test(extraInstr)
@@ -1073,15 +1073,17 @@ export function decideTemplateUsageMode(
     };
   }
 
+  const explicitlyFollowsTemplate = /\b(?:follow (?:the )?template|use (?:the )?template|match (?:the )?template|stick to (?:the )?template)\b/i.test(extraInstr);
+
   if (
-    (record.contradictions?.length ?? 0) > 0 ||
+    !explicitlyFollowsTemplate &&
     /\b(?:no longer accepts|paused submissions|paused sponsorship|closed to unsolicited|does not sponsor|retired from|conflict with standard)\b/i.test(
       summaryAndRelevance,
     )
   ) {
     return {
       mode: 'ignore',
-      reason: `Ignoring the standard ${template.target_type} template because ${prospectName}'s research contains constraints or contradictions that make the standard category framing unsuitable.`,
+      reason: `Ignoring the standard ${template.target_type} template because ${prospectName}'s research contains constraints indicating the standard category framing is unsuitable.`,
     };
   }
 

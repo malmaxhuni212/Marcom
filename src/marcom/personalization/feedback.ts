@@ -157,6 +157,11 @@ export function applyFeedbackToLeadSettings(
     } else if (has(t, /\b(?:less explanation|explain less|don'?t over[- ]?explain)\b/)) {
       next.explanation_level = 'minimal';
     }
+    if (has(t, /\b(?:follow (?:the )?template|use (?:the )?template|stick to (?:the )?template)\b/)) {
+      next.additional_instructions = next.additional_instructions
+        ? `${next.additional_instructions} Follow the category template.`
+        : 'Follow the category template.';
+    }
   }
   return next;
 }
