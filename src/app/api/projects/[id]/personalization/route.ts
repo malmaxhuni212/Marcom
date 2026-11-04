@@ -251,14 +251,55 @@ async function safeGetSettings(
   projectId: string,
   allowFileFallback: boolean,
 ): Promise<PersonalizationSettings> {
+  const fileSettings = getFilePersonalizationSettings(projectId);
   if (isDatabaseConfigured() && UUID_REGEX.test(projectId)) {
     try {
-      return await getDbPersonalizationSettings(actor, projectId);
+      const dbSettings = await getDbPersonalizationSettings(actor, projectId);
+      const mergedFeedback = [...(dbSettings.feedback_memory ?? [])];
+      const existingIds = new Set(mergedFeedback.map((f) => f.id));
+      let hasNewFileFeedback = false;
+      for (const item of fileSettings.feedback_memory ?? []) {
+        if (!existingIds.has(item.id)) {
+          mergedFeedback.push(item);
+          existingIds.add(item.id);
+          hasNewFileFeedback = true;
+        }
+      }
+
+      const mergedCategoryTemplates = {
+        ...(fileSettings.category_templates ?? {}),
+        ...(dbSettings.category_templates ?? {}),
+      };
+
+      const mergedLeadSettings = {
+        ...(fileSettings.lead_settings ?? {}),
+        ...(dbSettings.lead_settings ?? {}),
+      };
+
+      const merged: PersonalizationSettings = {
+        ...fileSettings,
+        ...dbSettings,
+        feedback_memory: mergedFeedback,
+        category_templates: mergedCategoryTemplates,
+        lead_settings: mergedLeadSettings,
+      };
+
+      if (hasNewFileFeedback) {
+        saveDbPersonalizationSettings(actor, projectId, {
+          feedback_memory: mergedFeedback,
+          category_templates: mergedCategoryTemplates,
+          lead_settings: mergedLeadSettings,
+        }).catch((err) => {
+          console.warn('Sync of file feedback to DB failed:', err);
+        });
+      }
+
+      return merged;
     } catch (error) {
       console.warn('DB getPersonalizationSettings failed, falling back to file/memory store:', error);
     }
   }
-  return getFilePersonalizationSettings(projectId);
+  return fileSettings;
 }
 
 async function safeListPersonalizations(
@@ -394,6 +435,7 @@ async function safeSaveSettings(
   partial: Partial<PersonalizationSettings>,
   allowFileFallback: boolean,
 ): Promise<PersonalizationSettings> {
+  const fileSaved = saveFilePersonalizationSettings(projectId, partial);
   if (isDatabaseConfigured() && UUID_REGEX.test(projectId)) {
     try {
       return await saveDbPersonalizationSettings(actor, projectId, partial);
@@ -401,7 +443,7 @@ async function safeSaveSettings(
       console.warn('DB savePersonalizationSettings failed, falling back to file/memory store:', error);
     }
   }
-  return saveFilePersonalizationSettings(projectId, partial);
+  return fileSaved;
 }
 
 async function safeDeletePersonalization(

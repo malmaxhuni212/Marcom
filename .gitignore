@@ -50,6 +50,7 @@ share-config-details.txt
 # Runtime prospect and personalisation records. PostgreSQL owns campaign data.
 /memory/research/*.json
 /memory/personalization/*.json
+!/memory/personalization/*-settings.json
 /memory/*-original.json
 /storage/
 

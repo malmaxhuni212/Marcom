@@ -1,0 +1,190 @@
+{
+  "sender_name": "Maya Editorial Team",
+  "sender_role": "Submissions Coordinator",
+  "organisation": "Maya Poetry Book Awards",
+  "campaign_facts": [
+    "Maya is an international poetry book competition for indie writers, self-published poets and books from small, truly independent presses.",
+    "With £7,000 in prizes, including a £3,000 top prize, it offers authors an opportunity for recognition and greater visibility.",
+    "Next year’s competition opens on 4 January 2027 at https://poetrybookawards.co.uk."
+  ],
+  "call_to_action_link": "https://poetrybookawards.co.uk",
+  "signature": "Best,\n\nMaya Editorial Team\n\nMaya Poetry Book Awards",
+  "extra_guidance": "Professional, warm, respectful. Never pressure. Cite their actual books or literary achievements.",
+  "lead_settings": {
+    "r-canongate-mvp4mfuw": {
+      "tone": "formal",
+      "message_length": "detailed",
+      "personalization_depth": "deep",
+      "communication_approach": "incentive_driven",
+      "explanation_level": "detailed",
+      "call_to_action": "direct",
+      "additional_instructions": "Focus on institutional prestige and long-term visibility.",
+      "updated_at": "2026-10-30T13:04:23.506Z"
+    },
+    "r-little-brown-book-group-mvp4lm76": {
+      "tone": "professional",
+      "message_length": "short",
+      "personalization_depth": "moderate",
+      "communication_approach": "incentive_driven",
+      "explanation_level": "balanced",
+      "call_to_action": "specific_request",
+      "additional_instructions": "",
+      "updated_at": null
+    },
+    "r-hachette-uk-mvp4l3w1": {
+      "tone": "professional",
+      "message_length": "short",
+      "personalization_depth": "moderate",
+      "communication_approach": "incentive_driven",
+      "explanation_level": "balanced",
+      "call_to_action": "specific_request",
+      "additional_instructions": "",
+      "updated_at": "2026-11-04T15:39:17.481Z"
+    },
+    "r-ellen-meister-mvku04zy": {
+      "tone": "friendly",
+      "message_length": "short",
+      "personalization_depth": "light",
+      "communication_approach": "relationship_first",
+      "explanation_level": "balanced",
+      "call_to_action": "soft",
+      "additional_instructions": "",
+      "updated_at": "2026-11-02T10:51:17.439Z"
+    },
+    "r-morgen-bailey-mvp4476u": {
+      "tone": "friendly",
+      "message_length": "short",
+      "personalization_depth": "deep",
+      "communication_approach": "relationship_first",
+      "explanation_level": "balanced",
+      "call_to_action": "soft",
+      "additional_instructions": "",
+      "updated_at": "2026-11-02T11:06:42.891Z"
+    },
+    "r-simon-schuster-uk-mvp4kyuk": {
+      "tone": "professional",
+      "message_length": "short",
+      "personalization_depth": "moderate",
+      "communication_approach": "incentive_driven",
+      "explanation_level": "balanced",
+      "call_to_action": "specific_request",
+      "additional_instructions": "",
+      "updated_at": "2026-11-04T15:01:39.396Z"
+    },
+    "r-the-bookseller-mvp4kvd7": {
+      "tone": "professional",
+      "message_length": "short",
+      "personalization_depth": "light",
+      "communication_approach": "incentive_driven",
+      "explanation_level": "balanced",
+      "call_to_action": "specific_request",
+      "additional_instructions": "",
+      "updated_at": "2026-11-04T16:02:14.668Z"
+    }
+  },
+  "category_templates": {
+    "target-5": {
+      "target_id": "target-5",
+      "target_type": "Creators & Influencers / Investors & Sponsors",
+      "subject_line": "Strategic sponsorship & partnership opportunity: Maya",
+      "body": "Hi [Name],\n\nI came across [specific detail about their work or organisation] and thought there could be an interesting connection with the Maya Poetry Book Awards.\n\nMaya is an international poetry book competition for indie writers, self-published poets and books from small, truly independent presses. With £7,000 in prizes, including a £3,000 top prize, it offers authors an opportunity for recognition and greater visibility.\n\nWe're reaching out to explore [specific collaboration or request] because [personalised benefit or reason it could be valuable to them].\n\nNext year’s competition opens on 4 January 2027. You can find out more at https://poetrybookawards.co.uk.\n\nWould you be open to exploring this further? We'd be happy to share more details.\n\nBest,\n\n[Name]\n\nMaya Poetry Book Awards",
+      "is_custom": true,
+      "updated_at": "2026-11-02T10:36:02.393Z"
+    },
+    "target-1": {
+      "target_id": "target-1",
+      "target_type": "Authors & Writers",
+      "subject_line": "Maya Poetry Book Awards: Connecting around your poetry & writing",
+      "body": "Hi [Name],\n\nI came across your [book, publication or relevant work] and thought there could be an interesting opportunity for you through the Maya Poetry Book Awards.\n\nMaya is an international poetry book competition for indie writers, self-published poets and books from small, truly independent presses. With £7,000 in prizes, including a £3,000 top prize, it offers authors an opportunity to gain recognition and greater visibility for their work.\n\nNext year’s competition opens on Monday, 4 January 2027. You can find out more and explore the entry guidelines at https://poetrybookawards.co.uk.\n\nWould you be interested in exploring the opportunity? We'd be happy to share more details.\n\nBest,\n\n[Name]\n\nMaya Poetry Book Awards",
+      "is_custom": true,
+      "updated_at": "2026-11-02T10:50:15.782Z"
+    },
+    "target-2": {
+      "target_id": "target-2",
+      "target_type": "Writing & Literary Communities",
+      "subject_line": "Collaboration with Maya Poetry Book Awards for Writing & Literary Communities",
+      "body": "Hi [Name],\n\nI came across [specific detail about their work or organisation] and thought there could be an interesting connection with the Maya Poetry Book Awards.\n\nMaya is an international poetry book competition for indie writers, self-published poets and books from small, truly independent presses. With £7,000 in prizes, including a £3,000 top prize, it offers authors an opportunity for recognition and greater visibility.\n\nWe're reaching out to explore [specific collaboration or request] because [personalised benefit or reason it could be valuable to them].\n\nNext year's competition opens on 4 January 2027. You can find out more at https://poetrybookawards.co.uk.\n\nWould you be open to exploring this further? We'd be happy to share more details.\n\nBest,\n\nMaya Editorial Team\n\nMaya Poetry Book Awards",
+      "is_custom": false,
+      "updated_at": "2026-11-02T11:19:06.064Z"
+    },
+    "target-3": {
+      "target_id": "target-3",
+      "target_type": "Publishers & Book‑Industry Organisations",
+      "subject_line": "Collaboration with Maya Poetry Book Awards for Publishers & Book‑Industry Organisations",
+      "body": "Hi [Name],\n\nI came across [specific detail about their work or organisation] and thought there could be an interesting connection with the Maya Poetry Book Awards.\n\nMaya is an international poetry book competition for indie writers, self-published poets and books from small, truly independent presses. With £7,000 in prizes, including a £3,000 top prize, it offers authors an opportunity for recognition and greater visibility.\n\nWe're reaching out to explore [specific collaboration or request] because [personalised benefit or reason it could be valuable to them].\n\nNext year's competition opens on 4 January 2027. You can find out more at https://poetrybookawards.co.uk.\n\nWould you be open to exploring this further? We'd be happy to share more details.\n\nBest,\n\nMaya Editorial Team\n\nMaya Poetry Book Awards",
+      "is_custom": false,
+      "updated_at": "2026-11-02T11:19:06.065Z"
+    },
+    "target-4": {
+      "target_id": "target-4",
+      "target_type": "Universities & Education",
+      "subject_line": "Collaboration with Maya Poetry Book Awards for Universities & Education",
+      "body": "Hi [Name],\n\nI came across [specific detail about their work or organisation] and thought there could be an interesting connection with the Maya Poetry Book Awards.\n\nMaya is an international poetry book competition for indie writers, self-published poets and books from small, truly independent presses. With £7,000 in prizes, including a £3,000 top prize, it offers authors an opportunity for recognition and greater visibility.\n\nWe're reaching out to explore [specific collaboration or request] because [personalised benefit or reason it could be valuable to them].\n\nNext year's competition opens on 4 January 2027. You can find out more at https://poetrybookawards.co.uk.\n\nWould you be open to exploring this further? We'd be happy to share more details.\n\nBest,\n\nMaya Editorial Team\n\nMaya Poetry Book Awards",
+      "is_custom": false,
+      "updated_at": "2026-11-02T11:19:06.065Z"
+    }
+  },
+  "feedback_memory": [
+    {
+      "id": "fb_mw28ad2d_oj19bh",
+      "text": "Follow the template given for these kind of leads",
+      "scope": "project",
+      "record_id": "r-simon-schuster-uk-mvp4kyuk",
+      "prospect_name": "Simon & Schuster UK",
+      "target_type": "Publishers & Book‑Industry Organisations",
+      "target_id": "target-3",
+      "created_at": "2026-11-04T14:44:57.637Z"
+    },
+    {
+      "id": "fb_mw28h6x5_j61vcd",
+      "text": "i like the lenght of the message and the structure is nice and has potential, but it just sounds awkward, not clear, not convincing",
+      "scope": "project",
+      "record_id": "r-simon-schuster-uk-mvp4kyuk",
+      "prospect_name": "Simon & Schuster UK",
+      "target_type": "Publishers & Book‑Industry Organisations",
+      "target_id": "target-3",
+      "created_at": "2026-11-04T14:50:16.265Z"
+    },
+    {
+      "id": "fb_mw28kbmb_9h0fcv",
+      "text": "The message is clearer and more natural, but it has lost meaningful personalisation. Start with a relevant, verified detail about the recipient and establish a genuine connection to Maya before introducing the competition.\n\nMake the transition natural, explain why the partnership makes sense for them, and tailor the value proposition to their organization.\n\nKeep the current length and structure. Improve the personal connection, relevance and persuasiveness without making the message generic.",
+      "scope": "project",
+      "record_id": "r-simon-schuster-uk-mvp4kyuk",
+      "prospect_name": "Simon & Schuster UK",
+      "target_type": "Publishers & Book‑Industry Organisations",
+      "target_id": "target-3",
+      "created_at": "2026-11-04T14:52:42.323Z"
+    },
+    {
+      "id": "fb_mw28n1w7_1oufht",
+      "text": "This version is clearer and more professional. Keep the current length and structure, but improve the transitions between the personalised opening, the introduction of Maya and the partnership proposition. The message should read as one natural conversation rather than separate sections joined together. Make each idea flow logically into the next, creating a comfortable reading experience while maintaining meaningful personalisation and a convincing value proposition.",
+      "scope": "project",
+      "record_id": "r-simon-schuster-uk-mvp4kyuk",
+      "prospect_name": "Simon & Schuster UK",
+      "target_type": "Publishers & Book‑Industry Organisations",
+      "target_id": "target-3",
+      "created_at": "2026-11-04T14:54:49.687Z"
+    },
+    {
+      "id": "fb_mw2b1660_sg7jsv",
+      "text": "We are organising Maya, A multi-channel marketing and communications strategy to generate 2,000+ quality book submissions and build a sustainable author community. With £7,000 in prizes, including a £3,000 top prize, it offers authors an opportunity for recognition and greater visibility. For Canongate, this provides a tangible value exchange: Maya is an international poetry book competition for indie writers, self-published poets and books from small, truly independent presses.\n\nAs a key note, Focus on institutional prestige and long-term visibility..\n\nMaya Poetry Book Awards\n\nthis is unnecessary remove it",
+      "scope": "project",
+      "record_id": "r-canongate-mvp4mfuw",
+      "prospect_name": "Canongate",
+      "target_type": "Publishers & Book‑Industry Organisations",
+      "target_id": "target-3",
+      "created_at": "2026-11-04T16:01:47.640Z"
+    },
+    {
+      "id": "fb_mw2b3gme_m2i5hg",
+      "text": "Make it shorter",
+      "scope": "project",
+      "record_id": "r-the-bookseller-mvp4kvd7",
+      "prospect_name": "The Bookseller",
+      "target_type": "Publishers & Book‑Industry Organisations",
+      "target_id": "target-3",
+      "created_at": "2026-11-04T16:03:34.502Z"
+    }
+  ],
+  "updated_at": "2026-11-04T16:03:34.502Z"
+}
