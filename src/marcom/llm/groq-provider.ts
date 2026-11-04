@@ -3,8 +3,8 @@ import { getKeyPool, type KeyPoolName } from './key-pool';
 
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 export const GROQ_MODEL = 'openai/gpt-oss-20b';
-export const DEFAULT_GROQ_TIMEOUT_MS = 45_000;
-export const DEFAULT_GROQ_MAX_RETRIES = 8;
+export const DEFAULT_GROQ_TIMEOUT_MS = 14_000;
+export const DEFAULT_GROQ_MAX_RETRIES = 2;
 
 /** A page or search hit the Groq browser tool actually returned. Used to verify citations. */
 export interface SeenSource {

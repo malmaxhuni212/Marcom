@@ -60,8 +60,11 @@ class RotatingKeyPool {
       if (k.availableAt < bestKey.availableAt) bestKey = k;
     }
 
-    // All keys are on cooldown. Wait for the best one.
+    // All keys are on cooldown. Wait for the best one (capped to 4s so serverless requests do not time out).
     const waitMs = bestKey.availableAt - now;
+    if (waitMs > 4_000) {
+      throw new Error(`All Groq API keys are currently rate-limited (cooling down for ${Math.ceil(waitMs / 1000)}s). Falling back to adaptive personalization.`);
+    }
     if (waitMs > 0) {
       if (onWait) onWait(Math.ceil(waitMs / 1000));
       await new Promise((r) => setTimeout(r, waitMs));
