@@ -29,6 +29,7 @@ import { PageFrame, ProjectGate } from '../AppShell';
 import { useWorkspace } from '../WorkspaceContext';
 import DraftsDrawer from '../DraftsDrawer';
 import DraftFeedbackPanel from '../DraftFeedbackPanel';
+import { downloadProspectMarkdown } from '../export-dossier';
 import {
   FitList,
   KeyContactsList,
@@ -1682,6 +1683,7 @@ function ProspectsBody({ initialTab }: { initialTab?: TabId }) {
           index={visible.findIndex((item) => item.record.record_id === selectedEntry.record.record_id)}
           total={visible.length}
           projectId={projectId}
+          projectTitle={title}
           brief={brief}
           settings={settings}
           draft={draftByRecordId.get(selectedEntry.record.record_id) ?? null}
@@ -1807,6 +1809,7 @@ function ProspectDetailPanel({
   index,
   total,
   projectId,
+  projectTitle,
   brief,
   settings,
   draft,
@@ -1832,6 +1835,7 @@ function ProspectDetailPanel({
   index: number;
   total: number;
   projectId: string;
+  projectTitle?: string;
   brief: NonNullable<ReturnType<typeof useWorkspace>['bundle']>['project']['structured_brief'];
   settings: PersonalizationSettings | null;
   draft: PersonalizationEntry | null;
@@ -1861,8 +1865,19 @@ function ProspectDetailPanel({
   const [editingDraft, setEditingDraft] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [moreResearchOpen, setMoreResearchOpen] = useState(false);
+  const [downloaded, setDownloaded] = useState(false);
   const { copied, copy } = useClipboard();
   const settingsSectionRef = useRef<HTMLElement | null>(null);
+
+  const handleDownloadDossier = () => {
+    downloadProspectMarkdown({
+      entry,
+      draft,
+      projectName: projectTitle || brief?.project?.name || undefined,
+    });
+    setDownloaded(true);
+    setTimeout(() => setDownloaded(false), 2500);
+  };
 
   const name = prospectName(entry);
   const status = reviewStatus(entry);
@@ -2652,7 +2667,21 @@ function ProspectDetailPanel({
         <span className="text-xs font-semibold tracking-[0.14em] text-[#5ED3DF]">
           PROSPECT {index >= 0 ? index + 1 : 1} OF {Math.max(total, 1)}
         </span>
-        <div className="flex gap-1.5">
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={handleDownloadDossier}
+            aria-label="Download dossier as Markdown"
+            title="Download full intelligence dossier (.md)"
+            className={`flex h-9 items-center gap-1.5 rounded-full border px-3 text-xs font-semibold transition ${
+              downloaded
+                ? 'border-[#2F6B4B] bg-[#10261B] text-[#8EE6B6]'
+                : 'border-[#2A2F39] bg-[#171A20] text-[#F1F2F4] hover:border-[#3B3577] hover:bg-[#1D1B30] hover:text-[#CFC8FF]'
+            }`}
+          >
+            <Icon name={downloaded ? 'check' : 'download'} size={14} stroke={2.4} />
+            <span>{downloaded ? 'Downloaded' : 'Download .md'}</span>
+          </button>
           <button
             type="button"
             disabled={index <= 0}

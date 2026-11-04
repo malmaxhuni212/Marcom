@@ -83,6 +83,7 @@ function buildUserPrompt(
     t.description ? `TARGET DESCRIPTION: ${clip(t.description, 250)}` : '',
     `QUALIFICATION CRITERIA (assess each):\n${list([...plan.qualification_criteria, ...plan.criteria_needing_definition])}`,
     `EXCLUSIONS (flag if hit):\n${list(plan.exclusion_criteria)}`,
+    `FIT SCORING: Provide a fit_score integer from 0 to 100 assessing how well this prospect satisfies the project objective and qualification criteria based strictly on verified evidence (0-20: irrelevant, 21-40: weak, 41-60: possible, 61-80: strong, 81-100: highly relevant). Explain your qualification reasoning in fit_rationale. IMPORTANT: Do NOT lower the fit score because contact info (email/phone) is missing — fit evaluates background and criteria match. Record missing contact routes in unknowns.`,
     `FIELDS TO FIND:\n${list(fields, 10)}`,
     plan.preferred_source_types.length ? `PREFERRED SOURCES: ${plan.preferred_source_types.slice(0, 8).join('; ')}` : '',
     requestedTargets.length
@@ -271,7 +272,7 @@ function buildEvidence(
 
 const NORMALIZER_SYSTEM = `Convert the research notes into ONE JSON object with exactly these keys:
 {"name","entity_kind","identity_verified","role","organisation","country","location","websites":[{"url","type","title"}],"social_profiles":[{"platform","profile_url","username","display_name","verified_status","confidence","source_ids"}],"public_contact":[{"kind","value","is_professional","source_ids","confidence"}],"key_contacts":[{"name","role","department","email","linkedin_url","phone","relevance","source_ids","confidence"}],"background":["string"],"work_and_projects":["string"],"achievements":["string"],"industry_activity":["string"],"criteria":[{"criterion","status","note","sources"}],"evidence":[{"claim","field","sources","confidence","quote"}],"sources":[{"id","url","title","type"}],"unknowns":[{"field","reason"}],"contradictions","fit_score","fit_rationale","summary","confidence"}
-Use ONLY information present in the notes. Never add facts, URLs or contacts. Missing = null or []. Output JSON only.`;
+Use ONLY information present in the notes. Never add facts, URLs or contacts. Missing = null or []. Output JSON only. fit_score must be an integer 0-100 reflecting qualification criteria met.`;
 
 export async function runResearchAgent(input: RunResearchInput): Promise<ResearchEntry> {
   const { projectId, brief, seed, store, searchProvider, llmProvider } = input;

@@ -700,3 +700,85 @@ test('runResearchAgent searches requested social domains and QA preserves Instag
   assert.equal(messageFor(draft, 'x'), sharedDm);
   assert.equal(messageFor(draft, 'facebook'), sharedDm);
 });
+
+test('normalizeAndQA scales fractional and 1-10 fit scores correctly', () => {
+  const toolText = 'SOURCE ID: S1\nURL: https://example.com/about\nTITLE: About\nCONTENT: Jane Doe is an award-winning poet.';
+  const baseCtx = {
+    projectId: 'proj-1',
+    targetId: 't-1',
+    targetType: 'authors',
+    seed: { name: 'Jane Doe', entity_kind: 'person' as const },
+    seen: [{ url: 'https://example.com/about', title: 'About', via: 'page' as const }],
+    pages: [{ url: 'https://example.com/about', text: toolText }],
+    toolText,
+    matchedProspectId: null,
+    relationshipStatus: null,
+  };
+  const baseDraft = {
+    name: 'Jane Doe',
+    entity_kind: 'person',
+    identity_verified: true,
+    websites: [{ url: 'https://example.com/about', type: 'personal', title: 'About' }],
+    evidence: [
+      { claim: 'Jane Doe is a poet', field: 'role', sources: ['S1'], confidence: 'verified', quote: 'award-winning poet' },
+      { claim: 'Published author', field: 'achievements', sources: ['S1'], confidence: 'verified', quote: 'award-winning poet' },
+    ],
+    sources: [{ id: 'S1', url: 'https://example.com/about', title: 'About', type: 'official website' }],
+    confidence: 'high',
+  };
+
+  // Case 1: Decimal fraction 0.85 -> 85
+  const res1 = normalizeAndQA({ ...baseDraft, fit_score: 0.85 }, baseCtx);
+  assert.equal(res1.record.fit?.score, 85);
+  assert.equal(res1.record.fit?.band, 'highly_relevant');
+
+  // Case 2: 1-10 scale: 8 -> 80
+  const res2 = normalizeAndQA({ ...baseDraft, fit_score: 8 }, baseCtx);
+  assert.equal(res2.record.fit?.score, 80);
+  assert.equal(res2.record.fit?.band, 'strong');
+
+  // Case 3: Prompt template default 0 with positive criteria met -> recalibrated
+  const res3 = normalizeAndQA(
+    {
+      ...baseDraft,
+      fit_score: 0,
+      criteria: [
+        { criterion: 'Published UK Poet', status: 'met', sources: ['S1'] },
+      ],
+    },
+    baseCtx,
+  );
+  assert.equal(res3.record.fit?.score, 85);
+  assert.equal(res3.record.fit?.band, 'highly_relevant');
+
+  // Case 4: Genuinely irrelevant prospect with no criteria met -> stays 0 / irrelevant
+  const res4 = normalizeAndQA(
+    {
+      ...baseDraft,
+      fit_score: 0,
+      criteria: [
+        { criterion: 'Published UK Poet', status: 'not_met', sources: ['S1'] },
+      ],
+    },
+    baseCtx,
+  );
+  assert.equal(res4.record.fit?.score, 0);
+  assert.equal(res4.record.fit?.band, 'irrelevant');
+
+  // Case 5: Model penalised prospect for missing contact info despite criteria being met -> recalibrated
+  const res5 = normalizeAndQA(
+    {
+      ...baseDraft,
+      fit_score: 0,
+      fit_rationale: 'No contact information available to reach out for submissions.',
+      criteria: [
+        { criterion: 'Published authors active in online writing communities', status: 'met', sources: ['S1'] },
+      ],
+    },
+    baseCtx,
+  );
+  assert.equal(res5.record.fit?.score, 85);
+  assert.equal(res5.record.fit?.band, 'highly_relevant');
+  assert.match(res5.record.fit?.rationale || '', /Matches qualification criteria/);
+  assert.doesNotMatch(res5.record.fit?.rationale || '', /No contact information/);
+});
