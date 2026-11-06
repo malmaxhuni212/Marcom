@@ -1038,7 +1038,7 @@ function ProspectsBody({ initialTab }: { initialTab?: TabId }) {
         ),
       });
       const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error || data.detail || 'Personalisation could not be completed.');
+      if (!response.ok) throw new Error(data.error || data.detail || (response.status === 504 ? 'Personalisation timed out on the server. Please try again.' : 'Personalisation could not be completed.'));
       if (data.settings) {
         setSettings(data.settings as PersonalizationSettings);
       }
@@ -2083,6 +2083,7 @@ function ProspectDetailPanel({
   const [approvingDraft, setApprovingDraft] = useState(false);
   const [savingDraftEdit, setSavingDraftEdit] = useState(false);
   const [editingDraft, setEditingDraft] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [moreResearchOpen, setMoreResearchOpen] = useState(false);
   const [downloaded, setDownloaded] = useState(false);
@@ -3478,6 +3479,19 @@ function ProspectDetailPanel({
                   {personalising ? <Spinner size={13} /> : <Icon name="refresh" size={14} />}
                   Rewrite
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setFeedbackOpen((v) => !v)}
+                  className={`inline-flex h-10 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl border px-3.5 text-[13px] font-semibold transition ${
+                    feedbackOpen
+                      ? 'border-[#3B3577] bg-[#221F3D] text-[#E2DDFF]'
+                      : 'border-[#2A2F39] bg-[#12151A] text-[#C9CDD4] hover:border-[#3A3F4A] hover:text-[#F1F2F4]'
+                  }`}
+                  title="Give feedback to rewrite this draft and improve future drafts"
+                >
+                  <Icon name="message" size={14} />
+                  Feedback
+                </button>
               </div>
 
               {/* Inline Reviewer Feedback & Rewrite Panel */}
@@ -3486,6 +3500,8 @@ function ProspectDetailPanel({
                 record={entry.record}
                 settings={settings}
                 disabled={personalising}
+                isOpen={feedbackOpen}
+                onToggleOpen={() => setFeedbackOpen((v) => !v)}
                 onDraftUpdated={(updatedDraft) => {
                   onDraftUpdated(updatedDraft);
                   setDraftEdits({

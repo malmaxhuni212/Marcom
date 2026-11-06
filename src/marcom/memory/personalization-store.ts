@@ -169,7 +169,21 @@ export function getPersonalizationSettings(projectId: string): PersonalizationSe
   if (inMemorySettings.has(projectId)) {
     return inMemorySettings.get(projectId)!;
   }
-  const f = settingsFileFor(projectId);
+  let f = settingsFileFor(projectId);
+  if (!existsSync(f)) {
+    const altProjectId =
+      projectId === '90b3c855-0937-4d6d-a364-702a43d019c5'
+        ? 'proj-1791464115518'
+        : projectId === 'proj-1791464115518'
+          ? '90b3c855-0937-4d6d-a364-702a43d019c5'
+          : null;
+    if (altProjectId) {
+      const altFile = settingsFileFor(altProjectId);
+      if (existsSync(altFile)) {
+        f = altFile;
+      }
+    }
+  }
   if (!existsSync(f)) {
     const fallback = PersonalizationSettingsSchema.parse({});
     inMemorySettings.set(projectId, fallback);

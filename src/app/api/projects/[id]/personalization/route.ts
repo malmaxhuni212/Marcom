@@ -252,14 +252,70 @@ async function safeGetSettings(
   projectId: string,
   allowFileFallback: boolean,
 ): Promise<PersonalizationSettings> {
+  const fileSettings = getFilePersonalizationSettings(projectId);
   if (isDatabaseConfigured() && UUID_REGEX.test(projectId)) {
     try {
-      return await getDbPersonalizationSettings(actor, projectId);
+      const dbSettings = await getDbPersonalizationSettings(actor, projectId);
+      const mergedFeedback = [...(dbSettings.feedback_memory ?? [])];
+      const existingIds = new Set(mergedFeedback.map((f) => f.id));
+      let hasNewFileFeedback = false;
+      for (const item of fileSettings.feedback_memory ?? []) {
+        if (!existingIds.has(item.id)) {
+          mergedFeedback.push(item);
+          existingIds.add(item.id);
+          hasNewFileFeedback = true;
+        }
+      }
+
+      const rawCombined = {
+        ...(fileSettings.category_templates ?? {}),
+        ...(dbSettings.category_templates ?? {}),
+      };
+      const mergedCategoryTemplates: Record<string, any> = {};
+      for (const [k, v] of Object.entries(rawCombined)) {
+        if (v && typeof v === 'object' && v.body && !/i came across/i.test(v.body)) {
+          mergedCategoryTemplates[k] = v;
+        }
+      }
+
+      const mergedLeadSettings = {
+        ...(fileSettings.lead_settings ?? {}),
+        ...(dbSettings.lead_settings ?? {}),
+      };
+
+      const merged: PersonalizationSettings = {
+        ...fileSettings,
+        ...dbSettings,
+        feedback_memory: mergedFeedback,
+        category_templates: mergedCategoryTemplates,
+        lead_settings: mergedLeadSettings,
+      };
+
+      if (hasNewFileFeedback) {
+        saveDbPersonalizationSettings(actor, projectId, {
+          feedback_memory: mergedFeedback,
+          category_templates: mergedCategoryTemplates,
+          lead_settings: mergedLeadSettings,
+        }).catch((err) => {
+          console.warn('Sync of file feedback to DB failed:', err);
+        });
+      }
+
+      return merged;
     } catch (error) {
       console.warn('DB getPersonalizationSettings failed, falling back to file/memory store:', error);
     }
   }
-  return getFilePersonalizationSettings(projectId);
+  const cleanedFileCategoryTemplates: Record<string, any> = {};
+  for (const [k, v] of Object.entries(fileSettings.category_templates ?? {})) {
+    if (v && typeof v === 'object' && v.body && !/i came across/i.test(v.body)) {
+      cleanedFileCategoryTemplates[k] = v;
+    }
+  }
+  return {
+    ...fileSettings,
+    category_templates: cleanedFileCategoryTemplates,
+  };
 }
 
 async function safeListPersonalizations(
@@ -267,15 +323,19 @@ async function safeListPersonalizations(
   projectId: string,
   allowFileFallback: boolean,
 ): Promise<PersonalizationEntry[]> {
+  const fileEntries = listFilePersonalizations(projectId);
+  let dbEntries: PersonalizationEntry[] = [];
   if (isDatabaseConfigured() && UUID_REGEX.test(projectId)) {
     try {
-      const dbEntries = await listDbPersonalizations(actor, projectId);
-      if (dbEntries && dbEntries.length > 0) return dbEntries;
+      dbEntries = await listDbPersonalizations(actor, projectId);
     } catch (error) {
       console.warn('DB listPersonalizations failed, falling back to file/memory store:', error);
     }
   }
-  return listFilePersonalizations(projectId);
+  const map = new Map<string, PersonalizationEntry>();
+  for (const e of fileEntries) map.set(e.record_id, e);
+  for (const e of dbEntries) map.set(e.record_id, e);
+  return Array.from(map.values());
 }
 
 async function safeGetPersonalization(
@@ -301,15 +361,14 @@ async function safeSavePersonalization(
   entry: PersonalizationEntry,
   allowFileFallback: boolean,
 ): Promise<void> {
+  saveFilePersonalization(projectId, entry);
   if (isDatabaseConfigured() && UUID_REGEX.test(projectId)) {
     try {
       await saveDbPersonalization(actor, projectId, entry);
-      return;
     } catch (error) {
-      console.warn('DB savePersonalization failed, falling back to file/memory store:', error);
+      console.warn('DB savePersonalization failed, saved to memory/file store:', error);
     }
   }
-  saveFilePersonalization(projectId, entry);
 }
 
 async function safeListResearch(
@@ -317,15 +376,19 @@ async function safeListResearch(
   projectId: string,
   allowFileFallback: boolean,
 ): Promise<ResearchEntry[]> {
+  const fileResearch = listFileResearch(projectId);
+  let dbResearch: ResearchEntry[] = [];
   if (isDatabaseConfigured() && UUID_REGEX.test(projectId)) {
     try {
-      const dbResearch = await listDbResearch(actor, projectId);
-      if (dbResearch && dbResearch.length > 0) return dbResearch;
+      dbResearch = await listDbResearch(actor, projectId);
     } catch (error) {
       console.warn('DB listResearch failed, falling back to file/memory store:', error);
     }
   }
-  return listFileResearch(projectId);
+  const map = new Map<string, ResearchEntry>();
+  for (const r of fileResearch) map.set(r.record.record_id, r);
+  for (const r of dbResearch) map.set(r.record.record_id, r);
+  return Array.from(map.values());
 }
 
 async function safeUpdateResearchReview(
@@ -388,6 +451,7 @@ async function safeSaveSettings(
   partial: Partial<PersonalizationSettings>,
   allowFileFallback: boolean,
 ): Promise<PersonalizationSettings> {
+  const fileSaved = saveFilePersonalizationSettings(projectId, partial);
   if (isDatabaseConfigured() && UUID_REGEX.test(projectId)) {
     try {
       return await saveDbPersonalizationSettings(actor, projectId, partial);
@@ -395,7 +459,7 @@ async function safeSaveSettings(
       console.warn('DB savePersonalizationSettings failed, falling back to file/memory store:', error);
     }
   }
-  return saveFilePersonalizationSettings(projectId, partial);
+  return fileSaved;
 }
 
 async function safeDeletePersonalization(
@@ -603,7 +667,7 @@ export async function GET(req: Request, { params }: RouteCtx) {
   const { id: projectId } = await params;
   const store = await createServerMemoryStore(access.actor, access.allowFileFallback);
   const actor = access.actor;
-  const project = store.projects().find((p) => p.project_id === projectId);
+  const project = store.projects().find((p) => p.project_id === projectId || p.aliases?.includes(projectId));
   if (!project) return NextResponse.json({ error: 'Project not found' }, { status: 404 });
 
   const url = new URL(req.url);
@@ -674,7 +738,7 @@ export async function POST(req: Request, { params }: RouteCtx) {
   const { id: projectId } = await params;
   const store = await createServerMemoryStore(access.actor, access.allowFileFallback);
   const actor = access.actor;
-  const project = store.projects().find((p) => p.project_id === projectId);
+  const project = store.projects().find((p) => p.project_id === projectId || p.aliases?.includes(projectId));
   if (!project?.structured_brief) {
     return NextResponse.json({ error: 'Project or structured brief not found' }, { status: 404 });
   }
@@ -718,13 +782,18 @@ export async function POST(req: Request, { params }: RouteCtx) {
   if (recordIds) {
     const selected = new Set(recordIds);
     candidates = allResearch.filter((r) => selected.has(r.record.record_id));
-    if (candidates.length !== selected.size) {
-      return NextResponse.json({ error: 'One or more selected research records were not found.' }, { status: 404 });
+    if (candidates.length === 0) {
+      return NextResponse.json({ error: 'Selected research records were not found.' }, { status: 404 });
     }
   } else if (mode === 'single' && recordId) {
     candidates = allResearch.filter((r) => r.record.record_id === recordId);
     if (!candidates.length) {
-      return NextResponse.json({ error: 'Research record not found' }, { status: 404 });
+      const byName = allResearch.filter(r => r.seed.name === recordId || r.record.identity.name === recordId);
+      if (byName.length > 0) {
+        candidates = byName;
+      } else {
+        return NextResponse.json({ error: `Research record "${recordId}" not found in project.` }, { status: 404 });
+      }
     }
   } else if (mode === 'batch' && batchId) {
     candidates = allResearch.filter(
@@ -807,7 +876,8 @@ export async function POST(req: Request, { params }: RouteCtx) {
       : existing?.previous_versions ?? [];
 
     try {
-      let generated = await runPersonalizationAgent({
+      // Guard against serverless execution exceeding edge/gateway timeouts (e.g. Netlify 26s limit)
+      const agentPromise = runPersonalizationAgent({
         projectId,
         brief: project.structured_brief,
         entry: researchEntry,
@@ -821,6 +891,16 @@ export async function POST(req: Request, { params }: RouteCtx) {
         rewriteFeedback,
         previousCopy: existing?.copy ?? null,
       });
+
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        const timer = setTimeout(
+          () => reject(new Error('Personalization generation exceeded time window; falling back gracefully.')),
+          20_000,
+        );
+        agentPromise.finally(() => clearTimeout(timer));
+      });
+
+      let generated = await Promise.race([agentPromise, timeoutPromise]);
 
       // Guarantee that every personalized lead has full 5-channel outreach drafts
       if (!generated.copy || generated.status === 'failed') {

@@ -154,19 +154,19 @@ export function formatCategoryTemplatePromptBlock(
   return [
     `\n=== PROJECT-SPECIFIC CATEGORY OUTREACH TEMPLATE (Category: ${template.target_type}) ===`,
     `Template Source: ${isCustom ? 'Edited & Saved by Project Team' : 'Pre-Built from Project Brief'}`,
-    template.subject_line ? `Reference Subject Line: ${template.subject_line}` : '',
+    template.subject_line ? `Reference Category Subject: ${template.subject_line} (Context only: AI Copywriter must write 3 original, short, relevant, and attention-grabbing subject lines)` : '',
     `Reference Message Template:\n${template.body}`,
     directivesSection,
     `\n=== HOW TO USE THIS CATEGORY TEMPLATE FOR ${prospectName.toUpperCase()} ===`,
-    `- Primary Reference Framework (NOT Mail-Merge): This template establishes consistent messaging, positioning, and outreach objectives for ${template.target_type}.`,
-    `- Recommended Decision for ${prospectName}: ${modeInfo.label.toUpperCase()} (${decision.mode}) — ${decision.reason}`,
-    `- CRITICAL WHEN MODE IS "use" OR "adapt": You MUST follow the Reference Message Template's paragraphs, key facts (prizes, dates, links), and structure closely, filling in the contextual cues ([Name], [specific detail...], [specific collaboration...], [personalised benefit...]) with natural, prospect-specific details grounded in verified research. Do NOT replace the template with a generic 2-paragraph summary.`,
-    `- You retain freedom to choose between:`,
-    `  * "use" (Use the template): Follow its structure and messaging while adding meaningful, verified personalisation and resolving any contextual cues naturally.`,
-    `  * "adapt" (Adapt the template): Preserve the template's core paragraphs, facts, dates, and URL while adapting the research connection and benefit phrasing to weave in the prospect's multiple works or achievements.`,
-    `  * "inspiration" (Use it as inspiration): Take the core positioning and objectives, but write a substantially different message.`,
-    `  * "ignore" (Ignore the template): Write an entirely original message when the template would produce an irrelevant, unnatural, or less effective result.`,
-    `- Never sacrifice message quality or genuine personalisation simply to follow the template.`,
+    `- MANDATORY FORMAT: Follow this category template's flow, messaging, and structure for ${template.target_type}.`,
+    `- All 4-5 core template paragraphs must be present:`,
+    `  1. Greeting & Opening: Warm opening connecting their verified work naturally to the project.`,
+    `  2. Project Overview: Clear explanation of the opportunity, including prize details (£7,000 in prizes, £3,000 top prize) and scope.`,
+    `  3. Tailored Collaboration Proposal: Concrete partnership or submission opportunity explaining why it benefits their writers/community.`,
+    `  4. Key Dates & Official Link: Include the confirmed opening date (4 January 2027) and website link (https://poetrybookawards.co.uk).`,
+    `  5. Low-Friction Call to Action & Sign-off: Simple, respectful closing question asking if they would be open to exploring further.`,
+    `- Fulfill every contextual cue using verified research. NEVER output raw brackets or placeholder text.`,
+    `- Natural Conversational Flow: Ensure smooth, organic transitions between paragraphs so the email reads as a cohesive, compelling personal note.`,
   ]
     .filter(Boolean)
     .join('\n');
@@ -645,7 +645,9 @@ export function buildWriterUserPrompt(
     `2. Explain the Project Clearly (Calibrated to Explanation Level: ${resolvedLeadSettings ? LEAD_EXPLANATION_LABELS[resolvedLeadSettings.explanation_level].label : 'Balanced'}): The recipient may not know ${brief?.project?.name || settings.organisation || 'our project'} yet. Introduce what the project offers and why it matters clearly, and prioritize what the recipient stands to gain (Recipient Incentive).`,
     `3. Concise, Human Voice (Target Length: ${resolvedLeadSettings ? LEAD_LENGTH_LABELS[resolvedLeadSettings.message_length] : 'Short and concise'}): Use plain, everyday English that feels individually written. Avoid repetitive explanations, excessive compliments, and corporate jargon.`,
     `4. NO EM-DASHES (—) OR ASTERISKS (*): Never use the "—" character or markdown asterisks (*title*) anywhere in the message text or subject lines. Use commas or periods instead.`,
-    `5. Clear Next Step (CTA Style: ${resolvedLeadSettings ? LEAD_CTA_LABELS[resolvedLeadSettings.call_to_action].label : 'Soft and low-pressure'}): Make the requested action clear and easy to reply to. Output JSON only.`,
+    `5. Clear Next Step (CTA Style: ${resolvedLeadSettings ? LEAD_CTA_LABELS[resolvedLeadSettings.call_to_action].label : 'Soft and low-pressure'}): Make the requested action clear and easy to reply to.`,
+    `\n=== SUBJECT LINE REQUIREMENTS (Always Written by AI Model) ===`,
+    `Generate exactly 3 short, relevant, and attention-grabbing subject lines (under 50 characters each for mobile previews):\n- Direct: Punchy and clear, naming their specific work, brand, or project (e.g. "Bloomsbury USA / Maya", "Question regarding Bloomsbury USA").\n- Curiosity: An intriguing, natural question hooking their focus (e.g. "Quick question on Bloomsbury poetry").\n- Value: Specific incentive or mutual benefit (e.g. "£7,000 poetry prizes for your writers").\nStrictly avoid long generic boilerplate like "Collaboration with Maya Poetry Book Awards for...". Keep them short, punchy, and human. Output JSON only.`,
   ]
     .filter(Boolean)
     .join('\n');
@@ -803,7 +805,7 @@ export async function runPersonalizationAgent(options: RunPersonalizationOptions
       {
         system: `${prompts.globalRules}\n\n${prompts.strategist}`,
         user: strategistPrompt,
-        maxTokens: 4096,
+        maxTokens: 2500,
       },
       { temperature: 0.15, reasoningEffort: 'low' },
     );
@@ -897,7 +899,7 @@ export async function runPersonalizationAgent(options: RunPersonalizationOptions
         {
           system: `${prompts.globalRules}\n\n${prompts.writer}`,
           user: currentWriterPrompt,
-          maxTokens: 4096,
+          maxTokens: 2500,
         },
         { temperature: 0.2 + attempt * 0.05, reasoningEffort: 'low' },
       );
@@ -911,65 +913,6 @@ export async function runPersonalizationAgent(options: RunPersonalizationOptions
         brief,
         settings,
       );
-
-      // Enforce Category Template fidelity when mode is "use" or "adapt" and the template has contextual directives
-      // so the LLM never discards the configured template structure/facts in favour of a generic 2-paragraph summary.
-      const activeCategoryTemplate = resolveCategoryTemplateForProspect(record, brief, settings);
-      const effectiveTemplateMode =
-        strategy.template_usage_mode ??
-        decideTemplateUsageMode(record, brief, activeCategoryTemplate?.template, resolvedLeadSettings).mode;
-      if (
-        activeCategoryTemplate &&
-        activeCategoryTemplate.isCustom &&
-        (effectiveTemplateMode === 'use' || effectiveTemplateMode === 'adapt')
-      ) {
-        const ctxValues = buildContextualTemplateValues(
-          record,
-          brief,
-          settings,
-          activeCategoryTemplate.template,
-        );
-        const tplDirectives = extractTemplateDirectives(
-          activeCategoryTemplate.template.body,
-          ctxValues,
-        );
-        // Check if the template has static anchor phrases (e.g. non-directive body sentences) that the LLM dropped
-        const staticAnchors = activeCategoryTemplate.template.body
-          .split(/\n\s*\n/)
-          .map((p) => p.trim())
-          .filter(
-            (p) =>
-              p.length > 25 &&
-              !/\[[^\]]+\]/.test(p) &&
-              !/^(?:hi|hello|dear|best|warm|regards|sincerely)\b/i.test(p),
-          )
-          .map((p) => p.slice(0, 36).toLowerCase());
-        const emailLower = copy.email_body.toLowerCase();
-        const missingStaticAnchors =
-          staticAnchors.length > 0 &&
-          staticAnchors.filter((anchor) => emailLower.includes(anchor)).length <
-            Math.ceil(staticAnchors.length * 0.6);
-
-        if (tplDirectives.length > 0 && missingStaticAnchors) {
-          const templateAligned = buildAdaptivePersonalizationEntry({
-            projectId,
-            researchEntry: entry,
-            brief,
-            settings,
-            leadSettings: resolvedLeadSettings,
-            rewriteFeedback: options.rewriteFeedback,
-          });
-          if (templateAligned.copy) {
-            copy = {
-              ...copy,
-              email_body: templateAligned.copy.email_body,
-              subject_lines: templateAligned.copy.subject_lines,
-              follow_up_body: templateAligned.copy.follow_up_body,
-              linkedin_message: templateAligned.copy.linkedin_message,
-            };
-          }
-        }
-      }
 
       // Safety net: enforce concrete wording-level reviewer feedback (e.g. "don't mention X", drop check-ins)
       if (learnedFeedback.length > 0) {
@@ -1187,6 +1130,9 @@ export function buildAdaptivePersonalizationEntry(params: {
       : leadCfg.tone === 'friendly' || leadCfg.tone === 'conversational'
         ? 'Warmly,'
         : 'Best regards,';
+  const fullSignoff = /^(?:warmly|best|regards|sincerely|yours|cheers|thank you|thanks)\b/i.test(senderSignoff)
+    ? senderSignoff
+    : `${signoffClosing}\n${senderSignoff}`;
 
   // Research hook clause calibrated to Personalization Depth (light / moderate / deep)
   let researchClause = '';
@@ -1317,8 +1263,8 @@ export function buildAdaptivePersonalizationEntry(params: {
   const templateBodyHasWarmCheckIn = resolvedTemplate
     ? /\b(?:i hope\b|hope\s+(?:you|your)\b)/i.test(resolvedTemplate.template.body)
     : false;
-  if (templateDecision.mode === 'use' && templateDirectives.length > 0 && resolvedFullTemplateBody) {
-    // Template uses contextual cues like [Name], [specific detail...], [personalised benefit...]
+  if ((templateDecision.mode === 'use' || templateDecision.mode === 'adapt') && resolvedFullTemplateBody) {
+    // Template defines intended structure, messaging, and positioning: preserve all paragraphs!
     const resolvedParas = resolvedFullTemplateBody
       .split(/\n\s*\n/)
       .map((p) => strip(p))
@@ -1327,49 +1273,64 @@ export function buildAdaptivePersonalizationEntry(params: {
       resolvedParas[0] = greeting;
     } else {
       resolvedParas.unshift(greeting);
+    }
+    if (templateDecision.mode === 'use' && templateDirectives.length === 0 && resolvedParas.length > 1) {
+      if (!resolvedParas.some((p) => p.toLowerCase().includes(work1.toLowerCase()))) {
+        resolvedParas[1] = `${resolvedParas[1]} Following your work on ${work1}, we thought of you immediately.`;
+      }
+    }
+    if (templateDecision.mode === 'adapt' && resolvedParas.length > 1) {
+      const hasWork1 = resolvedParas.some((p) => p.toLowerCase().includes(work1.toLowerCase()));
+      const hasAchievement = achievement1 && resolvedParas.some((p) => p.includes(achievement1));
+      
+      if (achievement1 && !hasAchievement) {
+        if (!hasWork1) {
+          resolvedParas[1] = `${resolvedParas[1]} Following your work on ${work1} alongside ${achievement1}, this connects directly to our initiative.`;
+        } else {
+          resolvedParas[1] = `${resolvedParas[1]} Alongside your recognition with ${achievement1}, this offers a compelling fit.`;
+        }
+      } else if (!hasWork1) {
+        resolvedParas[1] = `${resolvedParas[1]} Following your work on ${work1}, we wanted to reach out directly.`;
+      }
+
+      if (contextualValues.secondaryWorkDetail) {
+        let cleanSecondary = contextualValues.secondaryWorkDetail.replace(/^(?:your\s+)?(?:work\s+on\s+)?/i, '').trim();
+        if (rec.organisation && contextualValues.verifiedWorkDetail.includes(rec.organisation)) {
+          cleanSecondary = cleanSecondary.split(' at ')[0] || cleanSecondary;
+        }
+        if (resolvedParas[1]!.includes(contextualValues.verifiedWorkDetail)) {
+          resolvedParas[1] = resolvedParas[1]!.replace(
+            contextualValues.verifiedWorkDetail,
+            `${contextualValues.verifiedWorkDetail} and ${cleanSecondary}`,
+          );
+        }
+      }
     }
     if (
       templateBodyHasWarmCheckIn &&
       warmCheckIn &&
       resolvedParas.length > 1 &&
-      !/^(?:i hope\b|hope\s+(?:you|your)\b)/i.test(resolvedParas[1]!)
+      !/^(?:i hope\b|hope\s+(?:you|your))/i.test(resolvedParas[1]!)
     ) {
       resolvedParas[1] = `${warmCheckIn}${resolvedParas[1]}`;
     }
-    emailParagraphs = resolvedParas;
-  } else if (
-    templateDecision.mode === 'adapt' &&
-    templateDirectives.length > 0 &&
-    resolvedFullTemplateBody
-  ) {
-    // Template uses contextual cues, adapted with the prospect's multi-faceted verified research (work2 / achievement1)
-    const resolvedParas = resolvedFullTemplateBody
-      .split(/\n\s*\n/)
-      .map((p) => strip(p))
-      .filter(Boolean);
-    if (resolvedParas.length > 0 && /^(?:hi|hello|dear)\b/i.test(resolvedParas[0]!)) {
-      resolvedParas[0] = greeting;
+    const hasExistingSignoff = resolvedParas.some((p) =>
+      /^(?:warmly|best|regards|sincerely|yours|cheers|thank you|thanks)\b/im.test(p) ||
+      (settings.sender_name && p.includes(settings.sender_name)) ||
+      (settings.organisation && p.includes(settings.organisation)),
+    );
+    if (!hasExistingSignoff) {
+      resolvedParas.push(fullSignoff);
+    }
+
+    if (leadCfg.message_length === 'very_short' && resolvedParas.length > 2) {
+      const corePara = resolvedParas.find((p) => p.includes(work1) || p.includes(contextualValues.verifiedWorkDetail)) || resolvedParas[1] || '';
+      const ctaQuestion = resolvedParas.find((p) => p.includes('?')) || ctaSentence;
+      const ctaPara = `${ctaQuestion}\n\n${fullSignoff}`;
+      emailParagraphs = [greeting, corePara, ctaPara];
     } else {
-      resolvedParas.unshift(greeting);
+      emailParagraphs = resolvedParas;
     }
-    if (
-      resolvedParas.length > 1 &&
-      contextualValues.secondaryWorkDetail &&
-      resolvedParas[1]!.includes(contextualValues.verifiedWorkDetail)
-    ) {
-      let cleanSecondary = contextualValues.secondaryWorkDetail.replace(/^your\s+/i, '');
-      if (rec.organisation && contextualValues.verifiedWorkDetail.includes(rec.organisation)) {
-        cleanSecondary = cleanSecondary.replace(
-          new RegExp(`\\s+at\\s+${rec.organisation.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&')}`, 'gi'),
-          '',
-        );
-      }
-      resolvedParas[1] = resolvedParas[1]!.replace(
-        contextualValues.verifiedWorkDetail,
-        `${contextualValues.verifiedWorkDetail} and ${cleanSecondary}`,
-      );
-    }
-    emailParagraphs = resolvedParas;
   } else if (templateDecision.mode === 'use' && templatePositioningPara) {
     const templateMiddle =
       templatePositioningPara.toLowerCase().includes(recipientBenefit.slice(0, 20).toLowerCase())
@@ -1380,7 +1341,7 @@ export function buildAdaptivePersonalizationEntry(params: {
       greeting,
       openingParagraph,
       templateMiddle,
-      `${resolvedCta}\n\n${signoffClosing}\n${senderSignoff}`,
+      `${resolvedCta}\n\n${fullSignoff}`,
     ];
   } else if (templateDecision.mode === 'adapt' && templatePositioningPara) {
     const firstTemplateSentence = strip(templatePositioningPara.split(/(?<=\.)\s+/)[0] || templatePositioningPara);
@@ -1389,27 +1350,27 @@ export function buildAdaptivePersonalizationEntry(params: {
       greeting,
       openingParagraph,
       adaptedExplanation,
-      `${ctaSentence}\n\n${signoffClosing}\n${senderSignoff}`,
+      `${ctaSentence}\n\n${fullSignoff}`,
     ];
   } else if (leadCfg.message_length === 'very_short') {
     emailParagraphs = [
       greeting,
       `${openingParagraph} ${leadCfg.explanation_level === 'minimal' ? `Through ${campaignName}, ${recipientBenefit}.` : explanationBlock}`,
-      `${ctaSentence}\n\n${signoffClosing}\n${senderSignoff}`,
+      `${ctaSentence}\n\n${fullSignoff}`,
     ];
   } else if (leadCfg.message_length === 'short') {
     emailParagraphs = [
       greeting,
       openingParagraph,
       `${explanationBlock} ${ctaSentence}`,
-      `${signoffClosing}\n${senderSignoff}`,
+      `${fullSignoff}`,
     ];
   } else if (leadCfg.message_length === 'balanced') {
     emailParagraphs = [
       greeting,
       openingParagraph,
       explanationBlock,
-      `${ctaSentence}\n\n${signoffClosing}\n${senderSignoff}`,
+      `${ctaSentence}\n\n${fullSignoff}`,
     ];
   } else {
     // detailed
@@ -1422,7 +1383,7 @@ export function buildAdaptivePersonalizationEntry(params: {
       openingParagraph,
       explanationBlock,
       contextPara,
-      `${ctaSentence}\n\n${signoffClosing}\n${senderSignoff}`,
+      `${ctaSentence}\n\n${fullSignoff}`,
     ];
   }
 
@@ -1440,7 +1401,7 @@ export function buildAdaptivePersonalizationEntry(params: {
 
   const followUpBody = applyFeedbackTextRules(
     strip(
-      `${greeting}\n\nFollowing up briefly on my note regarding ${campaignName} and how it connects to ${work1}. ${ctaSentence}\n\n${signoffClosing}\n${senderSignoff}`,
+      `${greeting}\n\nFollowing up briefly on my note regarding ${campaignName} and how it connects to ${work1}. ${ctaSentence}\n\n${fullSignoff}`,
     ),
     activeFeedback,
   );
@@ -1529,18 +1490,23 @@ export function buildAdaptivePersonalizationEntry(params: {
   const copy: OutreachCopy = {
     subject_lines: [
       {
-        text: strip(`${work1.slice(0, 32)} / ${campaignName}`).slice(0, 58),
+        text:
+          contextualValues.tailoredSubjectLines?.direct ||
+          strip(`${work1.slice(0, 32)} / ${campaignName}`).slice(0, 58),
         style: 'direct',
       },
       {
         text:
+          contextualValues.tailoredSubjectLines?.curiosity ||
+          strip(`Question for ${cleanFirstName} regarding ${work1.slice(0, 28)}`).slice(0, 58),
+        style: 'curiosity',
+      },
+      {
+        text:
+          contextualValues.tailoredSubjectLines?.value ||
           templateSubject ||
           strip(`${campaignName}: opportunity for ${isOrg ? prospectName : cleanFirstName}`).slice(0, 58),
         style: 'value',
-      },
-      {
-        text: strip(`Question for ${cleanFirstName} regarding ${work1.slice(0, 28)}`).slice(0, 58),
-        style: 'curiosity',
       },
     ],
     email_body: emailBody,

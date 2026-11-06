@@ -32,9 +32,11 @@ class RotatingKeyPool {
   private initialize() {
     if (this.keys.length > 0) return;
     const read = (names: string[]) => names.map((name) => process.env[name]).filter(Boolean) as string[];
-    let envKeys = read(POOL_ENV[this.poolName]);
-    if (!envKeys.length && POOL_FALLBACK[this.poolName]) envKeys = read(POOL_FALLBACK[this.poolName]!);
-    this.keys = [...new Set(envKeys)].map((key) => ({ key, availableAt: 0 }));
+    const primary = read(POOL_ENV[this.poolName]);
+    const fallback = POOL_FALLBACK[this.poolName] ? read(POOL_FALLBACK[this.poolName]!) : [];
+    // Primary pool keys first, followed by fallbacks, deduped so the agent can rotate across all available keys
+    const envKeys = [...new Set([...primary, ...fallback])];
+    this.keys = envKeys.map((key) => ({ key, availableAt: 0 }));
     if (!this.keys.length) throw new Error(`No Groq API keys configured for the ${this.poolName} pool.`);
   }
 
@@ -60,8 +62,11 @@ class RotatingKeyPool {
       if (k.availableAt < bestKey.availableAt) bestKey = k;
     }
 
-    // All keys are on cooldown. Wait for the best one.
+    // All keys are on cooldown. Wait for the best one, but cap wait to 4s to prevent gateway timeout
     const waitMs = bestKey.availableAt - now;
+    if (waitMs > 4_000) {
+      throw new Error(`All Groq API keys are currently rate-limited (cooling down for ${Math.ceil(waitMs / 1000)}s).`);
+    }
     if (waitMs > 0) {
       if (onWait) onWait(Math.ceil(waitMs / 1000));
       await new Promise((r) => setTimeout(r, waitMs));
@@ -72,8 +77,8 @@ class RotatingKeyPool {
   markRateLimited(key: string, retryAfterSeconds: number) {
     const k = this.keys.find((x) => x.key === key);
     if (k) {
-      // Add a small buffer of 2 seconds
-      k.availableAt = Date.now() + (retryAfterSeconds + 2) * 1000;
+      // Add a small buffer of 1 second
+      k.availableAt = Date.now() + (retryAfterSeconds + 1) * 1000;
       console.log(`Key pool [${this.poolName}]: key ...${key.slice(-4)} rate limited for ${retryAfterSeconds}s`);
     }
   }

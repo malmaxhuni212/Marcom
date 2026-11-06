@@ -2059,3 +2059,255 @@ test('Scenario 16: Post-personalization feedback is saved for future references 
 });
 
 
+
+// ============================================================================
+// SCENARIO 17: Genuine Adherence to Category Outreach Templates, Contextual
+// Instructions, Structure Preservation, Category Incentives & Subject Lines
+// ============================================================================
+test('Scenario 17: Genuine category template adherence: fulfills contextual instructions, preserves structure, crafts category-grounded incentives, and tailors subject lines', () => {
+  const mayaProjectId = 'proj-maya-scenario-17';
+  const mayaBrief = makeBrief({
+    name: 'Maya Poetry Book Awards 2027',
+    description: 'An international poetry book competition offering £7,000 in total prizes (£3,000 top prize) celebrating independent and self-published poets.',
+    primary_objective: 'Generate 2,000+ quality poetry book submissions and build sustainable patron and community partnerships.',
+  });
+  mayaBrief.targets = [
+    {
+      id: 'cat-authors',
+      target_type: 'Authors',
+      entity_kind: 'person',
+      description: 'Contemporary poets and authors with recent collections',
+      geography: [],
+      qualification_criteria: [],
+      exclusion_criteria: [],
+      priority: 'primary',
+    },
+    {
+      id: 'cat-sponsors',
+      target_type: 'Sponsors',
+      entity_kind: 'organisation',
+      description: 'Cultural foundations and corporate patrons supporting literature',
+      geography: [],
+      qualification_criteria: [],
+      exclusion_criteria: [],
+      priority: 'primary',
+    },
+    {
+      id: 'cat-organisations',
+      target_type: 'Organisations',
+      entity_kind: 'organisation',
+      description: 'Poetry societies, writing centres, and literary festivals',
+      geography: [],
+      qualification_criteria: [],
+      exclusion_criteria: [],
+      priority: 'primary',
+    },
+  ];
+
+  const categorySettings = makeSettings({
+    sender_name: 'Hannah Sterling',
+    sender_role: 'Awards Director',
+    organisation: 'Maya Poetry Book Awards',
+    call_to_action_link: 'https://poetrybookawards.co.uk',
+    campaign_facts: [
+      '£7,000 total prize fund with a £3,000 first prize for the winning collection.',
+      'Submissions open 4 January 2027 at https://poetrybookawards.co.uk.',
+    ],
+    category_templates: {
+      'cat-authors': {
+        target_id: 'cat-authors',
+        target_type: 'Authors',
+        subject_line: 'Maya Poetry Book Awards 2027: Entry opportunity',
+        body: [
+          'Dear [Name],',
+          'I hope your week is going well. We are following [specific detail about their work or organisation] and wanted to get in touch directly.',
+          'Submissions for the Maya Poetry Book Awards 2027 open on 4 January 2027, with £7,000 in total prizes (£3,000 top prize) and featured distribution across partner bookshops.',
+          'We are reaching out to explore [specific collaboration or request] because [personalised benefit or reason it could be valuable to them].',
+          'Would you be open to reviewing our one-page submission guide at https://poetrybookawards.co.uk?',
+          'Warmly,\nHannah Sterling',
+        ].join('\n\n'),
+        is_custom: true,
+        updated_at: new Date().toISOString(),
+      },
+      'cat-sponsors': {
+        target_id: 'cat-sponsors',
+        target_type: 'Sponsors',
+        subject_line: 'Maya Poetry Book Awards 2027: Sponsorship partnership',
+        body: [
+          'Dear [Name],',
+          'I hope you are well. Given [specific detail about their work or organisation], I wanted to reach out regarding the Maya Poetry Book Awards 2027.',
+          'We are bringing together standout independent poets across the UK and internationally, backed by a £7,000 prize fund opening on 4 January 2027.',
+          'We would welcome exploring [specific collaboration or request] because [personalised benefit or reason it could be valuable to them].',
+          'Would you be open to a brief introductory conversation or receiving our concise partnership summary?',
+          'Best regards,\nHannah Sterling',
+        ].join('\n\n'),
+        is_custom: true,
+        updated_at: new Date().toISOString(),
+      },
+      'cat-organisations': {
+        target_id: 'cat-organisations',
+        target_type: 'Organisations',
+        subject_line: 'Maya Poetry Book Awards 2027: Community collaboration',
+        body: [
+          'Dear [Name],',
+          'I hope your week is going well. We have long admired [specific detail about their work or organisation].',
+          'The Maya Poetry Book Awards 2027 opens on 4 January 2027 with £7,000 in prizes, celebrating voices often overlooked by traditional commercial awards.',
+          'We would love to discuss [specific collaboration or request] because [personalised benefit or reason it could be valuable to them].',
+          'Could you let me know if I may send our one-page Community Partner overview (https://poetrybookawards.co.uk)?',
+          'Warmly,\nHannah Sterling',
+        ].join('\n\n'),
+        is_custom: true,
+        updated_at: new Date().toISOString(),
+      },
+    },
+  });
+
+  // 1. Author prospect
+  const authorProspect = makeResearchEntry({
+    record_id: 'maya-author-17',
+    brief_target_id: 'cat-authors',
+    target_type: 'Authors',
+    identity: { name: 'Soraya Vance', entity_kind: 'person', identity_verified: true },
+    role: 'Poet',
+    organisation: null,
+    summary: 'Award-winning poet based in Manchester, author of the 2025 poetry collection "Salt & Ash".',
+    work_and_projects: ['Published the 2025 poetry collection "Salt & Ash" exploring Northern industrial heritage'],
+    achievements: ['Shortlisted for the 2025 Forward Poetry Prize'],
+    reason_for_relevance: 'Published poet with a recent 2025 collection eligible for the Maya Poetry Book Awards.',
+  });
+
+  // 2. Sponsor prospect
+  const sponsorProspect = makeResearchEntry({
+    record_id: 'maya-sponsor-17',
+    brief_target_id: 'cat-sponsors',
+    target_type: 'Sponsors',
+    identity: { name: 'Thames Heritage Arts Trust', entity_kind: 'organisation', identity_verified: true },
+    role: 'Head of Cultural Partnerships',
+    organisation: 'Thames Heritage Arts Trust',
+    summary: 'Charitable foundation dedicated to funding independent literature, poetry initiatives, and arts grants.',
+    work_and_projects: ['Funded the 2025 London Emerging Voices Literary Fellowship'],
+    achievements: ['Awarded £120,000 in grassroots literary grants across 2025'],
+    reason_for_relevance: 'Arts grantmaker and cultural funder actively supporting independent poetry initiatives.',
+  });
+
+  // 3. Organisation prospect
+  const orgProspect = makeResearchEntry({
+    record_id: 'maya-org-17',
+    brief_target_id: 'cat-organisations',
+    target_type: 'Organisations',
+    identity: { name: 'Northern Writers Guild', entity_kind: 'organisation', identity_verified: true },
+    role: 'Membership Coordinator',
+    organisation: 'Northern Writers Guild',
+    summary: 'Regional writers organisation supporting 450 poets and novelists across Northern England.',
+    work_and_projects: ['Runs the bi-monthly Northern Poets Masterclass Series for 450 member writers'],
+    achievements: ['Helped 30 member writers publish debut collections in 2025'],
+    reason_for_relevance: 'Active writers guild with direct access to poets who would benefit from the competition.',
+  });
+
+  const authorDraft = buildAdaptivePersonalizationEntry({
+    projectId: mayaProjectId,
+    researchEntry: authorProspect,
+    brief: mayaBrief,
+    settings: categorySettings,
+  });
+
+  const sponsorDraft = buildAdaptivePersonalizationEntry({
+    projectId: mayaProjectId,
+    researchEntry: sponsorProspect,
+    brief: mayaBrief,
+    settings: categorySettings,
+  });
+
+  const orgDraft = buildAdaptivePersonalizationEntry({
+    projectId: mayaProjectId,
+    researchEntry: orgProspect,
+    brief: mayaBrief,
+    settings: categorySettings,
+  });
+
+  // 1. Placeholder & Instruction Guidance: zero raw brackets or internal instructions in drafts
+  const allCopy = [
+    authorDraft.copy!.email_body,
+    sponsorDraft.copy!.email_body,
+    orgDraft.copy!.email_body,
+  ].join(' ');
+  assert.ok(!/\[(?:specific|personalised|Name|[^\]]{3,80})\]/i.test(allCopy), 'Must not contain raw square bracket placeholders');
+  assert.ok(!/\((?:specific|personalised|insert|enter)\s+[^()]{3,80}\)/i.test(allCopy), 'Must not contain parenthetical instruction tokens');
+
+  // 2. Fulfill instructions meaningfully with research:
+  // Author draft connects specifically to "Salt & Ash"
+  assert.ok(authorDraft.copy!.email_body.includes('Salt & Ash'), 'Author email must reference verified collection "Salt & Ash"');
+  // Sponsor draft connects specifically to London Emerging Voices Literary Fellowship
+  assert.ok(sponsorDraft.copy!.email_body.includes('London Emerging Voices Literary Fellowship'), 'Sponsor email must reference verified sponsorship initiative');
+  // Organisation draft connects specifically to Northern Poets Masterclass Series
+  assert.ok(orgDraft.copy!.email_body.includes('Northern Poets Masterclass Series'), 'Org email must reference verified workshop series');
+
+  // 3. Structure & Fact Preservation:
+  // All drafts preserve core competition facts and links
+  for (const draft of [authorDraft, sponsorDraft, orgDraft]) {
+    assert.ok(draft.copy!.email_body.includes('£7,000'), 'Must preserve confirmed £7,000 prize fund');
+    assert.ok(draft.copy!.email_body.includes('4 January 2027'), 'Must preserve confirmed 4 January 2027 date');
+  }
+
+  // 4. Meaningful, Category-Appropriate Incentives & Requests:
+  // Author: enter/compete for prizes & recognition (NOT sponsorship request)
+  assert.ok(
+    /\b(?:enter|submitting|compete|recognition|prizes|prizewinning)\b/i.test(authorDraft.copy!.email_body),
+    'Author incentive must focus on entering, competing for prizes, or recognition',
+  );
+  assert.ok(
+    !/\b(?:sponsor our|sponsorship package|corporate sponsor)\b/i.test(authorDraft.copy!.email_body),
+    'Author must not be asked for corporate sponsorship',
+  );
+
+  // Sponsor: funding/support alignment (NOT invented commercial sales ROI, NOT entering poems)
+  assert.ok(
+    /\b(?:partner|sponsorship|patron|support|funding|alignment)\b/i.test(sponsorDraft.copy!.email_body),
+    'Sponsor incentive must focus on partnership, support, and mission alignment',
+  );
+  assert.ok(
+    !/\b(?:commercial sales|immediate revenue|customer acquisition roi|submit your poetry collection)\b/i.test(sponsorDraft.copy!.email_body),
+    'Sponsor draft must never invent commercial sales ROI or ask sponsor to submit poetry',
+  );
+
+  // Organisation: collaboration for member poets/writers
+  assert.ok(
+    /\b(?:writers|members|community|partner|poets)\b/i.test(orgDraft.copy!.email_body),
+    'Organisation incentive must focus on member writers and community collaboration',
+  );
+
+  // 5. Subject Line Personalisation:
+  // Verify 3 distinct styles adapted to the recipient
+  for (const draft of [authorDraft, sponsorDraft, orgDraft]) {
+    assert.equal(draft.copy!.subject_lines.length, 3, 'Must generate exactly 3 subject line options');
+    const styles = draft.copy!.subject_lines.map((s) => s.style);
+    assert.ok(styles.includes('direct'), 'Must include direct subject line');
+    assert.ok(styles.includes('curiosity'), 'Must include curiosity subject line');
+    assert.ok(styles.includes('value'), 'Must include value subject line');
+  }
+  assert.ok(
+    authorDraft.copy!.subject_lines.some((s) => s.text.includes('Salt & Ash') || s.text.includes('Soraya')),
+    'Author subject line must be personalized to Soraya or Salt & Ash',
+  );
+
+  // 6. QA Validation cleanly passes
+  const authorQa = validatePersonalizationCopy(authorDraft.strategy!, authorDraft.copy!, authorProspect.record, {
+    brief: mayaBrief,
+    settings: categorySettings,
+  });
+  assert.equal(authorQa.status, 'passed', 'Author draft must pass QA validation');
+
+  const sponsorQa = validatePersonalizationCopy(sponsorDraft.strategy!, sponsorDraft.copy!, sponsorProspect.record, {
+    brief: mayaBrief,
+    settings: categorySettings,
+  });
+  assert.equal(sponsorQa.status, 'passed', 'Sponsor draft must pass QA validation');
+
+  const orgQa = validatePersonalizationCopy(orgDraft.strategy!, orgDraft.copy!, orgProspect.record, {
+    brief: mayaBrief,
+    settings: categorySettings,
+  });
+  assert.equal(orgQa.status, 'passed', 'Org draft must pass QA validation');
+
+  deleteProjectPersonalizations(mayaProjectId);
+});

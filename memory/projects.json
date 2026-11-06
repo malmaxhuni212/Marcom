@@ -2,7 +2,9 @@
   {
     "project_id": "proj-1791464115518",
     "name": "Maya",
-    "aliases": [],
+    "aliases": [
+      "90b3c855-0937-4d6d-a364-702a43d019c5"
+    ],
     "summary": "A multi-channel marketing and communications strategy to generate 2,000+ quality book submissions and build a sustainable author community.",
     "status": "READY_FOR_RESEARCH",
     "structured_brief": {

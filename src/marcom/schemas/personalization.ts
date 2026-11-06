@@ -903,7 +903,7 @@ export function getProjectCategoryTemplates(
     const byRawType = savedMap[target.target_type];
     const saved = byId ?? byNormType ?? byRawType;
 
-    if (saved && saved.body.trim().length > 0) {
+    if (saved && saved.body.trim().length > 0 && !/i came across/i.test(saved.body)) {
       return {
         ...saved,
         target_id: target.id,
@@ -971,7 +971,7 @@ export function resolveCategoryTemplateForProspect(
 
   for (const key of candidateKeys) {
     const saved = savedMap[key];
-    if (saved && saved.body.trim().length > 0) {
+    if (saved && saved.body.trim().length > 0 && !/i came across/i.test(saved.body)) {
       return {
         template: {
           ...saved,
@@ -989,7 +989,7 @@ export function resolveCategoryTemplateForProspect(
   if (normRecType) {
     const recTokens = normRecType.split('-').filter((w) => w.length >= 3);
     for (const saved of Object.values(savedMap)) {
-      if (!saved?.body?.trim()) continue;
+      if (!saved?.body?.trim() || /i came across/i.test(saved.body)) continue;
       const savedNorm = normalizeCategoryKey(saved.target_type);
       const isMatch =
         savedNorm === normRecType ||
@@ -1011,11 +1011,14 @@ export function resolveCategoryTemplateForProspect(
 
   // 3. If no custom saved template exists, build the default template for the matched target category
   if (matchedTarget && brief) {
-    return {
-      template: buildDefaultCategoryTemplate(brief, matchedTarget, settings),
-      target: matchedTarget,
-      isCustom: false,
-    };
+    const defaultTpl = buildDefaultCategoryTemplate(brief, matchedTarget, settings);
+    if (defaultTpl && !/i came across/i.test(defaultTpl.body)) {
+      return {
+        template: defaultTpl,
+        target: matchedTarget,
+        isCustom: false,
+      };
+    }
   }
 
   return null;
@@ -1062,7 +1065,7 @@ export function decideTemplateUsageMode(
 
   // 1. Check when the template should be IGNORED ('ignore'):
   // - Explicit user instruction to ignore template / write from scratch
-  // - Contradictions or research notes indicating the standard category pitch is inappropriate or off-limits
+  // - Prohibitive constraints indicating the standard category pitch is off-limits (e.g. paused submissions / no sponsorship)
   // - Severe mismatch between what the template pitches and the prospect's actual profile/remit
   if (
     /\b(?:ignore template|do not use template|original message|bespoke angle|custom pitch only)\b/i.test(extraInstr)
@@ -1073,15 +1076,17 @@ export function decideTemplateUsageMode(
     };
   }
 
+  const explicitlyFollowsTemplate = /\b(?:follow (?:the )?template|use (?:the )?template|match (?:the )?template|stick to (?:the )?template)\b/i.test(extraInstr);
+
   if (
-    (record.contradictions?.length ?? 0) > 0 ||
+    !explicitlyFollowsTemplate &&
     /\b(?:no longer accepts|paused submissions|paused sponsorship|closed to unsolicited|does not sponsor|retired from|conflict with standard)\b/i.test(
       summaryAndRelevance,
     )
   ) {
     return {
       mode: 'ignore',
-      reason: `Ignoring the standard ${template.target_type} template because ${prospectName}'s research contains constraints or contradictions that make the standard category framing unsuitable.`,
+      reason: `Ignoring the standard ${template.target_type} template because ${prospectName}'s research contains constraints indicating the standard category framing is unsuitable.`,
     };
   }
 
@@ -1101,37 +1106,43 @@ export function decideTemplateUsageMode(
   }
 
   // 2. Check when the template should be used as INSPIRATION ('inspiration'):
-  // - Very short executive messages or direct/consultative approaches where a multi-paragraph category template structure would feel too long or rigid
-  // - High-profile / deeply researched outlier prospects with custom angle instructions where taking the core positioning but writing a fresh structure works best
+  // - Explicit request via additional instructions
+  // - High-profile executive / CEO sponsor with very_short length preference where a multi-paragraph template structure is inappropriate for an executive
+  const isSponsorTarget = /\b(?:sponsor|sponsorship|funder|foundation|investor|corporate)\b/i.test(recordHaystack);
+  const isPartnerTarget = /\b(?:partner|partnership|director|commercial|enterprise)\b/i.test(recordHaystack);
+  const isExecutiveSponsor =
+    (isSponsorTarget || isPartnerTarget) &&
+    (leadSettings?.message_length === 'very_short' ||
+      /\b(?:ceo|founder|managing director|partner|president)\b/i.test(record.role || ''));
+  if (
+    /\b(?:inspiration only|use as inspiration|inspiration mode)\b/i.test(extraInstr) ||
+    (isExecutiveSponsor && leadSettings?.message_length === 'very_short')
+  ) {
+    return {
+      mode: 'inspiration',
+      reason: `Using the ${template.target_type} template as inspiration: keeping its core positioning while drafting an alternative concise structure for ${prospectName}.`,
+    };
+  }
+
+  // 3. Category templates define the intended messaging, structure, positioning, and purpose.
+  // The agent follows the configured template as its default structure (90%+ of the time):
+  // - ADAPT ('adapt'): Multi-work research (>= 2 works or >= 4 facts), very short length preferences, or rich contextual depth
+  //   where the narrative weaved around multiple verified works while preserving key template facts and flow.
+  // - USE ('use'): Follow the template's structure directly, fulfilling every placeholder with verified research.
   const worksCount = (record.work_and_projects?.length ?? 0) + (record.achievements?.length ?? 0);
   const totalFacts =
     worksCount + (record.background?.length ?? 0) + (record.industry_activity?.length ?? 0);
 
-  if (
-    leadSettings?.message_length === 'very_short' ||
-    leadSettings?.communication_approach === 'consultative' ||
-    leadSettings?.communication_approach === 'direct' ||
-    Boolean(extraInstr && extraInstr.length > 15)
-  ) {
-    return {
-      mode: 'inspiration',
-      reason: `Using the ${template.target_type} template as inspiration: keeping its core positioning and objective while writing a substantially different structure tailored to ${prospectName}'s ${leadSettings?.message_length === 'very_short' ? 'concise executive format' : 'specific communication style and research'}.`,
-    };
-  }
-
-  // 3. Decide between USE ('use') and ADAPT ('adapt'):
-  // - If the prospect has rich multi-work research (worksCount >= 2 or totalFacts >= 4) or deep personalisation depth with non-default structure needs, ADAPT the template so their specific works/initiatives drive the narrative structure while reusing key template messaging.
-  // - If the template fits the prospect's category and research cleanly (e.g., standard/moderate research or well-aligned category profile), USE the template structure while weaving in meaningful personalisation.
-  if (worksCount >= 2 || totalFacts >= 4) {
+  if (worksCount >= 2 || totalFacts >= 4 || leadSettings?.message_length === 'very_short') {
     return {
       mode: 'adapt',
-      reason: `Adapting the ${template.target_type} template for ${prospectName}: reusing its core messaging and value proposition while restructuring the narrative around their verified work (${record.work_and_projects?.[0] || record.achievements?.[0] || 'key initiatives'}).`,
+      reason: `Adapting the ${template.target_type} template for ${prospectName}: following its intended flow, key messaging, and facts while weaving in their verified work (${record.work_and_projects?.[0] || record.achievements?.[0] || 'key initiatives'}).`,
     };
   }
 
   return {
     mode: 'use',
-    reason: `Using the ${template.target_type} template as the structural framework for ${prospectName}, enriched with verified details (${record.work_and_projects?.[0] || record.organisation || record.role || 'their profile'}) and a tailored value exchange.`,
+    reason: `Following the ${template.target_type} template as the structural framework for ${prospectName}, fulfilling each placeholder with verified details (${record.work_and_projects?.[0] || record.organisation || record.role || 'their profile'}) and a tailored value exchange.`,
   };
 }
 
@@ -1146,6 +1157,12 @@ export interface ContextualTemplateValues {
   secondaryWorkDetail: string;
   specificCollaborationRequest: string;
   personalisedBenefitClause: string;
+  categoryOutreachObjective?: string;
+  tailoredSubjectLines?: {
+    direct: string;
+    curiosity: string;
+    value: string;
+  };
 }
 
 export interface ParsedTemplateDirective {
@@ -1157,9 +1174,14 @@ export interface ParsedTemplateDirective {
     | 'verified_work_detail'
     | 'specific_collaboration_or_request'
     | 'personalised_benefit'
+    | 'competition_name'
+    | 'prize_details'
+    | 'dates_or_deadline'
+    | 'website_or_link'
     | 'custom_contextual_cue';
   resolvedValue: string;
   explanation: string;
+  concreteGuidance: string;
 }
 
 function formatWorkFactAsNaturalNounPhrase(
@@ -1174,6 +1196,22 @@ function formatWorkFactAsNaturalNounPhrase(
     .replace(/\*+/g, '')
     .replace(/\.$/, '')
     .trim();
+  // If multi-sentence scraped paragraph, take the first sentence
+  if (cleaned.includes('. ')) {
+    cleaned = cleaned.split(/\.\s+/)[0]!.trim();
+  }
+  // If still very long (> 85 chars), trim to the first clean clause under 75 chars
+  if (cleaned.length > 85) {
+    const commaSplit = cleaned.split(/,\s*/);
+    if (commaSplit[0] && commaSplit[0].length >= 25 && commaSplit[0].length <= 80) {
+      cleaned = commaSplit[0].trim();
+    } else {
+      const trimmed = cleaned.slice(0, 75);
+      const lastSp = trimmed.lastIndexOf(' ');
+      cleaned = (lastSp > 20 ? trimmed.slice(0, lastSp) : trimmed).trim();
+    }
+  }
+
   if (
     !cleaned ||
     /^(?:no evidence|no legitimate|all required criteria|unverified|none|n\/a|unknown)\b/i.test(cleaned)
@@ -1368,39 +1406,75 @@ export function buildContextualTemplateValues(
 
   let specificCollaborationRequest = '';
   let personalisedBenefitClause = '';
+  let categoryOutreachObjective = '';
 
   if (isAuthor) {
+    categoryOutreachObjective = 'inviting poetry collection submissions and celebrating indie poets';
     specificCollaborationRequest = `entering your collection in the upcoming ${projectName}`;
     personalisedBenefitClause = hasMayaPrizes
-      ? `it gives independent poets a respected international platform to compete for the £7,000 prize fund, build wider reader and press visibility around ${verifiedWorkDetail}, and connect with our international literary community`
+      ? `it gives independent poets a respected international platform to compete for the £7,000 prize fund (including a £3,000 top prize), build wider reader discovery and reviews around ${verifiedWorkDetail}, and celebrate indie writing without unfair entry barriers`
       : `it connects ${verifiedWorkDetail} with wider reader discovery, industry recognition, and ${confirmedFact || primaryObjective.charAt(0).toLowerCase() + primaryObjective.slice(1)}`;
   } else if (isSponsor) {
+    categoryOutreachObjective = 'establishing an aligned sponsorship and patronage partnership';
     specificCollaborationRequest = `a sponsorship or patronage partnership with ${orgOrName} for ${projectName}`;
     personalisedBenefitClause = hasMayaPrizes
-      ? `it gives ${orgOrName} prominent brand alignment and year-round visibility across an international community of indie poets, small presses, and literary readers that shares the values behind ${verifiedWorkDetail}`
+      ? `it gives ${orgOrName} prominent brand alignment and year-round visibility across an international community of indie poets, small presses, and literary readers that shares the values behind ${verifiedWorkDetail}, without requiring complicated administration`
       : `it provides ${orgOrName} with direct brand visibility and meaningful alignment alongside vetted participants in ${projectName}, building on ${verifiedWorkDetail}`;
   } else if (isPublisher) {
+    categoryOutreachObjective = 'collaborating with an independent press to spotlight eligible titles';
     specificCollaborationRequest = `an independent publishing collaboration to showcase eligible titles and poets from ${orgOrName}`;
     personalisedBenefitClause = hasMayaPrizes
       ? `it gives poets and titles published through ${orgOrName} access to £7,000 in prizes, international reader discovery, and wider recognition for your list alongside ${verifiedWorkDetail}`
       : `it spotlights titles and talent from ${orgOrName} around ${verifiedWorkDetail} while ${confirmedFact || primaryObjective.charAt(0).toLowerCase() + primaryObjective.slice(1)}`;
   } else if (isUniversity) {
+    categoryOutreachObjective = 'sharing the competition with creative writing students, poets, and alumni';
     specificCollaborationRequest = `sharing ${projectName} with the creative writing students, alumni, and poets at ${orgOrName}`;
     personalisedBenefitClause = hasMayaPrizes
       ? `it gives emerging poets and alumni connected to ${verifiedWorkDetail} at ${orgOrName} an accessible international platform with £7,000 in prizes and publication visibility`
       : `it gives writers and students connected to ${verifiedWorkDetail} at ${orgOrName} a practical pathway for recognition and community connection`;
   } else if (isCreator) {
+    categoryOutreachObjective = 'collaborating with a literary creator or reviewer to spotlight indie poets';
     specificCollaborationRequest = `a creator collaboration spotlighting standout titles and stories from ${projectName} with your audience`;
     personalisedBenefitClause = `it gives your audience around ${verifiedWorkDetail} engaging literary stories, shortlisted title previews, and reciprocal visibility across ${projectName}`;
   } else if (isCommunityOrOrg) {
+    categoryOutreachObjective = 'collaborating with a literary community or organisation to support member writers';
     specificCollaborationRequest = `a community partnership to share ${projectName} with your writers and members at ${orgOrName}`;
     personalisedBenefitClause = hasMayaPrizes
       ? `it gives the poets and writers connected to ${verifiedWorkDetail} a valuable opportunity to compete for £7,000 in prizes and gain wider visibility, while we also spotlight ${orgOrName} as a partner organisation`
       : `it offers members and participants connected to ${verifiedWorkDetail} a curated opportunity and wider visibility (${confirmedFact || primaryObjective.charAt(0).toLowerCase() + primaryObjective.slice(1)}), while spotlighting ${orgOrName}`;
   } else {
+    categoryOutreachObjective = `collaborating around ${verifiedWorkDetail}`;
     specificCollaborationRequest = `how ${orgOrName} and ${projectName} could collaborate around ${verifiedWorkDetail}`;
     personalisedBenefitClause = `it connects ${verifiedWorkDetail} directly with ${confirmedFact || primaryObjective.charAt(0).toLowerCase() + primaryObjective.slice(1)} and offers clear visibility and value for ${orgOrName}`;
   }
+
+  // Pre-calculate tailored subject line interpretations adapting the category reference subject line
+  const cleanWorkShort = verifiedWorkDetail.replace(/^your (?:work (?:on|at|as)|writing|published work)\s+/i, '').slice(0, 26);
+  const tailoredSubjectLines = {
+    direct: strip(
+      isSponsor
+        ? `${projectName} & ${orgOrName}: Sponsorship partnership`
+        : isCommunityOrOrg || isPublisher
+          ? `${projectName} & ${orgOrName}: Collaboration for your writers`
+          : `${projectName}: Submitting ${cleanWorkShort ? `'${cleanWorkShort}'` : 'your collection'}`
+    ).slice(0, 58),
+    curiosity: strip(
+      isSponsor
+        ? `Supporting indie poetry: Sponsorship with ${projectName}`
+        : isCommunityOrOrg || isPublisher
+          ? `Connecting around indie poetry with ${orgOrName}`
+          : `Question for ${recipientFirstName} regarding your poetry & ${projectName}`
+    ).slice(0, 58),
+    value: strip(
+      hasMayaPrizes
+        ? (isSponsor
+            ? `Sponsorship with ${projectName}: Supporting indie poets`
+            : isCommunityOrOrg || isPublisher
+              ? `£7,000 ${projectName}: Opportunity for ${orgOrName} poets`
+              : `£7,000 ${projectName}: Opportunity for your collection`)
+        : `${projectName}: Relevant opportunity for ${isOrg ? orgOrName : recipientFirstName}`
+    ).slice(0, 58),
+  };
 
   return {
     recipientFirstName,
@@ -1409,6 +1483,8 @@ export function buildContextualTemplateValues(
     secondaryWorkDetail,
     specificCollaborationRequest,
     personalisedBenefitClause,
+    categoryOutreachObjective,
+    tailoredSubjectLines,
   };
 }
 
@@ -1498,7 +1574,43 @@ function classifyDirectiveInnerText(
     };
   }
 
-  // 5. Fallback for any other custom bracketed/parenthetical instruction
+  // 5. Competition / Initiative name cues
+  if (/\b(?:competition|project|initiative|award|awards)\s+name\b/i.test(lower)) {
+    return {
+      kind: 'competition_name',
+      resolvedValue: 'Maya Poetry Book Awards',
+      explanation: 'Official competition or initiative title',
+    };
+  }
+
+  // 6. Prize details cues
+  if (/\b(?:prizes?|prize\s+fund|top\s+prize|award\s+fund)\b/i.test(lower)) {
+    return {
+      kind: 'prize_details',
+      resolvedValue: '£7,000 in prizes, including a £3,000 top prize',
+      explanation: 'Confirmed competition prize fund information',
+    };
+  }
+
+  // 7. Dates / Deadline cues
+  if (/\b(?:dates?|deadline|when\s+it\s+opens|opening\s+date|timeline)\b/i.test(lower)) {
+    return {
+      kind: 'dates_or_deadline',
+      resolvedValue: '4 January 2027',
+      explanation: 'Confirmed competition opening date or submission timeline',
+    };
+  }
+
+  // 8. Website / Link cues
+  if (/\b(?:website|link|url|more\s+info\s+link)\b/i.test(lower)) {
+    return {
+      kind: 'website_or_link',
+      resolvedValue: 'https://poetrybookawards.co.uk',
+      explanation: 'Official project overview link',
+    };
+  }
+
+  // 9. Fallback for any other custom bracketed/parenthetical instruction
   return {
     kind: 'custom_contextual_cue',
     resolvedValue: `${values.verifiedWorkDetail}, as ${values.personalisedBenefitClause}`,
@@ -1542,10 +1654,13 @@ export function extractTemplateDirectives(
       values,
     );
 
+    const concreteGuidance = `This placeholder defines what content must go here: ground it in the prospect's verified research (${values.verifiedWorkDetail}). Write this point naturally into the message. NEVER output the raw bracket token "${rawToken}".`;
+
     directives.push({
       rawToken,
       innerText,
       ...classified,
+      concreteGuidance,
     });
   }
 

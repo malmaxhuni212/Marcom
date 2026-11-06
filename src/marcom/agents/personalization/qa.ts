@@ -477,13 +477,13 @@ export function validatePersonalizationCopy(
 
   // Check for specific currency figures, percentages, multipliers, or large audience/sales numbers in copy
   const numericClaims = allCopyText.match(
-    /(?:(?:£|\$|€)\s?\d[\d,.]*\s*(?:k|m|million|billion|thousand)?|\b\d+(?:\.\d+)?%|\b\d+x\b|\b\d{1,3}(?:,\d{3})+\s*(?:\+)?\s*(?:readers|customers|leads|subscribers|downloads|views|impressions|attendees|users|companies|buyers|members)\b)/gi,
+    /(?:(?:£|\$|€)\s?\d[\d,.]*(?:\s*(?:k|m|million|billion|thousand)\b)?|\b\d+(?:\.\d+)?%|\b\d+x\b|\b\d{1,3}(?:,\d{3})+\s*(?:\+)?\s*(?:readers|customers|leads|subscribers|downloads|views|impressions|attendees|users|companies|buyers|members)\b)/gi,
   ) ?? [];
 
   for (const rawClaim of numericClaims) {
     const cleaned = rawClaim.trim().toLowerCase();
     // Extract the core number/currency token (e.g. "£10,000", "40%", "50,000")
-    const coreTokenMatch = cleaned.match(/(?:£|\$|€)\s?\d[\d,.]*\s*(?:k|m)?|\d+(?:\.\d+)?%|\d+x|\d{1,3}(?:,\d{3})+/) ?? [cleaned];
+    const coreTokenMatch = cleaned.match(/(?:£|\$|€)\s?\d[\d,.]*(?:\s*(?:k|m)\b)?|\d+(?:\.\d+)?%|\d+x|\d{1,3}(?:,\d{3})+/) ?? [cleaned];
     const coreToken = coreTokenMatch[0].replace(/\s+/g, '');
     const normalizedAllowed = allowedCorpus.replace(/\s+/g, '');
     if (coreToken && !normalizedAllowed.includes(coreToken)) {
@@ -598,6 +598,69 @@ export function validatePersonalizationCopy(
         field: 'email',
         message: 'Alternative opening repeats the primary email body verbatim instead of offering a distinct valid angle.',
       });
+    }
+  }
+
+  // 13B. Category Incentive & Request Appropriateness Check
+  const targetCategoryLower = (record.target_type || '').toLowerCase();
+  const isAuthorTarget = /\b(?:author|writer|poet|novelist)\b/.test(targetCategoryLower);
+  const isSponsorTarget = /\b(?:sponsor|sponsorship|funder|investor|corporate)\b/.test(targetCategoryLower);
+  const isOrgTarget = /\b(?:organisation|organization|community|society|guild|association)\b/.test(targetCategoryLower);
+
+  if (isAuthorTarget && /\b(?:sponsorship package|become a sponsor|sponsor our|funding support|financial contribution)\b/i.test(copy.email_body)) {
+    issues.push({
+      severity: 'error',
+      code: 'category_incentive_mismatch',
+      field: 'email',
+      message: 'Author/writer was asked for corporate sponsorship or funding instead of inviting them to enter and compete for prizes.',
+    });
+  }
+
+  if (isSponsorTarget) {
+    if (/\b(?:submit your (?:poems|poetry|collection|book) to the competition|enter your poetry collection)\b/i.test(copy.email_body)) {
+      issues.push({
+        severity: 'error',
+        code: 'category_incentive_mismatch',
+        field: 'email',
+        message: 'Corporate sponsor was asked to enter poems into the competition instead of exploring sponsorship or funding alignment.',
+      });
+    }
+    if (/\b(?:guaranteed commercial returns|direct product sales|immediate customer revenue|financial roi of)\b/i.test(copy.email_body)) {
+      issues.push({
+        severity: 'error',
+        code: 'category_incentive_mismatch',
+        field: 'email',
+        message: 'Invented commercial sales ROI promised to sponsor/funder. Sponsorship must focus on community/mission alignment and visibility.',
+      });
+    }
+  }
+
+  // 13C. Category Template Structure & Key Fact Preservation
+  if (
+    (strategy.template_usage_mode === 'use' || strategy.template_usage_mode === 'adapt') &&
+    resolvedTemplatesList.length > 0
+  ) {
+    const matchingTemplate = resolvedTemplatesList.find(
+      (t) => t?.target_type?.toLowerCase() === record.target_type?.toLowerCase(),
+    );
+    if (matchingTemplate?.body) {
+      const tplBodyLower = matchingTemplate.body.toLowerCase();
+      // Check for core facts present in the template that should not be dropped
+      const anchorChecks: { text: string; code: string; label: string }[] = [
+        { text: '£7,000', code: 'template_fact_omitted_prize', label: 'prize fund (£7,000)' },
+        { text: '4 january 2027', code: 'template_fact_omitted_date', label: 'opening date (4 January 2027)' },
+        { text: 'poetrybookawards.co.uk', code: 'template_fact_omitted_url', label: 'website URL (poetrybookawards.co.uk)' },
+      ];
+      for (const anchor of anchorChecks) {
+        if (tplBodyLower.includes(anchor.text) && !allCopyText.toLowerCase().includes(anchor.text)) {
+          issues.push({
+            severity: 'warning',
+            code: anchor.code,
+            field: 'email',
+            message: `Key template fact "${anchor.label}" is missing from the outreach draft while following the category template in ${strategy.template_usage_mode} mode.`,
+          });
+        }
+      }
     }
   }
 

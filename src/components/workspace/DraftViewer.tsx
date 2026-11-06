@@ -120,6 +120,7 @@ export default function DraftViewer({
     follow_up: draft.copy?.follow_up_body ?? '',
   });
   const [busy, setBusy] = useState<'save' | 'rewrite' | 'status' | null>(null);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { copied, copy } = useClipboard();
   const targets = draftTargets(draft, researchEntry);
@@ -190,7 +191,10 @@ export default function DraftViewer({
         body: JSON.stringify({ recordId: draft.record_id, force: true }),
       });
       const data = await response.json().catch(() => ({}));
-      const updated = (data.items as PersonalizationEntry[] | undefined)?.find((item) => item.record_id === draft.record_id);
+      const updated =
+        (data.items as PersonalizationEntry[] | undefined)?.find((item) => item.record_id === draft.record_id) ||
+        data.entry ||
+        (data.results as PersonalizationEntry[] | undefined)?.find((item) => item.record_id === draft.record_id);
       if (!response.ok || !updated) throw new Error(data.error || 'The draft could not be rewritten.');
       onUpdated(updated);
       setEdits({
@@ -734,6 +738,14 @@ export default function DraftViewer({
         <button type="button" disabled={busy !== null} onClick={() => void rewrite()} className={`${btnSecondary} h-[46px]`}>
           <Icon name="refresh" size={16} /> Rewrite
         </button>
+        <button
+          type="button"
+          onClick={() => setFeedbackOpen((v) => !v)}
+          className={`${btnSecondary} h-[46px] ${feedbackOpen ? 'border-[#3B3577] bg-[#221F3D] text-[#E2DDFF]' : ''}`}
+          title="Give feedback to rewrite this draft and improve future drafts"
+        >
+          <Icon name="message" size={16} /> Feedback
+        </button>
         {editing ? (
           <>
             <button
@@ -797,6 +809,8 @@ export default function DraftViewer({
           record={researchEntry.record}
           settings={settings}
           disabled={busy !== null}
+          isOpen={feedbackOpen}
+          onToggleOpen={() => setFeedbackOpen((v) => !v)}
           onDraftUpdated={(updated) => {
             onUpdated(updated);
             setEdits({
