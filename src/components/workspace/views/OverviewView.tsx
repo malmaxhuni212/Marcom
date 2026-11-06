@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { authenticatedFetch } from '@/auth/client';
 import CampaignConfigurationForm from '@/components/campaign/CampaignConfigurationForm';
 import PersonalisedTemplatesTab from '@/components/personalization/PersonalisedTemplatesTab';
@@ -14,6 +14,7 @@ import {
   Icon,
   Pill,
   ProjectArt,
+  Spinner,
   btnSecondary,
   card,
   serif,
@@ -36,6 +37,108 @@ function OverviewBody() {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [syncingNotion, setSyncingNotion] = useState(false);
+  const [notionUrl, setNotionUrl] = useState<string | null>(null);
+  const [notionNotice, setNotionNotice] = useState<{
+    tone: 'info' | 'error';
+    text: string;
+  } | null>(null);
+
+  useEffect(() => {
+    const pid = bundle?.projectId;
+    if (!pid) {
+      setNotionUrl(null);
+      setNotionNotice(null);
+      return;
+    }
+    let cancelled = false;
+    setNotionUrl(null);
+    setNotionNotice(null);
+
+    authenticatedFetch(`/api/projects/${pid}/notion/sync`)
+      .then((res) => res.json().catch(() => ({})))
+      .then((data) => {
+        if (cancelled) return;
+        if (data?.sync?.campaignPageUrl) {
+          setNotionUrl(data.sync.campaignPageUrl);
+        }
+      })
+      .catch(() => {
+        // Ignore background status check errors
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [bundle?.projectId]);
+
+  const handleSyncToNotion = async () => {
+    if (!bundle?.projectId || syncingNotion) return;
+    setSyncingNotion(true);
+    setNotionNotice(null);
+    try {
+      const res = await authenticatedFetch(`/api/projects/${bundle.projectId}/notion/sync`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+      const data = await res.json().catch(() => ({}));
+      const resolvedUrl: string | null = data.url || data.campaignPageUrl || null;
+      if (resolvedUrl) {
+        setNotionUrl(resolvedUrl);
+      }
+
+      if (!res.ok) {
+        if (
+          res.status === 401 ||
+          data.error?.toLowerCase().includes('not connected') ||
+          data.error?.toLowerCase().includes('integrations')
+        ) {
+          setNotionNotice({
+            tone: 'error',
+            text: 'Notion is not connected. Connect your workspace in Settings > Integrations.',
+          });
+        } else {
+          setNotionNotice({
+            tone: 'error',
+            text: data.error || 'Failed to sync campaign to Notion.',
+          });
+        }
+        return;
+      }
+
+      const count: number =
+        typeof data.syncedCount === 'number'
+          ? data.syncedCount
+          : typeof data.prospectsSynced === 'number'
+            ? data.prospectsSynced
+            : bundle.research.length;
+
+      if (data.failedCount > 0) {
+        setNotionNotice({
+          tone: 'error',
+          text: `Synced ${count} ${count === 1 ? 'prospect' : 'prospects'} to Notion, with ${data.failedCount} ${data.failedCount === 1 ? 'warning' : 'warnings'}: ${data.errors?.[0] || 'Check Notion page permissions.'}`,
+        });
+      } else if (data.isResync) {
+        setNotionNotice({
+          tone: 'info',
+          text: `Updated Notion Campaign Hub — ${count} ${count === 1 ? 'prospect' : 'prospects'} synced (${data.createdCount ?? 0} added, ${data.updatedCount ?? 0} updated).`,
+        });
+      } else {
+        setNotionNotice({
+          tone: 'info',
+          text: `Synced Campaign Hub and ${count} ${count === 1 ? 'prospect' : 'prospects'} to Notion!`,
+        });
+      }
+    } catch (err) {
+      setNotionNotice({
+        tone: 'error',
+        text: err instanceof Error ? err.message : 'Network error during Notion sync.',
+      });
+    } finally {
+      setSyncingNotion(false);
+    }
+  };
 
   if (!bundle) return null;
   const { project, research, projectId } = bundle;
@@ -121,17 +224,100 @@ function OverviewBody() {
             </p>
           )}
         </div>
-        <button
-          type="button"
-          onClick={() => {
-            setSaveError(null);
-            setEditing(true);
-          }}
-          className={`${btnSecondary} h-11 px-[18px]`}
-        >
-          <Icon name="edit" size={16} /> Edit project
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          {notionUrl && (
+            <a
+              href={notionUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`${btnSecondary} h-11 px-[18px] inline-flex items-center gap-2`}
+              title="Open Campaign Hub in Notion"
+            >
+              <Icon name="external" size={16} /> Open in Notion
+            </a>
+          )}
+          <button
+            type="button"
+            onClick={handleSyncToNotion}
+            disabled={syncingNotion}
+            className={`${btnSecondary} h-11 px-[18px] inline-flex items-center gap-2`}
+            title={
+              notionUrl
+                ? 'Push latest prospects, reviews, and outreach drafts to Notion'
+                : 'Export this campaign brief, prospects, and outreach drafts to Notion'
+            }
+          >
+            {syncingNotion ? (
+              <Spinner size={16} />
+            ) : (
+              <Icon name={notionUrl ? 'refresh' : 'plug'} size={16} />
+            )}
+            {syncingNotion
+              ? 'Syncing to Notion…'
+              : notionUrl
+                ? 'Re-sync Notion'
+                : 'Sync to Notion'}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setSaveError(null);
+              setEditing(true);
+            }}
+            className={`${btnSecondary} h-11 px-[18px]`}
+          >
+            <Icon name="edit" size={16} /> Edit project
+          </button>
+        </div>
       </header>
+
+      {notionNotice && (
+        <div
+          className={`flex flex-wrap items-center justify-between gap-3 rounded-xl border px-4 py-3 text-sm ${
+            notionNotice.tone === 'error'
+              ? 'border-[#5A2D29] bg-[#2A1715] text-[#F7B1AA]'
+              : 'border-[#2E6B75] bg-[#122A32] text-[#B5D9DE]'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <Icon
+              name={notionNotice.tone === 'error' ? 'warning' : 'plug'}
+              size={16}
+              className={notionNotice.tone === 'error' ? 'text-[#F28B82]' : 'text-[#5ED3DF]'}
+            />
+            <span>{notionNotice.text}</span>
+          </div>
+          <div className="flex items-center gap-3">
+            {notionUrl && (
+              <a
+                href={notionUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-[#3E8B98] bg-[#1A3D48] px-2.5 py-1 text-xs font-semibold text-[#5ED3DF] hover:bg-[#23505F]"
+              >
+                <span>Open in Notion</span>
+                <Icon name="external" size={12} />
+              </a>
+            )}
+            {notionNotice.text.includes('Integrations') && (
+              <a
+                href="/integrations"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-[#3E8B98] bg-[#1A3D48] px-2.5 py-1 text-xs font-semibold text-[#5ED3DF] hover:bg-[#23505F]"
+              >
+                <span>Go to Integrations</span>
+                <Icon name="arrowRight" size={12} />
+              </a>
+            )}
+            <button
+              type="button"
+              onClick={() => setNotionNotice(null)}
+              className="text-xs font-semibold opacity-80 hover:underline hover:opacity-100"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Section tabs */}
       <div
