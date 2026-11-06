@@ -539,8 +539,118 @@ function ProspectsBody({ initialTab }: { initialTab?: TabId }) {
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionNotice, setActionNotice] = useState<string | null>(null);
   const [drawerState, setDrawerState] = useState<{ recordId: string; channel?: DraftChannel } | null>(null);
+  const [syncingNotion, setSyncingNotion] = useState(false);
+  const [notionUrl, setNotionUrl] = useState<string | null>(null);
+  const [notionProspectPageIds, setNotionProspectPageIds] = useState<Record<string, string>>({});
+  const [notionNotice, setNotionNotice] = useState<{
+    tone: 'info' | 'error';
+    text: string;
+  } | null>(null);
 
   const projectId = bundle?.projectId ?? '';
+
+  useEffect(() => {
+    if (!projectId) {
+      setNotionUrl(null);
+      setNotionProspectPageIds({});
+      setNotionNotice(null);
+      return;
+    }
+    let cancelled = false;
+    setNotionUrl(null);
+    setNotionProspectPageIds({});
+    setNotionNotice(null);
+
+    authenticatedFetch(`/api/projects/${projectId}/notion/sync`)
+      .then((res) => res.json().catch(() => ({})))
+      .then((data) => {
+        if (cancelled) return;
+        if (data?.sync?.campaignPageUrl) {
+          setNotionUrl(data.sync.campaignPageUrl);
+        }
+        if (data?.sync?.prospectPageIds && typeof data.sync.prospectPageIds === 'object') {
+          setNotionProspectPageIds(data.sync.prospectPageIds);
+        }
+      })
+      .catch(() => {
+        // Ignore background sync status check errors
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [projectId]);
+
+  const handleSyncToNotion = async () => {
+    if (!projectId || syncingNotion) return;
+    setSyncingNotion(true);
+    setNotionNotice(null);
+    try {
+      const res = await authenticatedFetch(`/api/projects/${projectId}/notion/sync`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+      const data = await res.json().catch(() => ({}));
+      const resolvedUrl: string | null = data.url || data.campaignPageUrl || null;
+      if (resolvedUrl) {
+        setNotionUrl(resolvedUrl);
+      }
+      if (data.prospectPageIds && typeof data.prospectPageIds === 'object') {
+        setNotionProspectPageIds(data.prospectPageIds);
+      }
+
+      if (!res.ok) {
+        if (
+          res.status === 401 ||
+          data.error?.toLowerCase().includes('not connected') ||
+          data.error?.toLowerCase().includes('integrations')
+        ) {
+          setNotionNotice({
+            tone: 'error',
+            text: 'Notion is not connected. Connect your workspace in Settings > Integrations.',
+          });
+        } else {
+          setNotionNotice({
+            tone: 'error',
+            text: data.error || 'Failed to sync campaign to Notion.',
+          });
+        }
+        return;
+      }
+
+      const count: number =
+        typeof data.syncedCount === 'number'
+          ? data.syncedCount
+          : typeof data.prospectsSynced === 'number'
+            ? data.prospectsSynced
+            : bundle?.research.length ?? 0;
+
+      if (data.failedCount > 0) {
+        setNotionNotice({
+          tone: 'error',
+          text: `Synced ${count} ${count === 1 ? 'prospect' : 'prospects'} to Notion, with ${data.failedCount} ${data.failedCount === 1 ? 'warning' : 'warnings'}: ${data.errors?.[0] || 'Check Notion page permissions.'}`,
+        });
+      } else if (data.isResync) {
+        setNotionNotice({
+          tone: 'info',
+          text: `Updated Notion Campaign Hub — ${count} ${count === 1 ? 'prospect' : 'prospects'} synced (${data.createdCount ?? 0} added, ${data.updatedCount ?? 0} updated).`,
+        });
+      } else {
+        setNotionNotice({
+          tone: 'info',
+          text: `Synced Campaign Hub and ${count} ${count === 1 ? 'prospect' : 'prospects'} to Notion!`,
+        });
+      }
+    } catch (err) {
+      setNotionNotice({
+        tone: 'error',
+        text: err instanceof Error ? err.message : 'Network error during Notion sync.',
+      });
+    } finally {
+      setSyncingNotion(false);
+    }
+  };
 
   // Load persisted sent records for this project
   useEffect(() => {
@@ -932,6 +1042,15 @@ function ProspectsBody({ initialTab }: { initialTab?: TabId }) {
       if (data.settings) {
         setSettings(data.settings as PersonalizationSettings);
       }
+      if (data.notionSync?.campaignPageUrl) {
+        setNotionUrl(data.notionSync.campaignPageUrl);
+      }
+      if (data.notionSync?.prospectPageIds && typeof data.notionSync.prospectPageIds === 'object') {
+        setNotionProspectPageIds((prev) => ({
+          ...prev,
+          ...data.notionSync.prospectPageIds,
+        }));
+      }
 
       const returnedItems: PersonalizationEntry[] = Array.isArray(data.items)
         ? data.items
@@ -950,12 +1069,13 @@ function ProspectsBody({ initialTab }: { initialTab?: TabId }) {
       setConfigureQueueIds(remainingQueue);
       void reload();
 
+      const syncedNote = data.notionSync?.synced ? ' Synced to Notion.' : '';
       if (remainingQueue.length > 0) {
         const nextLeadId = remainingQueue[0]!;
         setSelectedId(nextLeadId);
         setConfigureFocusTick((t) => t + 1);
         setActionNotice(
-          `Personalized ${plural(returnedItems.length || recordIds.length, 'lead')}. Now configuring personalization settings for the next lead (${remainingQueue.length} remaining).`,
+          `Personalized ${plural(returnedItems.length || recordIds.length, 'lead')}.${syncedNote} Now configuring personalization settings for the next lead (${remainingQueue.length} remaining).`,
         );
       } else {
         setCheckedIds({});
@@ -963,9 +1083,12 @@ function ProspectsBody({ initialTab }: { initialTab?: TabId }) {
         const firstReady = returnedItems.find((item) => item.copy) ?? returnedItems[0];
         if (openDrawerAfter && firstReady) {
           setSelectedId(firstReady.record_id);
+          if (data.notionSync?.synced) {
+            setActionNotice('Personalized outreach generated across all 5 channels and synced to Notion.');
+          }
         } else if (returnedItems.length > 0) {
           setActionNotice(
-            `Personalized ${plural(returnedItems.length, 'lead')} across all 5 channels and moved ${returnedItems.length === 1 ? 'it' : 'them'} to the Personalized tab.`,
+            `Personalized ${plural(returnedItems.length, 'lead')} across all 5 channels and moved ${returnedItems.length === 1 ? 'it' : 'them'} to the Personalized tab.${syncedNote}`,
           );
           if (firstReady) {
             setSelectedId(firstReady.record_id);
@@ -1096,6 +1219,39 @@ function ProspectsBody({ initialTab }: { initialTab?: TabId }) {
                 <Icon name="settings" size={15} /> Research configuration
               </button>
             )}
+            {notionUrl && (
+              <a
+                href={notionUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`${btnSecondary} h-11 px-4 text-[13px] inline-flex items-center gap-2`}
+                title="Open Campaign Hub and Prospects in Notion"
+              >
+                <Icon name="external" size={15} /> Open in Notion
+              </a>
+            )}
+            <button
+              type="button"
+              onClick={handleSyncToNotion}
+              disabled={syncingNotion}
+              className={`${btnSecondary} h-11 px-4 text-[13px] inline-flex items-center gap-2`}
+              title={
+                notionUrl
+                  ? 'Push latest prospects, reviews, and outreach drafts to Notion'
+                  : 'Sync Campaign Brief, Prospect Database, and Outreach Drafts to Notion'
+              }
+            >
+              {syncingNotion ? (
+                <Spinner size={15} />
+              ) : (
+                <Icon name={notionUrl ? 'refresh' : 'plug'} size={15} />
+              )}
+              {syncingNotion
+                ? 'Syncing to Notion…'
+                : notionUrl
+                  ? 'Re-sync Notion'
+                  : 'Sync to Notion'}
+            </button>
             <button type="button" onClick={() => openResearch()} className={`${btnPrimary} h-11 px-[18px]`}>
               <Icon name="plus" size={16} stroke={2.2} /> Find more prospects
             </button>
@@ -1370,6 +1526,54 @@ function ProspectsBody({ initialTab }: { initialTab?: TabId }) {
                   type="button"
                   onClick={() => setActionNotice(null)}
                   className="text-xs font-semibold text-[#8EE6B6] hover:underline"
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
+          )}
+
+          {notionNotice && (
+            <div
+              className={`flex flex-wrap items-center justify-between gap-3 rounded-xl border px-4 py-3 text-sm ${
+                notionNotice.tone === 'error'
+                  ? 'border-[#5A2D29] bg-[#2A1715] text-[#F7B1AA]'
+                  : 'border-[#2E6B75] bg-[#122A32] text-[#B5D9DE]'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Icon
+                  name={notionNotice.tone === 'error' ? 'warning' : 'plug'}
+                  size={16}
+                  className={notionNotice.tone === 'error' ? 'text-[#F28B82]' : 'text-[#5ED3DF]'}
+                />
+                <span>{notionNotice.text}</span>
+              </div>
+              <div className="flex items-center gap-3">
+                {notionUrl && (
+                  <a
+                    href={notionUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-[#3E8B98] bg-[#1A3D48] px-2.5 py-1 text-xs font-semibold text-[#5ED3DF] hover:bg-[#23505F]"
+                  >
+                    <span>Open in Notion</span>
+                    <Icon name="external" size={12} />
+                  </a>
+                )}
+                {notionNotice.text.includes('Integrations') && (
+                  <a
+                    href="/integrations"
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-[#3E8B98] bg-[#1A3D48] px-2.5 py-1 text-xs font-semibold text-[#5ED3DF] hover:bg-[#23505F]"
+                  >
+                    <span>Go to Integrations</span>
+                    <Icon name="arrowRight" size={12} />
+                  </a>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setNotionNotice(null)}
+                  className="text-xs font-semibold opacity-80 hover:underline hover:opacity-100"
                 >
                   Dismiss
                 </button>
@@ -1727,6 +1931,14 @@ function ProspectsBody({ initialTab }: { initialTab?: TabId }) {
           onOpenDrafts={(channel) => {
             setDrawerState({ recordId: selectedEntry.record.record_id, channel });
           }}
+          onSyncNotion={handleSyncToNotion}
+          syncingNotion={syncingNotion}
+          notionUrl={notionUrl}
+          notionProspectUrl={
+            notionProspectPageIds[selectedEntry.record.record_id]
+              ? `https://www.notion.so/${notionProspectPageIds[selectedEntry.record.record_id]!.replace(/-/g, '')}`
+              : null
+          }
         />
       )}
 
@@ -1830,6 +2042,10 @@ function ProspectDetailPanel({
   onSettingsUpdated,
   onPersonalise,
   onOpenDrafts,
+  onSyncNotion,
+  syncingNotion,
+  notionUrl,
+  notionProspectUrl,
 }: {
   entry: ResearchEntry;
   index: number;
@@ -1856,6 +2072,10 @@ function ProspectDetailPanel({
   onSettingsUpdated: (settings: PersonalizationSettings) => void;
   onPersonalise: (leadCfg?: LeadPersonalizationSettings) => void;
   onOpenDrafts: (channel?: DraftChannel) => void;
+  onSyncNotion?: () => void;
+  syncingNotion?: boolean;
+  notionUrl?: string | null;
+  notionProspectUrl?: string | null;
 }) {
   const [note, setNote] = useState(entry.review?.note ?? '');
   const [noteSaved, setNoteSaved] = useState(Boolean(entry.review?.note));
@@ -2669,6 +2889,35 @@ function ProspectDetailPanel({
           PROSPECT {index >= 0 ? index + 1 : 1} OF {Math.max(total, 1)}
         </span>
         <div className="flex items-center gap-1.5">
+          {notionProspectUrl || notionUrl ? (
+            <a
+              href={notionProspectUrl || notionUrl || '#'}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Open Lead Dossier & Outreach in Notion"
+              title={
+                notionProspectUrl
+                  ? 'Open this prospect’s personalized outreach drafts and dossier directly in Notion'
+                  : 'Open Campaign Hub and Prospects in Notion'
+              }
+              className="flex h-9 items-center gap-1.5 rounded-full border border-[#2E6B75] bg-[#12313A] px-3 text-xs font-semibold text-[#9BE6EE] hover:bg-[#183D48]"
+            >
+              <Icon name="external" size={13} stroke={2.2} />
+              <span>{notionProspectUrl ? 'View in Notion' : 'Notion'}</span>
+            </a>
+          ) : onSyncNotion ? (
+            <button
+              type="button"
+              onClick={onSyncNotion}
+              disabled={syncingNotion}
+              aria-label="Sync Campaign & Dossiers to Notion"
+              title="Sync Campaign Brief, Prospect Database, and Outreach Drafts to Notion"
+              className="flex h-9 items-center gap-1.5 rounded-full border border-[#2A2F39] bg-[#171A20] px-3 text-xs font-semibold text-[#F1F2F4] hover:border-[#3A3F4A] hover:bg-[#20242B] disabled:opacity-50"
+            >
+              {syncingNotion ? <Spinner size={13} /> : <Icon name="plug" size={13} />}
+              <span>{syncingNotion ? 'Syncing…' : 'Sync Notion'}</span>
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={handleDownloadDossier}

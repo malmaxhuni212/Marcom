@@ -59,6 +59,7 @@ import type { ResearchEntry } from '@/marcom/schemas/research-record';
 import type { StructuredBrief } from '@/marcom/schemas/structured-brief';
 import { GeneratePersonalizationRequestSchema } from '@/marcom/personalization/request-contract';
 import { appendFeedback, createFeedbackItem } from '@/marcom/personalization/feedback';
+import { syncConnectedProjectRecordsToNotion } from '@/marcom/integrations/notion/sync';
 import { z } from 'zod';
 
 const FeedbackInputSchema = z.strictObject({
@@ -977,6 +978,35 @@ export async function POST(req: Request, { params }: RouteCtx) {
   const allUpdated = await safeListPersonalizations(actor, projectId, access.allowFileFallback);
   const summary = summarizePersonalizations(allUpdated);
 
+  // If this campaign is already synced to Notion, push the newly personalized lead(s) immediately
+  const personalizedIdSet = new Set(results.map((r) => r.record_id));
+  const refreshedResearch: ResearchEntry[] = allResearch.map((entry) =>
+    personalizedIdSet.has(entry.record.record_id)
+      ? {
+          ...entry,
+          review: {
+            project_id: projectId,
+            record_id: entry.record.record_id,
+            status: 'shortlisted',
+            note: entry.review?.note ?? 'Personalized by Agent 3',
+            reviewed_at: new Date().toISOString(),
+            reviewed_by: 'user',
+          },
+        }
+      : entry,
+  );
+  const draftsByRecordId: Record<string, PersonalizationEntry> = {};
+  for (const d of allUpdated) draftsByRecordId[d.record_id] = d;
+  for (const d of results) draftsByRecordId[d.record_id] = d;
+
+  const notionSync = await syncConnectedProjectRecordsToNotion({
+    projectId,
+    brief: project.structured_brief,
+    targetEntries: refreshedResearch.filter((r) => personalizedIdSet.has(r.record.record_id)),
+    draftsByRecordId,
+    allProspects: refreshedResearch,
+  });
+
   return NextResponse.json({
     success: true,
     processed: enrichedResults.length,
@@ -986,6 +1016,7 @@ export async function POST(req: Request, { params }: RouteCtx) {
     settings: currentSettings,
     summary,
     feedback: savedFeedback,
+    notionSync,
   });
 }
 
@@ -1167,12 +1198,25 @@ export async function PATCH(req: Request, { params }: RouteCtx) {
   const allResearch = await safeListResearch(access.actor, projectId, access.allowFileFallback);
   const enriched = updated ? createEntryEnricher(allResearch)(updated) : null;
 
+  let notionSync: Awaited<ReturnType<typeof syncConnectedProjectRecordsToNotion>> | undefined;
+  if (updated && (copy || status)) {
+    const targetResearch = allResearch.find((r) => r.record.record_id === recordId);
+    if (targetResearch) {
+      notionSync = await syncConnectedProjectRecordsToNotion({
+        projectId,
+        targetEntries: [targetResearch],
+        draftsByRecordId: { [recordId]: updated },
+      });
+    }
+  }
+
   return NextResponse.json({
     success: true,
     item: enriched,
     items: enriched ? [enriched] : [],
     leadSettings: savedLeadSettings,
     settings: updatedSettings,
+    notionSync,
   });
 }
 

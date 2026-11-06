@@ -13,6 +13,9 @@ import { evidenceCoverage, reviewStatus, summarizeResearch } from '@/marcom/rese
 
 import { isDatabaseConfigured } from '@/db/env';
 import { listResearch as listFileResearch, updateResearchReview as updateFileReview, deleteResearch as deleteFileResearch, deleteMultipleResearch as deleteFileMultiple, deleteBatchResearch as deleteFileBatch, deleteProjectResearch as deleteFileProject, getNextBatchInfo as getFileNextBatch, saveResearch as saveFileResearch } from '@/marcom/memory/research-store';
+import { getPersonalization as getDbPersonalization } from '@/db/repositories/personalization-repository';
+import { getPersonalization as getFilePersonalization } from '@/marcom/memory/personalization-store';
+import { syncConnectedProjectRecordsToNotion } from '@/marcom/integrations/notion/sync';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
@@ -230,6 +233,12 @@ export async function POST(req: Request, { params }: RouteCtx) {
           saveFileResearch(projectId, entry);
         }
 
+        await syncConnectedProjectRecordsToNotion({
+          projectId,
+          brief: project.structured_brief,
+          targetEntries: [entry],
+        });
+
         onProgress({ stage: 'complete', message: 'Research complete' });
         send({ type: 'result', entry });
       } catch (e) {
@@ -281,6 +290,22 @@ export async function PATCH(req: Request, { params }: RouteCtx) {
     updated = updateFileReview(projectId, parsed.data.record_id, parsed.data.status, finalNote);
   } else {
     throw new Error('The authoritative database is unavailable.');
+  }
+
+  if (updated) {
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(projectId);
+    const existingDraft =
+      isDatabaseConfigured() && isUuid
+        ? await getDbPersonalization(access.actor, projectId, parsed.data.record_id).catch(() =>
+            getFilePersonalization(projectId, parsed.data.record_id),
+          )
+        : getFilePersonalization(projectId, parsed.data.record_id);
+
+    await syncConnectedProjectRecordsToNotion({
+      projectId,
+      targetEntries: [updated],
+      draftsByRecordId: existingDraft ? { [parsed.data.record_id]: existingDraft } : {},
+    });
   }
 
   return updated

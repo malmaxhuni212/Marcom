@@ -9,6 +9,7 @@ const PUBLIC_PATHS = new Set([
   '/bootstrap',
   '/api/v1/auth/session',
   '/api/internal/v1/auth/bootstrap',
+  '/api/integrations/notion/callback',
 ]);
 
 function unavailable(): NextResponse {
