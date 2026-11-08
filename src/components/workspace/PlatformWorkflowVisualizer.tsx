@@ -18,9 +18,9 @@ interface WorkflowStep {
 const WORKFLOW_STEPS: WorkflowStep[] = [
   {
     step: '01',
-    badge: 'Step 1 · Input',
+    badge: 'Input',
     badgeColor: 'border-[#4A3B17] bg-[#1F1A10] text-[#F2C36B]',
-    title: 'Campaign Brief & Ingestion',
+    title: 'Campaign Brief',
     subtitle: 'AI Brief Analyzer',
     description:
       'Upload a PDF or Word document, or paste raw notes. The Brief Analyzer extracts core goals, project parameters, key themes, and value propositions.',
@@ -31,10 +31,10 @@ const WORKFLOW_STEPS: WorkflowStep[] = [
   },
   {
     step: '02',
-    badge: 'Step 2 · Audiences',
+    badge: 'Audiences',
     badgeColor: 'border-[#2E6B75] bg-[#12313A] text-[#5ED3DF]',
-    title: 'Target Lead Categories',
-    subtitle: 'Audience Strategy Matrix',
+    title: 'Target Categories',
+    subtitle: 'Audience Matrix',
     description:
       'Structures distinct target categories (e.g. Authors, Sponsors, Press, Partners) with custom search criteria, angle rules, and tailored benefits for each segment.',
     features: ['Multi-category definition', 'Segment-specific benefits', 'Audience parameters'],
@@ -44,9 +44,9 @@ const WORKFLOW_STEPS: WorkflowStep[] = [
   },
   {
     step: '03',
-    badge: 'Step 3 · Autonomous Agent',
+    badge: 'Research',
     badgeColor: 'border-[#1F4A33] bg-[#10261B] text-[#5BD69A]',
-    title: 'Deep Prospect Research',
+    title: 'Prospect Research',
     subtitle: 'Research Agent',
     description:
       'Autonomous web search finds matching people and organisations, verifies real contact routes (emails, LinkedIn), and cites concrete work history and evidence.',
@@ -57,9 +57,9 @@ const WORKFLOW_STEPS: WorkflowStep[] = [
   },
   {
     step: '04',
-    badge: 'Step 4 · LLM Personalisation',
+    badge: 'Personalisation',
     badgeColor: 'border-[#3B3577] bg-[#1B1830] text-[#B1A6FF]',
-    title: 'Adaptive Multi-Channel Outreach',
+    title: 'Personalised Outreach',
     subtitle: 'Personalization Agent',
     description:
       'Synthesises verified research into authentic 1-to-1 outreach across 5 distinct channels with automated QA to eliminate hallucinations and generic clichés.',
@@ -70,9 +70,9 @@ const WORKFLOW_STEPS: WorkflowStep[] = [
   },
   {
     step: '05',
-    badge: 'Step 5 · Outreach Control',
+    badge: 'Control',
     badgeColor: 'border-[#2A374A] bg-[#121B27] text-[#9BE6EE]',
-    title: 'Review, Send & Learning',
+    title: 'Review & Send',
     subtitle: 'Human-in-the-Loop',
     description:
       'Review prospect evidence, approve or edit copy in real time, track outreach as Sent, and provide feedback that the AI immediately learns for future leads.',
@@ -157,7 +157,7 @@ export default function PlatformWorkflowVisualizer({
                   <Icon name={step.icon} size={18} stroke={2} />
                 </div>
                 <div className="min-w-0">
-                  <h3 className="m-0 truncate text-[14.5px] font-semibold text-[#F1F2F4]">
+                  <h3 className="m-0 text-[14.5px] font-semibold leading-snug text-[#F1F2F4]">
                     {step.title}
                   </h3>
                   <div className="text-[11.5px] font-medium text-[#8A909C]">
