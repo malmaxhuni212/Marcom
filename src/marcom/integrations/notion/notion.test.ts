@@ -291,12 +291,12 @@ test('Notion OAuth config, auth URL, and HMAC state signing/verification', () =>
   const prevId = process.env.NOTION_CLIENT_ID;
   const prevSecret = process.env.NOTION_CLIENT_SECRET;
   try {
-    process.env.NOTION_CLIENT_ID = '40fd872b-594c-81c5-8e8d-0037f7a8822f';
+    process.env.NOTION_CLIENT_ID = 'test-client-id-mock-notion-oauth';
     process.env.NOTION_CLIENT_SECRET = 'secret_test_notion_signing_key';
 
     const config = getNotionOAuthConfig();
     assert.equal(config.isConfigured, true);
-    assert.equal(config.clientId, '40fd872b-594c-81c5-8e8d-0037f7a8822f');
+    assert.equal(config.clientId, 'test-client-id-mock-notion-oauth');
 
     const state = createNotionOAuthState({
       workspaceId: 'ws-123',
@@ -316,11 +316,11 @@ test('Notion OAuth config, auth URL, and HMAC state signing/verification', () =>
     assert.equal(verifyNotionOAuthState(expiredState).valid, false);
 
     const authUrl = buildNotionAuthUrl(
-      'http://localhost:3000/api/integrations/notion/callback',
+      'https://example.com/api/integrations/notion/callback',
       state,
     );
     assert.ok(authUrl.startsWith('https://api.notion.com/v1/oauth/authorize'));
-    assert.ok(authUrl.includes('client_id=40fd872b-594c-81c5-8e8d-0037f7a8822f'));
+    assert.ok(authUrl.includes('client_id=test-client-id-mock-notion-oauth'));
     assert.ok(authUrl.includes(`state=${encodeURIComponent(state)}`));
   } finally {
     if (prevId === undefined) delete process.env.NOTION_CLIENT_ID;
