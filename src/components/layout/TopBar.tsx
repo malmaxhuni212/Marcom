@@ -3,7 +3,8 @@
 import SearchBar from '@/components/ui/SearchBar';
 import Avatar from '@/components/ui/Avatar';
 import NotificationBell from './NotificationBell';
-import { authenticatedFetch } from '@/auth/client';
+import { authenticatedFetch, setClientAccessMode } from '@/auth/client';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
@@ -14,7 +15,8 @@ export default function TopBar() {
   async function signOut() {
     setProfileMenuOpen(false);
     await authenticatedFetch('/api/v1/auth/session', { method: 'DELETE' }).catch(() => undefined);
-    router.replace('/login');
+    setClientAccessMode('guest');
+    router.replace('/');
     router.refresh();
   }
 
@@ -27,6 +29,13 @@ export default function TopBar() {
 
       {/* Right side */}
       <div className="flex items-center gap-4 ml-6">
+        <Link
+          href="/login"
+          className="inline-flex h-9 items-center gap-2 rounded-xl border border-cyan-400/30 bg-cyan-500/10 px-3.5 text-xs font-semibold text-cyan-200 transition hover:bg-cyan-500/20"
+        >
+          Team Login
+        </Link>
+
         {/* Notification bell */}
         <NotificationBell />
 

@@ -1,4 +1,7 @@
 import { z } from 'zod';
+import { getAccessConfiguration } from './access-config';
+
+const LOCAL_DEV_FALLBACK_SECRET = 'marcom-local-dev-guest-identity-secret-32b';
 
 const AuthEnvironmentSchema = z.object({
   AUTH_SECRET: z.string().min(32).max(1024),
@@ -14,7 +17,22 @@ export interface AuthConfiguration {
 export function getAuthConfiguration(
   environment: Record<string, string | undefined> = process.env,
 ): AuthConfiguration {
-  const parsed = AuthEnvironmentSchema.safeParse(environment);
+  let envToParse = environment;
+  if (!environment.AUTH_SECRET) {
+    try {
+      const access = getAccessConfiguration(environment);
+      if (access.mode === 'local') {
+        envToParse = {
+          ...environment,
+          AUTH_SECRET: LOCAL_DEV_FALLBACK_SECRET,
+        };
+      }
+    } catch {
+      // Ignore
+    }
+  }
+
+  const parsed = AuthEnvironmentSchema.safeParse(envToParse);
   if (!parsed.success) {
     throw new Error('The authentication environment configuration is missing or invalid.');
   }

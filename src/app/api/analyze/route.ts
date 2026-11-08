@@ -4,16 +4,25 @@ import { analyzeBrief } from '@/marcom/agents/brief-analyzer/analyzer';
 import { GroqProvider } from '@/marcom/llm/groq-provider';
 import { retrieveMemoryContext } from '@/marcom/memory/retrieval';
 import { authorizeApiRequest } from '@/auth/access';
+import { setGuestCookie } from '@/auth/guest';
 
 export async function POST(req: Request) {
-  const access = await authorizeApiRequest(req);
+  const access = await authorizeApiRequest(req, { allowGuest: true });
   if (!access.ok) return access.response;
+
+  const withGuestCookie = (res: NextResponse) => {
+    if (access.isGuest && access.guest) {
+      setGuestCookie(res, access.guest.token);
+    }
+    return res;
+  };
+
   try {
     const body = await req.json();
     const { briefText } = body;
 
     if (!briefText) {
-      return NextResponse.json({ error: 'briefText is required' }, { status: 400 });
+      return withGuestCookie(NextResponse.json({ error: 'briefText is required' }, { status: 400 }));
     }
 
     const store = new JsonFileMemoryStore();
@@ -29,7 +38,9 @@ export async function POST(req: Request) {
       provider = new GroqProvider();
     } catch (e) {
       console.error(e);
-      return NextResponse.json({ error: 'LLM provider not configured. Check API Keys.' }, { status: 500 });
+      return withGuestCookie(
+        NextResponse.json({ error: 'LLM provider not configured. Check API Keys.' }, { status: 500 }),
+      );
     }
 
     if (body.mode === 'prefill') {
@@ -70,17 +81,19 @@ Write natural, direct, specific answers derived directly from the brief. Return 
       const { extractJson } = await import('@/marcom/llm/provider');
       const data = extractJson(raw) as Record<string, string>;
 
-      return NextResponse.json({
-        success: true,
-        project_name: typeof data.project_name === 'string' ? data.project_name.trim() : '',
-        sections: {
-          overview: typeof data.overview === 'string' ? data.overview.trim() : '',
-          goals: typeof data.goals === 'string' ? data.goals.trim() : '',
-          work: typeof data.work === 'string' ? data.work.trim() : '',
-          audience: typeof data.audience === 'string' ? data.audience.trim() : '',
-          constraints: typeof data.constraints === 'string' ? data.constraints.trim() : '',
-        },
-      });
+      return withGuestCookie(
+        NextResponse.json({
+          success: true,
+          project_name: typeof data.project_name === 'string' ? data.project_name.trim() : '',
+          sections: {
+            overview: typeof data.overview === 'string' ? data.overview.trim() : '',
+            goals: typeof data.goals === 'string' ? data.goals.trim() : '',
+            work: typeof data.work === 'string' ? data.work.trim() : '',
+            audience: typeof data.audience === 'string' ? data.audience.trim() : '',
+            constraints: typeof data.constraints === 'string' ? data.constraints.trim() : '',
+          },
+        }),
+      );
     }
 
     console.log('Analyzing brief...');
@@ -96,31 +109,37 @@ Write natural, direct, specific answers derived directly from the brief. Return 
         attempts: result.attempts,
         issueCodes: result.errors.map((issue) => issue.code),
       }));
-      return NextResponse.json({
-        error: 'The brief analyser returned an unusable response. Please try again.',
-        code: 'AI_PROVIDER_INVALID_RESPONSE',
-        retryable: true,
-      }, { status: 502 });
+      return withGuestCookie(
+        NextResponse.json({
+          error: 'The brief analyser returned an unusable response. Please try again.',
+          code: 'AI_PROVIDER_INVALID_RESPONSE',
+          retryable: true,
+        }, { status: 502 }),
+      );
     }
 
-    return NextResponse.json({ 
-      success: true, 
-      structured_brief: result.brief,
-      warnings: result.warnings
-    });
+    return withGuestCookie(
+      NextResponse.json({ 
+        success: true, 
+        structured_brief: result.brief,
+        warnings: result.warnings
+      }),
+    );
   } catch (error) {
     console.error('Error analyzing brief:', error);
     const message = error instanceof Error ? error.message : 'Unknown analysis error';
     if (message === 'fetch failed' || error instanceof TypeError) {
-      return NextResponse.json(
-        {
-          error: 'The brief analyser could not reach the configured AI provider. Check the local server network connection, then try again.',
-          code: 'AI_PROVIDER_UNREACHABLE',
-          retryable: true,
-        },
-        { status: 502 },
+      return withGuestCookie(
+        NextResponse.json(
+          {
+            error: 'The brief analyser could not reach the configured AI provider. Check the local server network connection, then try again.',
+            code: 'AI_PROVIDER_UNREACHABLE',
+            retryable: true,
+          },
+          { status: 502 },
+        ),
       );
     }
-    return NextResponse.json({ error: message }, { status: 500 });
+    return withGuestCookie(NextResponse.json({ error: message }, { status: 500 }));
   }
 }

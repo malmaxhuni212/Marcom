@@ -24,7 +24,7 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
-  await requirePageAccess();
+  const pageAccess = await requirePageAccess();
   return (
     <html
       lang="en"
@@ -33,7 +33,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col bg-[#08080c]" suppressHydrationWarning>
-        <WorkspaceProvider>{children}</WorkspaceProvider>
+        <WorkspaceProvider initialAccess={pageAccess}>{children}</WorkspaceProvider>
       </body>
     </html>
   );

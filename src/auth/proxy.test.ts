@@ -24,7 +24,7 @@ async function withEnvironment(
   }
 }
 
-test('AUTH-003 proxy redirects a protected page without a shared session cookie', async () => {
+test('AUTH-003 proxy allows public MARCOM workspace pages in guest mode without redirecting to /login', async () => {
   await withEnvironment(
     {
       APP_ACCESS_MODE: 'shared',
@@ -34,17 +34,14 @@ test('AUTH-003 proxy redirects a protected page without a shared session cookie'
       CONTEXT: undefined,
     },
     () => {
-      const response = proxy(new NextRequest('https://pilot.example.test/projects?view=active'));
-      assert.equal(response.status, 307);
-      assert.equal(
-        response.headers.get('location'),
-        'https://pilot.example.test/login?returnTo=%2Fprojects%3Fview%3Dactive',
-      );
+      assert.equal(proxy(new NextRequest('https://pilot.example.test/')).status, 200);
+      assert.equal(proxy(new NextRequest('https://pilot.example.test/projects?view=active')).status, 200);
+      assert.equal(proxy(new NextRequest('https://pilot.example.test/prospects')).status, 200);
     },
   );
 });
 
-test('AUTH-003 proxy rejects an unauthenticated product API without redirecting', async () => {
+test('AUTH-003 proxy rejects an unauthenticated internal team API without redirecting', async () => {
   await withEnvironment(
     {
       APP_ACCESS_MODE: 'shared',
@@ -61,7 +58,7 @@ test('AUTH-003 proxy rejects an unauthenticated product API without redirecting'
   );
 });
 
-test('AUTH-003 proxy keeps only the login and bootstrap entry points public', async () => {
+test('AUTH-003 proxy allows login, bootstrap, and guest API entry points while keeping team APIs protected', async () => {
   await withEnvironment(
     {
       APP_ACCESS_MODE: 'shared',
@@ -81,6 +78,18 @@ test('AUTH-003 proxy keeps only the login and bootstrap entry points public', as
         proxy(
           new NextRequest('https://pilot.example.test/api/internal/v1/auth/bootstrap'),
         ).status,
+        200,
+      );
+      assert.equal(
+        proxy(new NextRequest('https://pilot.example.test/api/v1/guest/quota')).status,
+        200,
+      );
+      assert.equal(
+        proxy(new NextRequest('https://pilot.example.test/api/v1/guest/research')).status,
+        200,
+      );
+      assert.equal(
+        proxy(new NextRequest('https://pilot.example.test/api/v1/guest/personalization')).status,
         200,
       );
     },

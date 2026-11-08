@@ -39,7 +39,7 @@ The old campaign, research and personalisation JSON files are retained only as l
 
 | Area | Tables | Purpose |
 | --- | --- | --- |
-| Identity | `workspaces`, `users`, `workspace_memberships`, `auth_login_attempts`, `auth_sessions` | Provides the local actor, shared-pilot credentials and secure server-side sessions. Product route enforcement remains `AUTH-003` work. |
+| Identity | `workspaces`, `users`, `workspace_memberships`, `auth_login_attempts`, `auth_sessions`, `guest_usage_quotas` | Provides the local actor, shared-pilot credentials, secure server-side sessions, and anonymous guest daily/monthly quota tracking. |
 | Campaign | `campaigns`, `stored_files`, `campaign_briefs` | Stores versioned campaign input and file metadata. Original file bytes remain in the configured protected file store. |
 | Configuration | `campaign_config_versions`, `campaign_field_definitions`, `search_plan_versions`, `message_template_versions` | Stores editable and approved versions used by human gates and later processing. |
 | Research queue | `jobs`, `job_items`, `research_runs` | Tracks bounded work, retries, progress and terminal status. |

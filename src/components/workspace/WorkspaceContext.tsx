@@ -4,16 +4,38 @@
  * Workspace state shared by every MARCOM screen:
  *  - the project list and the active project (remembered per browser),
  *  - the active project's data bundle (campaign, research, drafts, outreach settings),
+ *  - guest vs team session mode and live guest daily/monthly quota state,
  *  - background research runs, which keep polling even when their dialog is closed.
  */
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import { usePathname } from 'next/navigation';
-import { authenticatedFetch } from '@/auth/client';
-import type { Project } from '@/types';
+import {
+  authenticatedFetch,
+  getLatestGuestQuota,
+  refreshGuestSessionAndQuota,
+  setClientAccessMode,
+  subscribeGuestQuota,
+} from '@/auth/client';
+import type { PageAccessContext } from '@/auth/page-access';
+import type { GuestQuotaSnapshot } from '@/db/repositories/guest-quota-repository';
+import { clearAllGuestProjects } from '@/lib/guest-storage';
 import type { ProjectMemory } from '@/marcom/memory/types';
-import type { ResearchEntry, ReviewStatus } from '@/marcom/schemas/research-record';
 import { summarizeResearch, type ResearchReviewSummary } from '@/marcom/research/review';
-import type { PersonalizationEntry, PersonalizationSettings } from '@/marcom/schemas/personalization';
+import type {
+  PersonalizationEntry,
+  PersonalizationSettings,
+} from '@/marcom/schemas/personalization';
+import type { ResearchEntry, ReviewStatus } from '@/marcom/schemas/research-record';
+import type { Project } from '@/types';
 
 const ACTIVE_PROJECT_KEY = 'marcom_active_project';
 
@@ -75,6 +97,13 @@ interface WorkspaceValue {
   researchDialog: { open: boolean; targetId?: string };
   openResearch: (targetId?: string) => void;
   closeResearch: () => void;
+  // Guest & Team access state
+  isGuest: boolean;
+  userDisplayName: string;
+  guestQuota: GuestQuotaSnapshot | null;
+  refreshQuota: () => Promise<void>;
+  resetGuestWorkspace: () => Promise<void>;
+  signOutTeamSession: () => Promise<void>;
 }
 
 const WorkspaceContext = createContext<WorkspaceValue | null>(null);
@@ -92,17 +121,46 @@ async function fetchJson<T>(url: string): Promise<T> {
   return data as T;
 }
 
-export function WorkspaceProvider({ children }: { children: ReactNode }) {
+export function WorkspaceProvider({
+  children,
+  initialAccess,
+}: {
+  children: ReactNode;
+  initialAccess?: PageAccessContext;
+}) {
   const existing = useContext(WorkspaceContext);
   if (existing) {
     return <>{children}</>;
   }
-  return <WorkspaceProviderRoot>{children}</WorkspaceProviderRoot>;
+  return (
+    <WorkspaceProviderRoot initialAccess={initialAccess}>
+      {children}
+    </WorkspaceProviderRoot>
+  );
 }
 
-function WorkspaceProviderRoot({ children }: { children: ReactNode }) {
+function WorkspaceProviderRoot({
+  children,
+  initialAccess,
+}: {
+  children: ReactNode;
+  initialAccess?: PageAccessContext;
+}) {
   const pathname = usePathname();
   const isPublicAuthRoute = pathname === '/login' || pathname === '/bootstrap';
+  const initialIsGuest = initialAccess ? initialAccess.mode === 'guest' : true;
+  if (typeof window !== 'undefined') {
+    setClientAccessMode(initialIsGuest ? 'guest' : 'team');
+  }
+
+  const [isGuest, setIsGuest] = useState<boolean>(initialIsGuest);
+  const [userDisplayName, setUserDisplayName] = useState<string>(
+    initialAccess?.displayName ?? 'Guest',
+  );
+  const [guestQuota, setGuestQuota] = useState<GuestQuotaSnapshot | null>(() =>
+    getLatestGuestQuota(),
+  );
+
   const [projects, setProjects] = useState<Project[]>([]);
   const [projectsLoaded, setProjectsLoaded] = useState(false);
   const [projectsError, setProjectsError] = useState<string | null>(null);
@@ -112,11 +170,40 @@ function WorkspaceProviderRoot({ children }: { children: ReactNode }) {
   const [researchRun, setResearchRun] = useState<ResearchRun | null>(null);
   const [globalSearch, setGlobalSearch] = useState('');
   const [newProjectOpen, setNewProjectOpen] = useState(false);
-  const [researchDialog, setResearchDialog] = useState<{ open: boolean; targetId?: string }>({ open: false });
+  const [researchDialog, setResearchDialog] = useState<{
+    open: boolean;
+    targetId?: string;
+  }>({ open: false });
+
   const activeIdRef = useRef<string | null>(null);
   const bundleRef = useRef<ProjectBundle | null>(null);
   const pollRef = useRef<number | null>(null);
   const initializedRef = useRef(false);
+  const lastModeRef = useRef<boolean>(initialIsGuest);
+
+  useEffect(() => {
+    return subscribeGuestQuota((updated) => {
+      setGuestQuota(updated);
+    });
+  }, []);
+
+  const refreshQuota = useCallback(async () => {
+    try {
+      const info = await refreshGuestSessionAndQuota();
+      const nextIsGuest = !info.authenticated;
+      setIsGuest(nextIsGuest);
+      setUserDisplayName(info.displayName);
+      if (info.quota) {
+        setGuestQuota(info.quota);
+      }
+      if (lastModeRef.current !== nextIsGuest) {
+        lastModeRef.current = nextIsGuest;
+        initializedRef.current = false;
+      }
+    } catch {
+      // Ignore transient quota fetch error
+    }
+  }, []);
 
   const refreshProjects = useCallback(async () => {
     try {
@@ -132,49 +219,55 @@ function WorkspaceProviderRoot({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const loadBundle = useCallback(async (projectId: string) => {
-    try {
-      const [detail, personalization] = await Promise.all([
-        fetchJson<{ project: ProjectMemory; research?: ResearchEntry[]; research_summary: ResearchReviewSummary }>(`/api/projects/${projectId}`),
-        fetchJson<{ items?: PersonalizationEntry[]; settings?: PersonalizationSettings }>(`/api/projects/${projectId}/personalization`).catch(() => null),
-      ]);
-      if (activeIdRef.current !== projectId) return;
-      const nextBundle: ProjectBundle = {
-        projectId,
-        project: detail.project,
-        research: detail.research ?? [],
-        summary: detail.research_summary,
-        drafts: personalization?.items ?? [],
-        settings: personalization?.settings ?? null,
-      };
-      bundleRef.current = nextBundle;
-      setBundle(nextBundle);
-      setBundleError(null);
-    } catch (error) {
-      if (activeIdRef.current !== projectId) return;
-      const message = (error as Error).message;
-      // If a remembered project ID no longer exists (e.g. after switching between DB and local fallback),
-      // automatically recover to the first available project instead of stranding the user.
-      if (message.toLowerCase().includes('not found')) {
-        const list = await refreshProjects();
-        const fallback = list.find((p) => p.id !== projectId) ?? list[0];
-        if (fallback && fallback.id !== projectId) {
-          activeIdRef.current = fallback.id;
-          setBundleError(null);
-          setActiveIdState(fallback.id);
-          try {
-            window.localStorage.setItem(ACTIVE_PROJECT_KEY, fallback.id);
-          } catch {}
-          void loadBundle(fallback.id);
-          return;
+  const loadBundle = useCallback(
+    async (projectId: string) => {
+      try {
+        const [detail, personalization] = await Promise.all([
+          fetchJson<{
+            project: ProjectMemory;
+            research?: ResearchEntry[];
+            research_summary: ResearchReviewSummary;
+          }>(`/api/projects/${projectId}`),
+          fetchJson<{
+            items?: PersonalizationEntry[];
+            settings?: PersonalizationSettings;
+          }>(`/api/projects/${projectId}/personalization`).catch(() => null),
+        ]);
+        if (activeIdRef.current !== projectId) return;
+        const nextBundle: ProjectBundle = {
+          projectId,
+          project: detail.project,
+          research: detail.research ?? [],
+          summary: detail.research_summary,
+          drafts: personalization?.items ?? [],
+          settings: personalization?.settings ?? null,
+        };
+        bundleRef.current = nextBundle;
+        setBundle(nextBundle);
+        setBundleError(null);
+      } catch (error) {
+        if (activeIdRef.current !== projectId) return;
+        const message = (error as Error).message;
+        if (message.toLowerCase().includes('not found')) {
+          const list = await refreshProjects();
+          const fallback = list.find((p) => p.id !== projectId) ?? list[0];
+          if (fallback && fallback.id !== projectId) {
+            activeIdRef.current = fallback.id;
+            setBundleError(null);
+            setActiveIdState(fallback.id);
+            try {
+              window.localStorage.setItem(ACTIVE_PROJECT_KEY, fallback.id);
+            } catch {}
+            void loadBundle(fallback.id);
+            return;
+          }
         }
+        setBundleError(message);
       }
-      setBundleError(message);
-    }
-  }, [refreshProjects]);
+    },
+    [refreshProjects],
+  );
 
-  // Initial project list + active project (URL ?project= wins, then the remembered project, then the first).
-  // Fire loadBundle in parallel if a remembered/requested project ID is available to eliminate waterfall latency.
   useEffect(() => {
     if (isPublicAuthRoute) {
       initializedRef.current = false;
@@ -190,17 +283,11 @@ function WorkspaceProviderRoot({ children }: { children: ReactNode }) {
     } catch {
       remembered = null;
     }
-    const eagerCandidate = requested || remembered;
 
     void (async () => {
-      await Promise.resolve();
+      await refreshQuota();
       setProjectsError(null);
       setBundleError(null);
-      if (eagerCandidate) {
-        activeIdRef.current = eagerCandidate;
-        setActiveIdState(eagerCandidate);
-        void loadBundle(eagerCandidate);
-      }
 
       const list = await refreshProjects();
       if (!list.length) {
@@ -210,17 +297,19 @@ function WorkspaceProviderRoot({ children }: { children: ReactNode }) {
         setBundle(null);
         return;
       }
-      const chosen = [requested, remembered].find((id) => id && list.some((project) => project.id === id)) ?? list[0]!.id;
-      if (chosen !== activeIdRef.current) {
-        activeIdRef.current = chosen;
-        setBundleError(null);
-        setActiveIdState(chosen);
-        try {
-          window.localStorage.setItem(ACTIVE_PROJECT_KEY, chosen);
-        } catch {}
-      }
+      const chosen =
+        [requested, remembered].find(
+          (id) => id && list.some((project) => project.id === id),
+        ) ?? list[0]!.id;
+      activeIdRef.current = chosen;
+      setBundleError(null);
+      setActiveIdState(chosen);
+      try {
+        window.localStorage.setItem(ACTIVE_PROJECT_KEY, chosen);
+      } catch {}
+      void loadBundle(chosen);
     })();
-  }, [isPublicAuthRoute, refreshProjects, loadBundle]);
+  }, [isPublicAuthRoute, refreshQuota, refreshProjects, loadBundle, isGuest]);
 
   useEffect(() => {
     if (!activeId || isPublicAuthRoute) return;
@@ -261,32 +350,44 @@ function WorkspaceProviderRoot({ children }: { children: ReactNode }) {
       if (!current || current.projectId !== entry.project_id) return current;
       const exists = current.drafts.some((draft) => draft.record_id === entry.record_id);
       const merged = (draft: PersonalizationEntry) =>
-        draft.record_id === entry.record_id ? { ...entry, candidate_contacts: entry.candidate_contacts ?? draft.candidate_contacts, strategy: entry.strategy ?? draft.strategy } : draft;
-      return { ...current, drafts: exists ? current.drafts.map(merged) : [...current.drafts, entry] };
+        draft.record_id === entry.record_id
+          ? {
+              ...entry,
+              candidate_contacts: entry.candidate_contacts ?? draft.candidate_contacts,
+              strategy: entry.strategy ?? draft.strategy,
+            }
+          : draft;
+      return {
+        ...current,
+        drafts: exists ? current.drafts.map(merged) : [...current.drafts, entry],
+      };
     });
   }, []);
 
-  const updateResearchReview = useCallback((recordId: string, status: ReviewStatus, note: string | null) => {
-    setBundle((current) => {
-      if (!current) return current;
-      const nextResearch = current.research.map((entry) => {
-        if (entry.record.record_id !== recordId) return entry;
-        return {
-          ...entry,
-          review: {
-            project_id: current.projectId,
-            record_id: recordId,
-            status,
-            note,
-            reviewed_at: new Date().toISOString(),
-            reviewed_by: entry.review?.reviewed_by ?? 'user',
-          },
-        };
+  const updateResearchReview = useCallback(
+    (recordId: string, status: ReviewStatus, note: string | null) => {
+      setBundle((current) => {
+        if (!current) return current;
+        const nextResearch = current.research.map((entry) => {
+          if (entry.record.record_id !== recordId) return entry;
+          return {
+            ...entry,
+            review: {
+              project_id: current.projectId,
+              record_id: recordId,
+              status,
+              note,
+              reviewed_at: new Date().toISOString(),
+              reviewed_by: entry.review?.reviewed_by ?? 'user',
+            },
+          };
+        });
+        const nextSummary = summarizeResearch(nextResearch);
+        return { ...current, research: nextResearch, summary: nextSummary };
       });
-      const nextSummary = summarizeResearch(nextResearch);
-      return { ...current, research: nextResearch, summary: nextSummary };
-    });
-  }, []);
+    },
+    [],
+  );
 
   const setSettings = useCallback((settings: PersonalizationSettings) => {
     setBundle((current) => (current ? { ...current, settings } : current));
@@ -294,12 +395,17 @@ function WorkspaceProviderRoot({ children }: { children: ReactNode }) {
 
   const deleteProject = useCallback(
     async (id: string): Promise<boolean> => {
-      const response = await authenticatedFetch(`/api/projects?id=${encodeURIComponent(id)}`, {
-        method: 'DELETE',
-      });
+      const response = await authenticatedFetch(
+        `/api/projects?id=${encodeURIComponent(id)}`,
+        {
+          method: 'DELETE',
+        },
+      );
       const data = await response.json().catch(() => null);
       if (!response.ok) {
-        throw new Error((data && data.error) || `Failed to delete project (${response.status}).`);
+        throw new Error(
+          (data && data.error) || `Failed to delete project (${response.status}).`,
+        );
       }
 
       setProjects((currentProjects) => {
@@ -327,6 +433,42 @@ function WorkspaceProviderRoot({ children }: { children: ReactNode }) {
     [setActiveId, refreshProjects],
   );
 
+  const resetGuestWorkspace = useCallback(async () => {
+    await clearAllGuestProjects();
+    activeIdRef.current = null;
+    bundleRef.current = null;
+    setActiveIdState(null);
+    setBundle(null);
+    setProjects([]);
+    try {
+      window.localStorage.removeItem(ACTIVE_PROJECT_KEY);
+    } catch {}
+  }, []);
+
+  const signOutTeamSession = useCallback(async () => {
+    await authenticatedFetch('/api/v1/auth/session', { method: 'DELETE' }).catch(
+      () => undefined,
+    );
+    setClientAccessMode('guest');
+    setIsGuest(true);
+    setUserDisplayName('Guest');
+    activeIdRef.current = null;
+    bundleRef.current = null;
+    setActiveIdState(null);
+    setBundle(null);
+    try {
+      window.localStorage.removeItem(ACTIVE_PROJECT_KEY);
+    } catch {}
+    await refreshQuota();
+    const guestList = await refreshProjects();
+    if (guestList.length > 0) {
+      const firstId = guestList[0]!.id;
+      activeIdRef.current = firstId;
+      setActiveIdState(firstId);
+      void loadBundle(firstId);
+    }
+  }, [loadBundle, refreshProjects, refreshQuota]);
+
   /* ---------------------------- research runs ---------------------------- */
 
   const clearPoll = () => {
@@ -341,7 +483,11 @@ function WorkspaceProviderRoot({ children }: { children: ReactNode }) {
   const finishRun = useCallback(
     (projectId: string, status: ResearchRun['status'], message: string) => {
       clearPoll();
-      setResearchRun((current) => (current && current.projectId === projectId ? { ...current, status, message, taskId: null } : current));
+      setResearchRun((current) =>
+        current && current.projectId === projectId
+          ? { ...current, status, message, taskId: null }
+          : current,
+      );
       if (activeIdRef.current === projectId) void loadBundle(projectId);
       void refreshProjects();
     },
@@ -350,50 +496,101 @@ function WorkspaceProviderRoot({ children }: { children: ReactNode }) {
 
   const startResearch = useCallback(
     async (input: StartResearchInput) => {
-      const { targetId, targetLabel, count, name, force, notes, organisation, role, website } = input;
+      const {
+        targetId,
+        targetLabel,
+        count,
+        name,
+        force,
+        notes,
+        organisation,
+        role,
+        website,
+      } = input;
       const projectId = activeIdRef.current;
       if (!projectId) return;
       clearPoll();
-      const label = name?.trim() ? `Researching ${name.trim()}` : `Finding up to ${count} ${targetLabel}`;
-      setResearchRun({ projectId, label, status: 'running', message: 'Starting the Research agent…', taskId: null, startedAt: Date.now() });
+      const label = name?.trim()
+        ? `Researching ${name.trim()}`
+        : `Finding up to ${count} ${targetLabel}`;
+      setResearchRun({
+        projectId,
+        label,
+        status: 'running',
+        message: 'Starting the Research agent…',
+        taskId: null,
+        startedAt: Date.now(),
+      });
 
-      // Several prospects without a specific name run as a background batch.
-      if (!name?.trim() && count > 1) {
-        const response = await authenticatedFetch(`/api/projects/${projectId}/batch-research`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Idempotency-Key': crypto.randomUUID() },
-          body: JSON.stringify({ target_id: targetId, count }),
-        });
+      const isGuestProject = isGuest || projectId.startsWith('guest-');
+
+      // Several prospects without a specific name run as a background batch for team projects.
+      if (!isGuestProject && !name?.trim() && count > 1) {
+        const response = await authenticatedFetch(
+          `/api/projects/${projectId}/batch-research`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Idempotency-Key': crypto.randomUUID(),
+            },
+            body: JSON.stringify({ target_id: targetId, count }),
+          },
+        );
         const data = await response.json().catch(() => ({}));
         if (!response.ok || !data.taskId) {
-          finishRun(projectId, 'failed', data.error || 'The research run could not be started.');
+          finishRun(
+            projectId,
+            'failed',
+            data.error || 'The research run could not be started.',
+          );
           return;
         }
         const taskId = String(data.taskId);
         let lastCompleted = 0;
         let pollInFlight = false;
-        setResearchRun((current) => (current ? { ...current, taskId, message: 'Searching for matching prospects…' } : current));
+        setResearchRun((current) =>
+          current
+            ? { ...current, taskId, message: 'Searching for matching prospects…' }
+            : current,
+        );
         pollRef.current = window.setInterval(async () => {
           if (pollInFlight) return;
           pollInFlight = true;
           try {
-            const statusResponse = await authenticatedFetch(`/api/projects/${projectId}/batch-research?taskId=${encodeURIComponent(taskId)}`);
+            const statusResponse = await authenticatedFetch(
+              `/api/projects/${projectId}/batch-research?taskId=${encodeURIComponent(taskId)}`,
+            );
             if (statusResponse.status === 404) {
-              finishRun(projectId, 'failed', 'The research run could not be found. Refresh and try again.');
+              finishRun(
+                projectId,
+                'failed',
+                'The research run could not be found. Refresh and try again.',
+              );
               return;
             }
             if (!statusResponse.ok) return;
             const status = await statusResponse.json();
-            const completedNow = typeof status.completed === 'number' ? status.completed : 0;
-            const message = status.message || `Saved ${completedNow} of ${status.total ?? count} prospects.`;
-            if (status.status === 'completed' || status.status === 'completed_with_errors') {
+            const completedNow =
+              typeof status.completed === 'number' ? status.completed : 0;
+            const message =
+              status.message ||
+              `Saved ${completedNow} of ${status.total ?? count} prospects.`;
+            if (
+              status.status === 'completed' ||
+              status.status === 'completed_with_errors'
+            ) {
               finishRun(projectId, 'completed', message);
             } else if (status.status === 'error') {
               finishRun(projectId, 'failed', message);
             } else if (status.status === 'cancelled') {
               finishRun(projectId, 'cancelled', message);
             } else {
-              setResearchRun((current) => (current && current.taskId === taskId ? { ...current, message } : current));
+              setResearchRun((current) =>
+                current && current.taskId === taskId
+                  ? { ...current, message }
+                  : current,
+              );
               if (completedNow > lastCompleted) {
                 lastCompleted = completedNow;
                 if (activeIdRef.current === projectId) void loadBundle(projectId);
@@ -409,31 +606,40 @@ function WorkspaceProviderRoot({ children }: { children: ReactNode }) {
         return;
       }
 
-      // One prospect (named or auto-discovered) streams progress as NDJSON.
+      // One prospect (or 1..5 prospects in guest mode) streams progress as NDJSON.
       try {
-        const response = await authenticatedFetch(`/api/projects/${projectId}/research`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: name?.trim() ?? '',
-            target_id: targetId,
-            entity_kind: 'unknown',
-            force: force ?? Boolean(name?.trim()),
-            notes: notes?.trim() || undefined,
-            organisation: organisation?.trim() || undefined,
-            role: role?.trim() || undefined,
-            website: website?.trim() || undefined,
-          }),
-        });
+        const response = await authenticatedFetch(
+          `/api/projects/${projectId}/research`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: name?.trim() ?? '',
+              target_id: targetId,
+              count: name?.trim() ? 1 : count,
+              entity_kind: 'unknown',
+              force: force ?? Boolean(name?.trim()),
+              notes: notes?.trim() || undefined,
+              organisation: organisation?.trim() || undefined,
+              role: role?.trim() || undefined,
+              website: website?.trim() || undefined,
+            }),
+          },
+        );
         if (!response.ok || !response.body) {
           const data = await response.json().catch(() => ({}));
-          finishRun(projectId, 'failed', data.error || `Research request failed (${response.status}).`);
+          finishRun(
+            projectId,
+            'failed',
+            data.error || `Research request failed (${response.status}).`,
+          );
           return;
         }
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let buffer = '';
         let finished = false;
+        let savedInRun = 0;
         while (!finished) {
           const { done, value } = await reader.read();
           if (done) break;
@@ -445,13 +651,50 @@ function WorkspaceProviderRoot({ children }: { children: ReactNode }) {
             try {
               const event = JSON.parse(line);
               if (event.type === 'progress') {
-                setResearchRun((current) => (current && current.projectId === projectId ? { ...current, message: event.message } : current));
+                setResearchRun((current) =>
+                  current && current.projectId === projectId
+                    ? { ...current, message: event.message }
+                    : current,
+                );
               } else if (event.type === 'result') {
-                const found = event.entry?.record?.identity?.name || event.entry?.seed?.name || 'The new prospect';
-                finishRun(projectId, 'completed', `${found} is ready for your review.`);
+                savedInRun += 1;
+                const found =
+                  event.entry?.record?.identity?.name ||
+                  event.entry?.seed?.name ||
+                  'The new prospect';
+                if (count <= 1 || name?.trim()) {
+                  finishRun(
+                    projectId,
+                    'completed',
+                    `${found} is ready for your review.`,
+                  );
+                  finished = true;
+                } else {
+                  setResearchRun((current) =>
+                    current && current.projectId === projectId
+                      ? {
+                          ...current,
+                          message: `Saved ${savedInRun} of ${count}: ${found}`,
+                        }
+                      : current,
+                  );
+                  if (activeIdRef.current === projectId) void loadBundle(projectId);
+                  void refreshProjects();
+                }
+              } else if (event.type === 'batch_complete') {
+                finishRun(
+                  projectId,
+                  'completed',
+                  event.message ||
+                    `Saved ${event.count ?? savedInRun} prospect(s) for review.`,
+                );
                 finished = true;
               } else if (event.type === 'error') {
-                finishRun(projectId, 'failed', event.error || 'Research failed.');
+                finishRun(
+                  projectId,
+                  'failed',
+                  event.error || 'Research failed.',
+                );
                 finished = true;
               }
             } catch {
@@ -459,12 +702,18 @@ function WorkspaceProviderRoot({ children }: { children: ReactNode }) {
             }
           }
         }
-        if (!finished) finishRun(projectId, 'completed', 'Research finished.');
+        if (!finished) {
+          finishRun(projectId, 'completed', 'Research finished.');
+        }
       } catch (error) {
-        finishRun(projectId, 'failed', (error as Error).message || 'Research failed.');
+        finishRun(
+          projectId,
+          'failed',
+          (error as Error).message || 'Research failed.',
+        );
       }
     },
-    [finishRun, loadBundle, refreshProjects],
+    [finishRun, isGuest, loadBundle, refreshProjects],
   );
 
   const stopResearch = useCallback(async () => {
@@ -503,7 +752,10 @@ function WorkspaceProviderRoot({ children }: { children: ReactNode }) {
       deleteProject,
       bundle: bundle && bundle.projectId === activeId ? bundle : null,
       bundleError,
-      loading: Boolean(activeId) && (!bundle || bundle.projectId !== activeId) && !bundleError,
+      loading:
+        Boolean(activeId) &&
+        (!bundle || bundle.projectId !== activeId) &&
+        !bundleError,
       reload,
       refreshProjects,
       updateDraft,
@@ -519,10 +771,44 @@ function WorkspaceProviderRoot({ children }: { children: ReactNode }) {
       openNewProject: () => setNewProjectOpen(true),
       closeNewProject: () => setNewProjectOpen(false),
       researchDialog,
-      openResearch: (targetId?: string) => setResearchDialog({ open: true, targetId }),
+      openResearch: (targetId?: string) =>
+        setResearchDialog({ open: true, targetId }),
       closeResearch: () => setResearchDialog({ open: false }),
+      isGuest,
+      userDisplayName,
+      guestQuota,
+      refreshQuota,
+      resetGuestWorkspace,
+      signOutTeamSession,
     }),
-    [projects, projectsLoaded, projectsError, activeId, setActiveId, deleteProject, bundle, bundleError, reload, refreshProjects, updateDraft, updateResearchReview, setSettings, researchRun, startResearch, stopResearch, dismissResearchRun, globalSearch, newProjectOpen, researchDialog],
+    [
+      projects,
+      projectsLoaded,
+      projectsError,
+      activeId,
+      setActiveId,
+      deleteProject,
+      bundle,
+      bundleError,
+      reload,
+      refreshProjects,
+      updateDraft,
+      updateResearchReview,
+      setSettings,
+      researchRun,
+      startResearch,
+      stopResearch,
+      dismissResearchRun,
+      globalSearch,
+      newProjectOpen,
+      researchDialog,
+      isGuest,
+      userDisplayName,
+      guestQuota,
+      refreshQuota,
+      resetGuestWorkspace,
+      signOutTeamSession,
+    ],
   );
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;

@@ -1,70 +1,55 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getAccessConfiguration, isLoopbackHostname } from '@/auth/access-config';
-import { getAuthConfiguration } from '@/auth/config';
-import { getAuthCookieConfiguration } from '@/auth/cookies';
+import { NextResponse, type NextRequest } from 'next/server';
+import { getAccessConfiguration, isLoopbackHostname } from './auth/access-config';
+import { getRequestCookie } from './auth/cookies';
+import { problemResponse } from './auth/http';
 
-const PATH_HEADER = 'x-marcom-pathname';
 const PUBLIC_PATHS = new Set([
   '/login',
   '/bootstrap',
   '/api/v1/auth/session',
   '/api/internal/v1/auth/bootstrap',
   '/api/integrations/notion/callback',
+  '/api/v1/guest/quota',
+  '/api/v1/guest/research',
+  '/api/v1/guest/personalization',
+  '/api/extract',
+  '/api/analyze',
 ]);
 
-function unavailable(): NextResponse {
-  return NextResponse.json(
-    {
-      type: 'https://marcom.internal/problems/access-gate-unavailable',
-      title: 'Service unavailable',
-      status: 503,
-      detail: 'The access gate is not configured.',
-    },
-    { status: 503, headers: { 'Cache-Control': 'no-store', 'Content-Type': 'application/problem+json' } },
+function isPublicPath(pathname: string): boolean {
+  if (PUBLIC_PATHS.has(pathname)) return true;
+  if (pathname.startsWith('/_next/')) return true;
+  if (pathname === '/favicon.ico') return true;
+  if (!pathname.startsWith('/api/')) return true;
+  return false;
+}
+
+function hasSessionCookie(request: NextRequest): boolean {
+  return Boolean(
+    getRequestCookie(request, '__Host-marcom_session') ??
+    getRequestCookie(request, 'marcom_session'),
   );
 }
 
 export function proxy(request: NextRequest): NextResponse {
-  const pathname = request.nextUrl.pathname;
-  const requestHeaders = new Headers(request.headers);
-  requestHeaders.set(PATH_HEADER, pathname);
+  const { pathname } = request.nextUrl;
+  if (isPublicPath(pathname)) return NextResponse.next();
 
-  try {
-    const access = getAccessConfiguration();
-    if (access.mode === 'local') {
-      if (!isLoopbackHostname(request.nextUrl.hostname)) return unavailable();
-      return NextResponse.next({ request: { headers: requestHeaders } });
-    }
-
-    if (PUBLIC_PATHS.has(pathname)) {
-      return NextResponse.next({ request: { headers: requestHeaders } });
-    }
-
-    const auth = getAuthConfiguration();
-    const cookieNames = getAuthCookieConfiguration(auth.secureCookies);
-    if (!request.cookies.get(cookieNames.sessionName)?.value) {
-      if (pathname.startsWith('/api/')) {
-        return NextResponse.json(
-          {
-            type: 'https://marcom.internal/problems/authentication-required',
-            title: 'Authentication required',
-            status: 401,
-            detail: 'A valid session is required.',
-          },
-          { status: 401, headers: { 'Cache-Control': 'no-store', 'Content-Type': 'application/problem+json' } },
-        );
-      }
-      const loginUrl = new URL('/login', request.url);
-      loginUrl.searchParams.set('returnTo', `${pathname}${request.nextUrl.search}`);
-      return NextResponse.redirect(loginUrl);
-    }
-
-    return NextResponse.next({ request: { headers: requestHeaders } });
-  } catch {
-    return unavailable();
+  const access = getAccessConfiguration();
+  if (access.mode === 'local') {
+    if (isLoopbackHostname(request.nextUrl.hostname)) return NextResponse.next();
+  } else if (hasSessionCookie(request)) {
+    return NextResponse.next();
   }
+
+  return problemResponse({
+    type: 'https://marcom.internal/problems/authentication-required',
+    title: 'Authentication required',
+    status: 401,
+    detail: 'A valid session is required.',
+  });
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|\\.well-known/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
 };

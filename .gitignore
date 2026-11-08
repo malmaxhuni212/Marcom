@@ -53,6 +53,7 @@ share-config-details.txt
 /memory/integrations/*.json
 !/memory/personalization/*-settings.json
 /memory/*-original.json
+/memory/guest-quotas.json
 /storage/
 
 #person docs

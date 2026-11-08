@@ -1,7 +1,9 @@
 'use client';
 
 import { FormEvent, useState } from 'react';
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { setClientAccessMode } from '@/auth/client';
 
 function safeReturnTo(value: string | null): string {
   return value && value.startsWith('/') && !value.startsWith('//') ? value : '/';
@@ -37,6 +39,7 @@ export default function LoginPage() {
         }
         return;
       }
+      setClientAccessMode('team');
       router.replace(safeReturnTo(searchParams.get('returnTo')));
       router.refresh();
     } catch {
@@ -49,9 +52,19 @@ export default function LoginPage() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#08080c] px-6 py-12 text-white">
       <section className="w-full max-w-md rounded-3xl border border-white/10 bg-[#11131b] p-8 shadow-2xl">
-        <p className="text-sm font-semibold uppercase tracking-[0.28em] text-cyan-300">MARCOM</p>
-        <h1 className="mt-4 text-3xl font-semibold">Team access</h1>
-        <p className="mt-2 text-sm leading-6 text-white/60">Sign in with the shared pilot credentials provided by the project administrator.</p>
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-sm font-semibold uppercase tracking-[0.28em] text-cyan-300">MARCOM</p>
+          <Link
+            href="/"
+            className="text-xs font-semibold text-cyan-300 transition hover:text-cyan-200 hover:underline"
+          >
+            ← Continue as Guest
+          </Link>
+        </div>
+        <h1 className="mt-4 text-3xl font-semibold">Team Login</h1>
+        <p className="mt-2 text-sm leading-6 text-white/60">
+          Sign in with authorised internal team credentials to access private team projects and leads.
+        </p>
 
         <form className="mt-8 space-y-5" onSubmit={submit}>
           <div>
