@@ -197,7 +197,7 @@ export default function PlatformWorkflowVisualizer({
           <div>
             <div className="text-xs font-semibold text-[#F1F2F4]">Saved Only on This Device</div>
             <div className="mt-0.5 text-[11.5px] text-[#8A909C]">
-              In Guest Mode, your temporary projects, leads, and drafts stay isolated and saved only on this device in your browser&apos;s IndexedDB.
+              In Guest Mode, your projects, leads, and drafts stay isolated and saved only on this device in your browser&apos;s IndexedDB.
             </div>
           </div>
         </div>

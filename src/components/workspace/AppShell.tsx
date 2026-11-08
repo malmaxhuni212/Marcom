@@ -502,7 +502,7 @@ function GuestUsageMenu() {
           </div>
 
           <div className="mt-3.5 rounded-xl border border-[#232832] bg-[#101319] p-3 text-[11.5px] leading-relaxed text-[#9BA1AE]">
-            <strong className="text-[#F1F2F4]">Device-specific storage:</strong> Your temporary guest projects ({projects.length}) are saved only on this device in this browser using IndexedDB and are never added to the internal team database.
+            <strong className="text-[#F1F2F4]">Device-specific storage:</strong> Your guest projects ({projects.length}) are saved only on this device in this browser using IndexedDB and are never added to the internal team database.
           </div>
 
           {projects.length > 0 && (
@@ -851,7 +851,7 @@ export function ProjectGate({ children }: { children: ReactNode }) {
                 )}
               </div>
               <h1 className="m-0 font-serif text-[32px] sm:text-[36px] font-semibold leading-tight text-[#F1F2F4]">
-                {isGuest ? 'Create your temporary MARCOM project' : 'Create your first project'}
+                {isGuest ? 'Create your MARCOM project' : 'Create your first project'}
               </h1>
               <p className="m-0 max-w-xl text-[14.5px] leading-relaxed text-[#A7ADB8]">
                 Tell MARCOM what you&apos;re working on. Upload or paste your brief, use the Brief Analyzer to configure target lead categories, research prospects with the Research Agent, and generate personalised outreach messages.
