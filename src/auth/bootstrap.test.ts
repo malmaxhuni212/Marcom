@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import crypto from 'node:crypto';
 import test from 'node:test';
 import {
   BOOTSTRAP_TOKEN_HEADER,
@@ -6,7 +7,7 @@ import {
   verifyBootstrapSecret,
 } from './bootstrap';
 
-const SECRET = 'bootstrap-test-secret-with-at-least-32-bytes';
+const SECRET = `bootstrap-test-secret-${crypto.randomBytes(16).toString('hex')}`;
 
 test('AUTH-001 enables bootstrap only in shared mode with a strong secret', () => {
   assert.deepEqual(

@@ -1,0 +1,6 @@
+[build]
+  command = "npm run build"
+
+[build.environment]
+  SECRETS_SCAN_OMIT_KEYS = "APP_ACCESS_MODE,APP_ORIGIN,AUTH_BOOTSTRAP_SECRET"
+  SECRETS_SCAN_OMIT_PATHS = ".next/**"
