@@ -108,16 +108,7 @@ export default function PlatformWorkflowVisualizer({
           </p>
         </div>
 
-        {onGetStarted && (
-          <button
-            type="button"
-            onClick={onGetStarted}
-            className="inline-flex h-11 items-center gap-2 rounded-xl bg-[#F1F2F4] px-5 text-sm font-semibold text-[#0E1014] transition hover:bg-white"
-          >
-            <Icon name="plus" size={16} stroke={2.2} />
-            Start with your brief
-          </button>
-        )}
+        
       </div>
 
       {/* Workflow Step Grid with connection indicators */}
