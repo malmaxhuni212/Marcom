@@ -7,11 +7,18 @@ import { entriesForTarget } from './format';
 
 /** "Find more prospects" — runs the Research agent with the saved campaign configuration. */
 export default function ResearchDialog() {
-  const { bundle, researchDialog, closeResearch, startResearch, researchRun } = useWorkspace();
+  const { bundle, researchDialog, closeResearch, startResearch, researchRun, isGuest, guestQuota } = useWorkspace();
   const targets = bundle?.project.structured_brief?.targets ?? [];
   const defaultLimit = bundle?.project.structured_brief?.research.search_settings?.default_result_limit ?? 10;
+
+  const guestRemaining = guestQuota?.research.effectiveRemaining ?? 5;
+  const maxAllowed = isGuest ? Math.max(1, Math.min(5, guestRemaining)) : 25;
+  const initialCount = isGuest
+    ? Math.min(maxAllowed, 3)
+    : Math.min(25, Math.max(1, defaultLimit));
+
   const [targetId, setTargetId] = useState(researchDialog.targetId ?? targets[0]?.id ?? '');
-  const [count, setCount] = useState(Math.min(25, Math.max(1, defaultLimit)));
+  const [count, setCount] = useState(initialCount);
   const [name, setName] = useState('');
 
   if (!researchDialog.open || !bundle) return null;
@@ -19,10 +26,17 @@ export default function ResearchDialog() {
   const running = researchRun?.status === 'running';
   const selected = targets.find((target) => target.id === targetId) ?? targets[0];
   const projectName = bundle.project.name;
+  const quotaExhausted = Boolean(isGuest && guestQuota?.research.isExhausted);
+  const effectiveCount = Math.min(count, maxAllowed);
 
   const submit = () => {
-    if (!selected || running) return;
-    void startResearch({ targetId: selected.id, targetLabel: selected.target_type, count, name: name.trim() || undefined });
+    if (!selected || running || quotaExhausted) return;
+    void startResearch({
+      targetId: selected.id,
+      targetLabel: selected.target_type,
+      count: name.trim() ? 1 : effectiveCount,
+      name: name.trim() || undefined,
+    });
     closeResearch();
   };
 
@@ -39,6 +53,31 @@ export default function ResearchDialog() {
       </div>
 
       <div className="flex flex-col gap-5 px-7 pb-6 pt-5">
+        {isGuest && (
+          <div
+            className={`rounded-2xl border p-3.5 text-xs ${
+              quotaExhausted
+                ? 'border-[#5A3A38] bg-[#1C1517] text-[#F7B1AA]'
+                : 'border-[#2E6B75]/60 bg-[#12313A]/40 text-[#B5D9DE]'
+            }`}
+          >
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="font-semibold text-[#F1F2F4]">
+                Guest Research Credits: {guestRemaining} remaining
+              </span>
+              <span className="text-[#9BA1AE]">
+                Today: <strong className="text-[#F1F2F4]">{guestQuota?.research.dailyUsed ?? 0}/5</strong> · This month:{' '}
+                <strong className="text-[#F1F2F4]">{guestQuota?.research.monthlyUsed ?? 0}/15</strong>
+              </span>
+            </div>
+            {quotaExhausted && guestQuota?.research.exhaustedReason && (
+              <p className="m-0 mt-1.5 font-medium text-[#F28B82]">
+                {guestQuota.research.exhaustedReason}
+              </p>
+            )}
+          </div>
+        )}
+
         {targets.length === 0 ? (
           <p className="rounded-2xl border border-[#4A3B17] bg-[#231D10] p-4 text-sm text-[#E5D3A8]">
             This project has no target audiences yet. Edit the campaign configuration to add one before running research.
@@ -74,12 +113,18 @@ export default function ResearchDialog() {
           <div className="flex items-center justify-between rounded-[14px] border border-[#2A2F39] bg-[#0E1014] px-3.5 py-3">
             <span className="flex flex-col gap-0.5">
               <span className="text-sm font-semibold text-[#F1F2F4]">How many</span>
-              <span className="text-xs text-[#8A909C]">{name.trim() ? 'One named prospect' : 'Duplicates are skipped'}</span>
+              <span className="text-xs text-[#8A909C]">
+                {name.trim()
+                  ? 'One named prospect'
+                  : isGuest
+                    ? `Up to ${maxAllowed} remaining credit${maxAllowed === 1 ? '' : 's'}`
+                    : 'Duplicates are skipped'}
+              </span>
             </span>
             <span className="flex items-center gap-1">
-              <button type="button" aria-label="Fewer" disabled={Boolean(name.trim()) || count <= 1} onClick={() => setCount((value) => Math.max(1, value - 1))} className="h-9 w-9 rounded-[10px] border border-[#2A2F39] bg-[#171A20] text-lg text-[#F1F2F4] disabled:opacity-40">−</button>
-              <span className="w-9 text-center text-base font-semibold text-[#F1F2F4]">{name.trim() ? 1 : count}</span>
-              <button type="button" aria-label="More" disabled={Boolean(name.trim()) || count >= 25} onClick={() => setCount((value) => Math.min(25, value + 1))} className="h-9 w-9 rounded-[10px] border border-[#2A2F39] bg-[#171A20] text-lg text-[#F1F2F4] disabled:opacity-40">+</button>
+              <button type="button" aria-label="Fewer" disabled={Boolean(name.trim()) || effectiveCount <= 1 || quotaExhausted} onClick={() => setCount((value) => Math.max(1, Math.min(value, maxAllowed) - 1))} className="h-9 w-9 rounded-[10px] border border-[#2A2F39] bg-[#171A20] text-lg text-[#F1F2F4] disabled:opacity-40">−</button>
+              <span className="w-9 text-center text-base font-semibold text-[#F1F2F4]">{name.trim() ? 1 : effectiveCount}</span>
+              <button type="button" aria-label="More" disabled={Boolean(name.trim()) || effectiveCount >= maxAllowed || quotaExhausted} onClick={() => setCount((value) => Math.min(maxAllowed, value + 1))} className="h-9 w-9 rounded-[10px] border border-[#2A2F39] bg-[#171A20] text-lg text-[#F1F2F4] disabled:opacity-40">+</button>
             </span>
           </div>
           <label className="flex flex-col justify-center gap-1 rounded-[14px] border border-[#2A2F39] bg-[#0E1014] px-3.5 py-2.5">
@@ -101,9 +146,9 @@ export default function ResearchDialog() {
           We&apos;ll show the new prospects in Prospects when they&apos;re ready
         </span>
         <button type="button" onClick={closeResearch} className={`${btnSecondary} h-[46px]`}>Cancel</button>
-        <button type="button" onClick={submit} disabled={!selected || running} className={`${btnPrimary} h-[46px]`}>
+        <button type="button" onClick={submit} disabled={!selected || running || quotaExhausted} className={`${btnPrimary} h-[46px]`}>
           <Icon name="search" size={16} stroke={2.2} />
-          Start research
+          {quotaExhausted ? 'Limit reached' : 'Start research'}
         </button>
       </div>
     </Dialog>

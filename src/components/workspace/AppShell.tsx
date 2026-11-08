@@ -3,13 +3,13 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
-import { authenticatedFetch } from '@/auth/client';
 import type { Project } from '@/types';
 import BriefIntakeModal from '@/components/ui/BriefIntakeModal';
 import NotificationBell from '@/components/layout/NotificationBell';
 import ResearchDialog from './ResearchDialog';
 import { useWorkspace, WorkspaceProvider } from './WorkspaceContext';
 import { Icon, ProjectArt, Spinner, btnSecondary } from './ui';
+import PlatformWorkflowVisualizer from './PlatformWorkflowVisualizer';
 import { initials } from './format';
 
 const PRIMARY_NAV = [
@@ -24,7 +24,7 @@ const SECONDARY_NAV = [
 ];
 
 function ProjectSwitcher({ onNavigate }: { onNavigate: () => void }) {
-  const { projects, activeProject, bundle, setActiveId, openNewProject, deleteProject } = useWorkspace();
+  const { projects, activeProject, bundle, setActiveId, openNewProject, deleteProject, isGuest } = useWorkspace();
   const [open, setOpen] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -84,7 +84,7 @@ function ProjectSwitcher({ onNavigate }: { onNavigate: () => void }) {
         >
           <div className="flex items-center justify-between pl-2 pr-0 pb-2.5 pt-1">
             <h2 className="m-0 text-xs font-bold uppercase tracking-[0.1em] text-[#8A909C]">
-              Projects · {projects.length}
+              {isGuest ? 'Guest Projects' : 'Projects'} · {projects.length}
             </h2>
             <button
               type="button"
@@ -191,7 +191,7 @@ function ProjectSwitcher({ onNavigate }: { onNavigate: () => void }) {
                   Delete campaign?
                 </h3>
                 <p className="m-0 text-xs text-[#A7ADB8] leading-relaxed">
-                  Are you sure you want to delete <span className="font-semibold text-[#F1F2F4]">&ldquo;{projectToDelete.name}&rdquo;</span>? This will permanently remove all associated prospects, personalized drafts, and campaign settings.
+                  Are you sure you want to delete <span className="font-semibold text-[#F1F2F4]">&ldquo;{projectToDelete.name}&rdquo;</span>? This will permanently remove all associated prospects, personalized drafts, and campaign settings{isGuest ? ' from this browser' : ''}.
                 </p>
                 {deleteError && (
                   <p className="m-0 mt-2 text-xs text-red-400 font-medium">
@@ -250,7 +250,7 @@ function ProjectSwitcher({ onNavigate }: { onNavigate: () => void }) {
 
 function SidebarNav({ onNavigate }: { onNavigate: () => void }) {
   const pathname = usePathname();
-  const { activeProject, bundle, openNewProject } = useWorkspace();
+  const { activeProject, bundle, openNewProject, isGuest } = useWorkspace();
   const isActive = (href: string) =>
     href === '/'
       ? pathname === '/' || pathname === '/overview'
@@ -268,11 +268,16 @@ function SidebarNav({ onNavigate }: { onNavigate: () => void }) {
 
   return (
     <nav aria-label="Main" className="flex h-full min-h-full w-[256px] flex-col gap-5 bg-[#0B0D10] px-4 pb-5 pt-6 text-[#F1F2F4]">
-      <div className="flex items-center px-1">
+      <div className="flex items-center justify-between px-1">
         <div className="flex items-center gap-2.5">
           <span className="h-2.5 w-2.5 rounded-full bg-[#5ED3DF] shadow-[0_0_8px_#5ED3DF]" />
           <span className="text-[13px] font-bold tracking-[0.28em] text-[#F1F2F4]">MARCOM</span>
         </div>
+        {isGuest && (
+          <span className="rounded-md border border-[#2E6B75] bg-[#12313A] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#5ED3DF]">
+            Guest
+          </span>
+        )}
       </div>
 
       <div className="flex flex-col gap-2">
@@ -294,43 +299,259 @@ function SidebarNav({ onNavigate }: { onNavigate: () => void }) {
         <div className="px-2.5 pb-1 text-[10.5px] font-bold uppercase tracking-[0.12em] text-[#68707E]">
           Workspace
         </div>
-        {PRIMARY_NAV.map((item) => (
-          <Link key={item.href} href={item.href} onClick={onNavigate} className={linkClass(isActive(item.href))}>
-            <Icon name={item.icon} size={18} stroke={1.8} />
-            <span className="flex-1">{item.label}</span>
-            {item.badge && reviewCount > 0 && (
-              <span className="flex h-5 min-w-[22px] items-center justify-center rounded-full bg-[#F2C36B] px-1.5 text-[11px] font-bold text-[#0E1014]">
-                {reviewCount}
-              </span>
-            )}
-          </Link>
-        ))}
+        {PRIMARY_NAV.map((item) => {
+          const isProspects = item.href === '/prospects';
+          const hasResearchedProspects = Boolean(bundle && bundle.research && bundle.research.length > 0);
+          const isLocked = isProspects && !hasResearchedProspects;
+
+          if (isLocked) {
+            return (
+              <div
+                key={item.href}
+                title="Run research first to unlock Prospects"
+                className="flex h-[42px] items-center gap-3 rounded-xl px-3 text-[13.5px] font-medium text-[#4D5360] cursor-not-allowed select-none"
+              >
+                <Icon name={item.icon} size={18} stroke={1.8} />
+                <span className="flex-1">{item.label}</span>
+                <span className="rounded bg-[#171A21] px-1.5 py-0.5 text-[10px] font-semibold text-[#5A6372]">
+                  Research first
+                </span>
+              </div>
+            );
+          }
+
+          return (
+            <Link key={item.href} href={item.href} onClick={onNavigate} className={linkClass(isActive(item.href))}>
+              <Icon name={item.icon} size={18} stroke={1.8} />
+              <span className="flex-1">{item.label}</span>
+              {item.badge && reviewCount > 0 && (
+                <span className="flex h-5 min-w-[22px] items-center justify-center rounded-full bg-[#F2C36B] px-1.5 text-[11px] font-bold text-[#0E1014]">
+                  {reviewCount}
+                </span>
+              )}
+            </Link>
+          );
+        })}
       </div>
 
-      <div className="mx-2 h-px bg-[#181B22]" />
+      {!isGuest && (
+        <>
+          <div className="mx-2 h-px bg-[#181B22]" />
 
-      <div className="flex flex-col gap-1">
-        <div className="px-2.5 pb-1 text-[10.5px] font-bold uppercase tracking-[0.12em] text-[#68707E]">
-          Configuration
+          <div className="flex flex-col gap-1">
+            <div className="px-2.5 pb-1 text-[10.5px] font-bold uppercase tracking-[0.12em] text-[#68707E]">
+              Configuration
+            </div>
+            {SECONDARY_NAV.map((item) => (
+              <Link key={item.href} href={item.href} onClick={onNavigate} className={`${linkClass(isActive(item.href))} !h-10 ${isActive(item.href) ? '' : '!text-[#8A909C]'}`}>
+                <Icon name={item.icon} size={17} stroke={1.8} />
+                {item.label}
+              </Link>
+            ))}
+          </div>
+        </>
+      )}
+
+      {isGuest && (
+        <div className="mt-auto mb-14 rounded-2xl border border-[#232832] bg-[#12151C] p-3.5 text-xs text-[#9BA1AE] shadow-lg">
+          <div className="flex items-center gap-1.5 font-semibold text-[#F1F2F4]">
+            <Icon name="shield" size={14} className="text-[#5ED3DF]" />
+            Saved only on this device
+          </div>
+          <p className="m-0 mt-1 text-[11.5px] leading-relaxed text-[#8A909C]">
+            Guest projects are stored only on this device (in this browser) and will not automatically transfer to another device.
+          </p>
         </div>
-        {SECONDARY_NAV.map((item) => (
-          <Link key={item.href} href={item.href} onClick={onNavigate} className={`${linkClass(isActive(item.href))} !h-10 ${isActive(item.href) ? '' : '!text-[#8A909C]'}`}>
-            <Icon name={item.icon} size={17} stroke={1.8} />
-            {item.label}
-          </Link>
-        ))}
-      </div>
+      )}
     </nav>
   );
 }
 
+function GuestUsageMenu() {
+  const { guestQuota, projects, resetGuestWorkspace } = useWorkspace();
+  const [open, setOpen] = useState(false);
+  const [confirmReset, setConfirmReset] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const close = (event: MouseEvent) => {
+      if (ref.current && !ref.current.contains(event.target as Node)) {
+        setOpen(false);
+        setConfirmReset(false);
+      }
+    };
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, [open]);
+
+  const resDailyUsed = guestQuota?.research.dailyUsed ?? 0;
+  const resDailyLimit = guestQuota?.research.dailyLimit ?? 5;
+  const resMonthlyUsed = guestQuota?.research.monthlyUsed ?? 0;
+  const resMonthlyLimit = guestQuota?.research.monthlyLimit ?? 15;
+  const resRemaining = guestQuota?.research.effectiveRemaining ?? 5;
+
+  const perDailyUsed = guestQuota?.personalization.dailyUsed ?? 0;
+  const perDailyLimit = guestQuota?.personalization.dailyLimit ?? 2;
+  const perMonthlyUsed = guestQuota?.personalization.monthlyUsed ?? 0;
+  const perMonthlyLimit = guestQuota?.personalization.monthlyLimit ?? 5;
+  const perRemaining = guestQuota?.personalization.effectiveRemaining ?? 2;
+
+  const anyExhausted = Boolean(
+    guestQuota?.research.isExhausted || guestQuota?.personalization.isExhausted,
+  );
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        aria-label="Guest usage limits and local project storage"
+        className={`flex h-[42px] items-center gap-2.5 rounded-xl border px-3 text-xs font-medium transition ${
+          anyExhausted
+            ? 'border-[#5A3A38] bg-[#1C1517] text-[#F7B1AA]'
+            : 'border-[#2A2F39] bg-[#171A20] text-[#F1F2F4] hover:border-[#3A4150]'
+        }`}
+      >
+        <span className="hidden items-center gap-2 md:flex">
+          <span className="text-[#9BA1AE]">Research:</span>
+          <span className="font-semibold text-[#5ED3DF]">
+            {resRemaining} left
+          </span>
+          <span className="text-[#8A909C]">({resDailyUsed}/{resDailyLimit}d · {resMonthlyUsed}/{resMonthlyLimit}m)</span>
+          <span className="text-[#2A2F39]">|</span>
+          <span className="text-[#9BA1AE]">Personalise:</span>
+          <span className="font-semibold text-[#F2C36B]">
+            {perRemaining} left
+          </span>
+          <span className="text-[#8A909C]">({perDailyUsed}/{perDailyLimit}d · {perMonthlyUsed}/{perMonthlyLimit}m)</span>
+        </span>
+        <span className="flex items-center gap-1.5 md:hidden">
+          <span className="font-semibold text-[#5ED3DF]">{resRemaining}R</span>
+          <span>·</span>
+          <span className="font-semibold text-[#F2C36B]">{perRemaining}P</span>
+        </span>
+        <Icon name="chevronDown" size={13} className="text-[#A7ADB8]" />
+      </button>
+
+      {open && (
+        <section
+          role="dialog"
+          aria-label="Guest usage and storage"
+          className="absolute right-0 top-[calc(100%+8px)] z-[70] w-[360px] max-w-[calc(100vw-24px)] rounded-2xl border border-[#2E333D] bg-[#151820] p-4 shadow-[0_24px_60px_rgba(0,0,0,0.75)]"
+        >
+          <div className="flex items-center justify-between border-b border-[#232832] pb-3">
+            <div>
+              <div className="text-xs font-bold uppercase tracking-[0.12em] text-[#5ED3DF]">
+                Guest Mode Limits
+              </div>
+              <div className="mt-0.5 text-[12px] text-[#9BA1AE]">
+                Daily &amp; monthly quotas apply simultaneously
+              </div>
+            </div>
+            <span className="rounded-lg border border-[#2E6B75] bg-[#12313A] px-2.5 py-1 text-[11px] font-semibold text-[#9BE6EE]">
+              Local Browser
+            </span>
+          </div>
+
+          <div className="mt-3.5 space-y-3">
+            <div className="rounded-xl border border-[#232832] bg-[#101319] p-3">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-semibold text-[#F1F2F4]">Lead Research</span>
+                <span className="font-semibold text-[#5ED3DF]">
+                  {resRemaining} credit{resRemaining === 1 ? '' : 's'} remaining
+                </span>
+              </div>
+              <div className="mt-2 grid grid-cols-2 gap-2 text-[11.5px] text-[#9BA1AE]">
+                <div className="rounded-lg bg-[#161A22] px-2.5 py-1.5">
+                  Daily: <strong className="text-[#F1F2F4]">{resDailyUsed} / {resDailyLimit}</strong> used
+                </div>
+                <div className="rounded-lg bg-[#161A22] px-2.5 py-1.5">
+                  Monthly: <strong className="text-[#F1F2F4]">{resMonthlyUsed} / {resMonthlyLimit}</strong> used
+                </div>
+              </div>
+              {guestQuota?.research.exhaustedReason && (
+                <p className="m-0 mt-2 text-[11.5px] font-medium text-[#F28B82]">
+                  {guestQuota.research.exhaustedReason}
+                </p>
+              )}
+            </div>
+
+            <div className="rounded-xl border border-[#232832] bg-[#101319] p-3">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-semibold text-[#F1F2F4]">Lead Personalisation</span>
+                <span className="font-semibold text-[#F2C36B]">
+                  {perRemaining} credit{perRemaining === 1 ? '' : 's'} remaining
+                </span>
+              </div>
+              <div className="mt-2 grid grid-cols-2 gap-2 text-[11.5px] text-[#9BA1AE]">
+                <div className="rounded-lg bg-[#161A22] px-2.5 py-1.5">
+                  Daily: <strong className="text-[#F1F2F4]">{perDailyUsed} / {perDailyLimit}</strong> used
+                </div>
+                <div className="rounded-lg bg-[#161A22] px-2.5 py-1.5">
+                  Monthly: <strong className="text-[#F1F2F4]">{perMonthlyUsed} / {perMonthlyLimit}</strong> used
+                </div>
+              </div>
+              {guestQuota?.personalization.exhaustedReason && (
+                <p className="m-0 mt-2 text-[11.5px] font-medium text-[#F28B82]">
+                  {guestQuota.personalization.exhaustedReason}
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-3.5 rounded-xl border border-[#232832] bg-[#101319] p-3 text-[11.5px] leading-relaxed text-[#9BA1AE]">
+            <strong className="text-[#F1F2F4]">Device-specific storage:</strong> Your temporary guest projects ({projects.length}) are saved only on this device in this browser using IndexedDB and are never added to the internal team database.
+          </div>
+
+          {projects.length > 0 && (
+            <div className="mt-3 border-t border-[#232832] pt-3">
+              {!confirmReset ? (
+                <button
+                  type="button"
+                  onClick={() => setConfirmReset(true)}
+                  className="flex h-9 w-full items-center justify-center gap-1.5 rounded-xl border border-red-500/30 bg-red-500/10 px-3 text-xs font-semibold text-[#F28B82] transition hover:bg-red-500/20"
+                >
+                  <Icon name="trash" size={13} /> Reset / delete guest projects on this device
+                </button>
+              ) : (
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs text-[#F28B82]">Clear all projects on this device?</span>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setConfirmReset(false)}
+                      className="rounded-lg border border-[#2A2F39] bg-[#171A20] px-2.5 py-1 text-xs text-[#A7ADB8]"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await resetGuestWorkspace();
+                        setConfirmReset(false);
+                        setOpen(false);
+                      }}
+                      className="rounded-lg bg-red-600/80 px-2.5 py-1 text-xs font-semibold text-white"
+                    >
+                      Confirm reset
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </section>
+      )}
+    </div>
+  );
+}
+
 function AccountMenu() {
-  const router = useRouter();
-  const { bundle } = useWorkspace();
+  const { bundle, isGuest, userDisplayName, signOutTeamSession } = useWorkspace();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const sender = bundle?.settings?.sender_name?.trim();
-  const displayName = sender || 'MARCOM team';
 
   useEffect(() => {
     if (!open) return;
@@ -341,11 +562,27 @@ function AccountMenu() {
     return () => document.removeEventListener('mousedown', close);
   }, [open]);
 
+  if (isGuest) {
+    return (
+      <div className="flex items-center gap-2.5">
+        <GuestUsageMenu />
+        <Link
+          href="/login"
+          className="inline-flex h-[42px] items-center gap-2 rounded-xl border border-[#2E6B75] bg-[#12313A] px-4 text-[13px] font-semibold text-[#9BE6EE] no-underline transition hover:border-[#5ED3DF] hover:bg-[#173D48] hover:text-[#F1F2F4]"
+        >
+          <Icon name="shield" size={15} stroke={2} />
+          <span>Team Login</span>
+        </Link>
+      </div>
+    );
+  }
+
+  const sender = bundle?.settings?.sender_name?.trim();
+  const displayName = sender || userDisplayName || 'MARCOM team';
+
   const signOut = async () => {
     setOpen(false);
-    await authenticatedFetch('/api/v1/auth/session', { method: 'DELETE' }).catch(() => undefined);
-    router.replace('/login');
-    router.refresh();
+    await signOutTeamSession();
   };
 
   return (
@@ -368,14 +605,14 @@ function AccountMenu() {
             <span className="flex min-w-0 flex-col gap-0.5">
               <span className="text-sm font-semibold">{displayName}</span>
               <span className="truncate text-xs text-[#8A909C]">
-                {[bundle?.settings?.sender_role, bundle?.settings?.organisation].filter(Boolean).join(' · ') || 'MARCOM shared pilot · internal access'}
+                {[bundle?.settings?.sender_role, bundle?.settings?.organisation].filter(Boolean).join(' · ') || 'MARCOM internal team access'}
               </span>
             </span>
           </div>
           <nav aria-label="Account" className="flex flex-col px-2 pb-2 pt-1.5">
             <Link href="/prospects?settings=1" onClick={() => setOpen(false)} className="flex h-10 items-center rounded-[10px] px-2.5 text-sm text-[#F1F2F4] no-underline hover:bg-[#1F232B]">Sender & outreach details</Link>
             <Link href="/settings" onClick={() => setOpen(false)} className="flex h-10 items-center rounded-[10px] px-2.5 text-sm text-[#F1F2F4] no-underline hover:bg-[#1F232B]">Workspace settings</Link>
-            <button type="button" onClick={() => void signOut()} className="flex h-10 items-center rounded-[10px] px-2.5 text-left text-sm text-[#F28B82] hover:bg-[#1C1517]">Sign out</button>
+            <button type="button" onClick={() => void signOut()} className="flex h-10 items-center rounded-[10px] px-2.5 text-left text-sm text-[#F28B82] hover:bg-[#1C1517]">Sign out to Guest Mode</button>
           </nav>
         </section>
       )}
@@ -400,7 +637,7 @@ function Topbar({ onMenu }: { onMenu: () => void }) {
       <button type="button" aria-label="Open navigation" onClick={onMenu} className="flex h-[42px] w-[42px] items-center justify-center rounded-xl border border-[#2A2F39] bg-[#171A20] text-[#F1F2F4] lg:hidden">
         <Icon name="menu" size={18} />
       </button>
-      <form onSubmit={submit} role="search" className="flex h-[42px] min-w-0 max-w-[560px] flex-1 items-center gap-2.5 rounded-xl border border-[#2A2F39] bg-[#171A20] px-3.5 text-[#8A909C]">
+      <form onSubmit={submit} role="search" className="flex h-[42px] min-w-0 max-w-[460px] flex-1 items-center gap-2.5 rounded-xl border border-[#2A2F39] bg-[#171A20] px-3.5 text-[#8A909C]">
         <Icon name="search" size={16} />
         <input
           type="search"
@@ -419,6 +656,38 @@ function Topbar({ onMenu }: { onMenu: () => void }) {
         <AccountMenu />
       </div>
     </header>
+  );
+}
+
+function GuestQuotaAlertBanner() {
+  const { isGuest, guestQuota } = useWorkspace();
+  if (!isGuest || !guestQuota) return null;
+
+  const researchExhausted = guestQuota.research.exhaustedReason;
+  const personalizationExhausted = guestQuota.personalization.exhaustedReason;
+
+  if (!researchExhausted && !personalizationExhausted) return null;
+
+  return (
+    <div
+      role="alert"
+      className="border-b border-[#5A3A38] bg-[#1C1517] px-4 py-2.5 text-xs text-[#F7B1AA] sm:px-10"
+    >
+      <div className="mx-auto flex max-w-[1400px] flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <Icon name="warning" size={15} className="shrink-0 text-[#F28B82]" />
+          <span>
+            {[researchExhausted, personalizationExhausted].filter(Boolean).join(' · ')}
+          </span>
+        </div>
+        <Link
+          href="/login"
+          className="font-semibold text-[#5ED3DF] underline hover:text-[#9BE6EE]"
+        >
+          Team members: Sign in for full internal access →
+        </Link>
+      </div>
+    </div>
   );
 }
 
@@ -453,7 +722,8 @@ function ResearchRunToast() {
 
 function ShellInner({ children }: { children: ReactNode }) {
   const router = useRouter();
-  const { newProjectOpen, closeNewProject, refreshProjects, setActiveId, researchDialog, bundle } = useWorkspace();
+  const pathname = usePathname();
+  const { newProjectOpen, closeNewProject, refreshProjects, setActiveId, researchDialog, bundle, isGuest } = useWorkspace();
   const [mobileNav, setMobileNav] = useState(false);
 
   return (
@@ -473,7 +743,38 @@ function ShellInner({ children }: { children: ReactNode }) {
 
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar onMenu={() => setMobileNav(true)} />
-        {children}
+        <GuestQuotaAlertBanner />
+        {isGuest && (pathname === '/analytics' || pathname === '/integrations' || pathname === '/settings') ? (
+          <PageFrame>
+            <div className="my-6 flex flex-col items-center justify-center gap-4 rounded-3xl border border-[#2A2F39] bg-[#171A20] p-12 text-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-cyan-400/30 bg-cyan-500/10 text-cyan-300">
+                <Icon name="shield" size={26} stroke={2} />
+              </div>
+              <h2 className="m-0 font-serif text-[28px] font-semibold text-[#F1F2F4]">
+                Team Configuration Locked
+              </h2>
+              <p className="m-0 max-w-md text-sm leading-relaxed text-[#A7ADB8]">
+                Analytics, integrations, and global settings are reserved for internal team members. Please sign in with team credentials to access configuration controls.
+              </p>
+              <div className="mt-2 flex items-center gap-3">
+                <Link
+                  href="/login"
+                  className="inline-flex h-11 items-center gap-2 rounded-xl bg-white px-5 text-sm font-semibold text-black transition hover:bg-cyan-100"
+                >
+                  Team Login
+                </Link>
+                <Link
+                  href="/"
+                  className="inline-flex h-11 items-center gap-2 rounded-xl border border-[#2A2F39] bg-[#171A20] px-4 text-sm font-semibold text-[#F1F2F4] transition hover:border-[#3A3F4A]"
+                >
+                  Return to Workspace
+                </Link>
+              </div>
+            </div>
+          </PageFrame>
+        ) : (
+          children
+        )}
       </div>
 
       <BriefIntakeModal
@@ -512,7 +813,7 @@ export function PageFrame({ children, wide = false, className = '' }: { children
 
 /** Shown when the workspace has no project yet or the active project is still loading. */
 export function ProjectGate({ children }: { children: ReactNode }) {
-  const { projectsLoaded, projects, projectsError, loading, bundle, bundleError, openNewProject, reload } = useWorkspace();
+  const { projectsLoaded, projects, projectsError, loading, bundle, bundleError, openNewProject, reload, isGuest, guestQuota } = useWorkspace();
 
   if (!projectsLoaded || (projects.length > 0 && loading)) {
     return (
@@ -535,16 +836,135 @@ export function ProjectGate({ children }: { children: ReactNode }) {
   if (!projects.length) {
     return (
       <PageFrame>
-        <section className="flex flex-col items-start gap-5 rounded-3xl border border-[#2A2F39] bg-[#171A20] p-8 sm:p-10">
-          <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[#F2C36B]">Get started</div>
-          <h1 className="m-0 font-serif text-[34px] font-semibold leading-tight">Create your first project</h1>
-          <p className="m-0 max-w-xl text-[15px] leading-relaxed text-[#A7ADB8]">
-            Tell MARCOM what you&apos;re working on. It turns your brief into a detailed campaign configuration, researches matching prospects, and writes personalised drafts you can copy.
-          </p>
-          <button type="button" onClick={openNewProject} className="inline-flex h-[50px] items-center gap-2 rounded-[14px] bg-[#F1F2F4] px-6 text-[15px] font-semibold text-[#0E1014]">
-            <Icon name="plus" size={18} stroke={2.2} /> New project
-          </button>
+        <section className="relative overflow-hidden rounded-3xl border border-[#2A2F39] bg-[#171A20] p-8 sm:p-10">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+            {/* Left side: Project creation & Guest Quotas */}
+            <div className="flex flex-1 flex-col items-start gap-5">
+              <div className="flex flex-wrap items-center gap-2.5">
+                <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#F2C36B]">
+                  {isGuest ? 'Guest Workspace · Ready to use' : 'Get started'}
+                </span>
+                {isGuest && (
+                  <span className="rounded-full border border-[#2E6B75] bg-[#12313A] px-2.5 py-0.5 text-[11px] font-medium text-[#9BE6EE]">
+                    Saved only on this device
+                  </span>
+                )}
+              </div>
+              <h1 className="m-0 font-serif text-[32px] sm:text-[36px] font-semibold leading-tight text-[#F1F2F4]">
+                {isGuest ? 'Create your temporary MARCOM project' : 'Create your first project'}
+              </h1>
+              <p className="m-0 max-w-xl text-[14.5px] leading-relaxed text-[#A7ADB8]">
+                Tell MARCOM what you&apos;re working on. Upload or paste your brief, use the Brief Analyzer to configure target lead categories, research prospects with the Research Agent, and generate personalised outreach messages.
+              </p>
+              {isGuest && (
+                <div className="grid w-full max-w-xl gap-3 sm:grid-cols-2">
+                  <div className="rounded-2xl border border-[#232832] bg-[#11141B] p-4">
+                    <div className="text-xs font-semibold uppercase tracking-wider text-[#5ED3DF]">
+                      Guest Research Allowance
+                    </div>
+                    <div className="mt-1 text-sm font-semibold text-[#F1F2F4]">
+                      {guestQuota?.research.effectiveRemaining ?? 5} leads remaining today
+                    </div>
+                    <div className="mt-0.5 text-xs text-[#8A909C]">
+                      {guestQuota?.research.dailyUsed ?? 0}/5 daily · {guestQuota?.research.monthlyUsed ?? 0}/15 monthly
+                    </div>
+                  </div>
+                  <div className="rounded-2xl border border-[#232832] bg-[#11141B] p-4">
+                    <div className="text-xs font-semibold uppercase tracking-wider text-[#F2C36B]">
+                      Guest Personalisation Allowance
+                    </div>
+                    <div className="mt-1 text-sm font-semibold text-[#F1F2F4]">
+                      {guestQuota?.personalization.effectiveRemaining ?? 2} leads remaining today
+                    </div>
+                    <div className="mt-0.5 text-xs text-[#8A909C]">
+                      {guestQuota?.personalization.dailyUsed ?? 0}/2 daily · {guestQuota?.personalization.monthlyUsed ?? 0}/5 monthly
+                    </div>
+                  </div>
+                </div>
+              )}
+              <div className="flex flex-wrap items-center gap-3 pt-1">
+                <button
+                  type="button"
+                  onClick={openNewProject}
+                  className="inline-flex h-[50px] items-center gap-2 rounded-[14px] bg-[#F1F2F4] px-6 text-[15px] font-semibold text-[#0E1014] transition hover:bg-white"
+                >
+                  <Icon name="plus" size={18} stroke={2.2} /> New project
+                </button>
+                {isGuest && (
+                  <span className="text-xs text-[#8A909C]">
+                    Projects created in Guest Mode stay private to this browser and do not transfer across devices.
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Right side: Specialized AI Agent Suite Overview */}
+            <div className="w-full lg:w-[380px] shrink-0 rounded-2xl border border-[#2A303C] bg-[#11141A] p-5 shadow-2xl">
+              <div className="flex items-center justify-between border-b border-[#202530] pb-3">
+                <div className="flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-[#5BD69A] shadow-[0_0_8px_#5BD69A]" />
+                  <span className="text-xs font-bold uppercase tracking-wider text-[#F1F2F4]">
+                    Multi Agent System
+                  </span>
+                </div>
+                <span className="rounded-md border border-[#2E6B75] bg-[#12313A] px-2 py-0.5 text-[10px] font-semibold text-[#5ED3DF]">
+                  Engine Ready
+                </span>
+              </div>
+
+              <div className="mt-3.5 space-y-2.5">
+                {/* Agent 1: Brief Analyzer */}
+                <div className="rounded-xl border border-[#262B36] bg-[#161A22] p-3 transition hover:border-[#384152]">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-xs font-semibold text-[#F2C36B]">
+                      <Icon name="edit" size={14} />
+                      <span>Brief Analyzer</span>
+                    </div>
+                    <span className="text-[10px] text-[#A7ADB8]">Input Parsing</span>
+                  </div>
+                  <p className="m-0 mt-1 text-[11.5px] leading-relaxed text-[#8A909C]">
+                    Deconstructs campaign briefs into structured objectives, target audience categories, and core propositions.
+                  </p>
+                </div>
+
+                {/* Agent 2: Research Agent */}
+                <div className="rounded-xl border border-[#262B36] bg-[#161A22] p-3 transition hover:border-[#384152]">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-xs font-semibold text-[#5ED3DF]">
+                      <Icon name="search" size={14} />
+                      <span>Research Agent</span>
+                    </div>
+                    <span className="text-[10px] text-[#A7ADB8]">Deep Discovery</span>
+                  </div>
+                  <p className="m-0 mt-1 text-[11.5px] leading-relaxed text-[#8A909C]">
+                    Searches the web for high-affinity prospects, finds direct contacts, and collects verifiable proof points.
+                  </p>
+                </div>
+
+                {/* Agent 3: Personalization Agent */}
+                <div className="rounded-xl border border-[#262B36] bg-[#161A22] p-3 transition hover:border-[#384152]">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-xs font-semibold text-[#B1A6FF]">
+                      <Icon name="sparkle" size={14} />
+                      <span>Personalization Agent</span>
+                    </div>
+                    <span className="text-[10px] text-[#A7ADB8]">5-Channel Copy</span>
+                  </div>
+                  <p className="m-0 mt-1 text-[11.5px] leading-relaxed text-[#8A909C]">
+                    Writes genuine 1-to-1 outreach for Email, LinkedIn, WhatsApp &amp; Forms, backed by QA self-correction.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-3.5 flex items-center justify-between border-t border-[#202530] pt-3 text-[11px] text-[#8A909C]">
+                <span>Zero generic templates</span>
+                <span className="text-[#5BD69A] font-semibold">100% Citation Grounded</span>
+              </div>
+            </div>
+          </div>
         </section>
+
+        <PlatformWorkflowVisualizer onGetStarted={openNewProject} />
       </PageFrame>
     );
   }

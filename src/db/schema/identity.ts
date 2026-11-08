@@ -177,3 +177,32 @@ export const authSessions = pgTable(
     ),
   ],
 );
+
+export const guestUsageQuotas = pgTable(
+  'guest_usage_quotas',
+  {
+    guestIdHash: char('guest_id_hash', { length: 64 }).primaryKey(),
+    dayBucket: char('day_bucket', { length: 10 }).notNull(),
+    monthBucket: char('month_bucket', { length: 7 }).notNull(),
+    researchDayCount: integer('research_day_count').notNull().default(0),
+    researchMonthCount: integer('research_month_count').notNull().default(0),
+    personalizationDayCount: integer('personalization_day_count').notNull().default(0),
+    personalizationMonthCount: integer('personalization_month_count').notNull().default(0),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index('guest_usage_quotas_updated_at_idx').on(table.updatedAt),
+    check(
+      'guest_usage_quotas_counts_bounds_check',
+      sql`${table.researchDayCount} >= 0
+        and ${table.researchDayCount} <= 5
+        and ${table.researchMonthCount} >= 0
+        and ${table.researchMonthCount} <= 15
+        and ${table.personalizationDayCount} >= 0
+        and ${table.personalizationDayCount} <= 2
+        and ${table.personalizationMonthCount} >= 0
+        and ${table.personalizationMonthCount} <= 5`,
+    ),
+  ],
+);

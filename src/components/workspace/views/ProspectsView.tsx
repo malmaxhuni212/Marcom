@@ -1,5 +1,7 @@
 'use client';
 
+import Link from 'next/link';
+
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { authenticatedFetch } from '@/auth/client';
 import type { ResearchEntry, ReviewStatus } from '@/marcom/schemas/research-record';
@@ -521,6 +523,8 @@ function ProspectsBody({ initialTab }: { initialTab?: TabId }) {
     startResearch,
     globalSearch,
     setGlobalSearch,
+    isGuest,
+    guestQuota,
   } = useWorkspace();
 
   const [tab, setTab] = useState<TabId>(initialTab ?? 'all');
@@ -619,6 +623,40 @@ function ProspectsBody({ initialTab }: { initialTab?: TabId }) {
   const { project, research, drafts, settings } = bundle;
   const brief = project.structured_brief;
   const title = brief?.project.name || project.name || activeProject?.name || 'Untitled project';
+
+  if (research.length === 0) {
+    return (
+      <PageFrame>
+        <div className="my-8 flex flex-col items-center justify-center gap-4 rounded-3xl border border-[#2A2F39] bg-[#171A20] p-12 text-center shadow-xl">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-[#2E6B75] bg-[#12313A] text-[#5ED3DF]">
+            <Icon name="search" size={26} stroke={2} />
+          </div>
+          <h2 className="m-0 font-serif text-[28px] font-semibold text-[#F1F2F4]">
+            Research Required First
+          </h2>
+          <p className="m-0 max-w-md text-sm leading-relaxed text-[#A7ADB8]">
+            You haven&apos;t researched prospects for this campaign yet. Run the Research Agent to discover verified people and organisations matching your brief before viewing prospects.
+          </p>
+          <div className="mt-3 flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => openResearch()}
+              className="inline-flex h-11 items-center gap-2 rounded-xl bg-[#5ED3DF] px-5 text-sm font-semibold text-[#0E1014] transition hover:opacity-95"
+            >
+              <Icon name="search" size={16} stroke={2.4} />
+              Run Research Agent
+            </button>
+            <Link
+              href="/"
+              className="inline-flex h-11 items-center gap-2 rounded-xl border border-[#2A2F39] bg-[#171A20] px-4 text-sm font-semibold text-[#F1F2F4] transition hover:border-[#3A3F4A]"
+            >
+              Back to Today
+            </Link>
+          </div>
+        </div>
+      </PageFrame>
+    );
+  }
 
   const draftByRecordId = useMemo(() => {
     const map = new Map<string, PersonalizationEntry>();
@@ -883,6 +921,21 @@ function ProspectsBody({ initialTab }: { initialTab?: TabId }) {
     customLeadSettings?: LeadPersonalizationSettings,
   ) => {
     if (!recordIds.length || personalising) return;
+    if (isGuest && guestQuota) {
+      if (guestQuota.personalization.isExhausted) {
+        setActionError(
+          guestQuota.personalization.limitMessage ||
+            'Guest personalisation limit reached (2 leads/day, 5 leads/month).',
+        );
+        return;
+      }
+      if (recordIds.length > guestQuota.personalization.effectiveRemaining) {
+        setActionError(
+          `You have ${guestQuota.personalization.effectiveRemaining} guest personalisation credit${guestQuota.personalization.effectiveRemaining === 1 ? '' : 's'} remaining (${guestQuota.personalization.dailyRemaining}/${guestQuota.personalization.dailyLimit} today · ${guestQuota.personalization.monthlyRemaining}/${guestQuota.personalization.monthlyLimit} this month). Select up to ${guestQuota.personalization.effectiveRemaining} lead${guestQuota.personalization.effectiveRemaining === 1 ? '' : 's'}.`,
+        );
+        return;
+      }
+    }
     setPersonalisingIds(recordIds);
     setActionError(null);
     setActionNotice(null);
@@ -1076,7 +1129,24 @@ function ProspectsBody({ initialTab }: { initialTab?: TabId }) {
         <PageFrame className="max-w-[1400px] gap-5">
           <header className="flex flex-wrap items-center gap-3">
             <div className="flex min-w-0 flex-[1_1_300px] flex-col gap-1">
-              <h1 className={`${serif} m-0 text-[32px]`}>Prospects</h1>
+              <div className="flex flex-wrap items-center gap-2.5">
+                <h1 className={`${serif} m-0 text-[32px]`}>Prospects</h1>
+                {isGuest && guestQuota && (
+                  <span
+                    className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${
+                      guestQuota.personalization.isExhausted
+                        ? 'border-[#5A2D29] bg-[#2A1715] text-[#F7B1AA]'
+                        : 'border-[#2E6B75] bg-[#12313A] text-[#9BE6EE]'
+                    }`}
+                    title="Guest personalisation credits (2 daily / 5 monthly)"
+                  >
+                    Personalisation credits: {guestQuota.personalization.dailyRemaining}/
+                    {guestQuota.personalization.dailyLimit} today ·{' '}
+                    {guestQuota.personalization.monthlyRemaining}/
+                    {guestQuota.personalization.monthlyLimit} month
+                  </span>
+                )}
+              </div>
               <p className="m-0 text-sm text-[#A7ADB8]">{title}</p>
             </div>
             {tab === 'shortlisted' || tab === 'sent' ? (

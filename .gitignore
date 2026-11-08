@@ -52,6 +52,7 @@ share-config-details.txt
 /memory/personalization/*.json
 !/memory/personalization/*-settings.json
 /memory/*-original.json
+/memory/guest-quotas.json
 /storage/
 
 #person docs
