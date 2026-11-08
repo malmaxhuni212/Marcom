@@ -353,7 +353,7 @@ function SidebarNav({ onNavigate }: { onNavigate: () => void }) {
       )}
 
       {isGuest && (
-        <div className="mt-auto mb-14 rounded-2xl border border-[#232832] bg-[#12151C] p-3.5 text-xs text-[#9BA1AE] shadow-lg">
+        <div className="mt-auto mb-1 rounded-2xl border border-[#232832] bg-[#12151C] p-3.5 text-xs text-[#9BA1AE] shadow-lg">
           <div className="flex items-center gap-1.5 font-semibold text-[#F1F2F4]">
             <Icon name="shield" size={14} className="text-[#5ED3DF]" />
             Saved only on this device
