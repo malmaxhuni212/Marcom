@@ -52,5 +52,6 @@
     "tailwindcss": "^4",
     "tsx": "^4.23.15",
     "typescript": "^5"
-  }
+  },
+  "description": "Autonomous marketing communications platform that analyses campaign briefs, researches verified prospects, writes personalized outreach, and syncs to Notion."
 }

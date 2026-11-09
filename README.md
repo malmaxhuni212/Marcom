@@ -1,8 +1,20 @@
-# MARCOM automation prototype
+# MARCOM — Autonomous Marketing & Outreach Intelligence
 
 > 🌐 **Live Demo:** [https://marcom-automation.netlify.app/](https://marcom-automation.netlify.app/)
 
-This Next.js application analyses campaign briefs, stores structured campaign data, discovers prospects, builds evidence-backed research records for human review, generates adaptive personalized outreach, and syncs campaigns directly with Notion.
+**MARCOM** is an autonomous marketing communications platform that transforms raw campaign briefs into verified, research-backed outreach campaigns. It automates lead discovery, evidence verification, personalized copy generation, and workspace syncing so growth and marketing teams can launch high-converting campaigns in minutes.
+
+---
+
+### 🚀 What is MARCOM?
+
+MARCOM replaces fragmented, manual outreach workflows with a unified, agentic pipeline:
+
+- **AI Brief Decomposition**: Parses raw text, PDFs, or Word documents into structured objectives, target categories, geographic criteria, and constraints.
+- **Autonomous Prospect Discovery**: Conducts live web research via real-time search providers (Exa), extracting verified prospect identities, social profiles, roles, and verified URLs.
+- **Fact-Grounded Personalization**: Crafts bespoke, multi-channel outreach copy (Email, LinkedIn connection notes, and InMail) strictly grounded in primary sources—preventing generic templates and AI hallucinations.
+- **Human-in-the-Loop Review**: Provides an intuitive triage dashboard to review evidence citations, adjust tone guidelines, and approve shortlisted leads.
+- **One-Click Notion Hub Sync**: Automatically creates comprehensive Campaign Hubs and structured Prospect Databases directly inside your Notion workspace.
 
 The brief analyser remains separate from prospect search:
 
