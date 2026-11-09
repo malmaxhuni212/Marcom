@@ -149,11 +149,10 @@ function WorkspaceProviderRoot({
   const pathname = usePathname();
   const isPublicAuthRoute = pathname === '/login' || pathname === '/bootstrap';
   const initialIsGuest = initialAccess ? initialAccess.mode === 'guest' : true;
-  if (typeof window !== 'undefined') {
-    setClientAccessMode(initialIsGuest ? 'guest' : 'team');
-  }
-
   const [isGuest, setIsGuest] = useState<boolean>(initialIsGuest);
+  if (typeof window !== 'undefined') {
+    setClientAccessMode(isGuest ? 'guest' : 'team');
+  }
   const [userDisplayName, setUserDisplayName] = useState<string>(
     initialAccess?.displayName ?? 'Guest',
   );
@@ -191,6 +190,7 @@ function WorkspaceProviderRoot({
     try {
       const info = await refreshGuestSessionAndQuota();
       const nextIsGuest = !info.authenticated;
+      setClientAccessMode(nextIsGuest ? 'guest' : 'team');
       setIsGuest(nextIsGuest);
       setUserDisplayName(info.displayName);
       if (info.quota) {

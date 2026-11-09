@@ -259,16 +259,36 @@ export async function syncProjectToNotion(
 
     const briefBlocks = buildCampaignBriefBlocks(brief, syncStats);
 
-    const campaignPage = await createNotionPage(accessToken, {
-      parent: { page_id: parentPageId },
-      icon: { type: 'emoji', emoji: '🚀' },
-      properties: {
-        title: {
-          title: [richText(hubTitle)],
+    let campaignPage: { id: string; url: string };
+    try {
+      campaignPage = await createNotionPage(accessToken, {
+        parent: { page_id: parentPageId },
+        icon: { type: 'emoji', emoji: '🚀' },
+        properties: {
+          title: {
+            title: [richText(hubTitle)],
+          },
         },
-      },
-      children: briefBlocks.slice(0, 80),
-    });
+        children: briefBlocks.slice(0, 80),
+      });
+    } catch (createErr) {
+      const accessible = await searchNotionAccessiblePages(accessToken).catch(() => []);
+      const fallbackParentId = accessible.find((p) => p.id !== parentPageId)?.id || accessible[0]?.id;
+      if (!fallbackParentId || fallbackParentId === parentPageId) {
+        throw createErr;
+      }
+      parentPageId = fallbackParentId;
+      campaignPage = await createNotionPage(accessToken, {
+        parent: { page_id: parentPageId },
+        icon: { type: 'emoji', emoji: '🚀' },
+        properties: {
+          title: {
+            title: [richText(hubTitle)],
+          },
+        },
+        children: briefBlocks.slice(0, 80),
+      });
+    }
 
     if (briefBlocks.length > 80) {
       await appendNotionBlocks(accessToken, campaignPage.id, briefBlocks.slice(80));

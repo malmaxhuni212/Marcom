@@ -80,7 +80,12 @@ function OverviewBody() {
       const res = await authenticatedFetch(`/api/projects/${bundle.projectId}/notion/sync`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
+        body: JSON.stringify({
+          brief: bundle.project.structured_brief,
+          prospects: bundle.research,
+          drafts: bundle.drafts,
+          settings: bundle.settings,
+        }),
       });
       const data = await res.json().catch(() => ({}));
       const resolvedUrl: string | null = data.url || data.campaignPageUrl || null;
@@ -89,10 +94,11 @@ function OverviewBody() {
       }
 
       if (!res.ok) {
+        const errorText: string =
+          data.error || data.detail || data.title || 'Failed to sync campaign to Notion.';
         if (
-          res.status === 401 ||
-          data.error?.toLowerCase().includes('not connected') ||
-          data.error?.toLowerCase().includes('integrations')
+          errorText.toLowerCase().includes('not connected') ||
+          errorText.toLowerCase().includes('integrations')
         ) {
           setNotionNotice({
             tone: 'error',
@@ -101,7 +107,7 @@ function OverviewBody() {
         } else {
           setNotionNotice({
             tone: 'error',
-            text: data.error || 'Failed to sync campaign to Notion.',
+            text: errorText,
           });
         }
         return;

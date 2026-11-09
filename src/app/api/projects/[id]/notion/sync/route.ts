@@ -19,6 +19,7 @@ import {
   getProjectNotionSync,
 } from '@/marcom/integrations/notion/store';
 import { syncProjectToNotion } from '@/marcom/integrations/notion/sync';
+import type { StructuredBrief } from '@/marcom/schemas/structured-brief';
 import type { ResearchEntry } from '@/marcom/schemas/research-record';
 import type {
   PersonalizationEntry,
@@ -93,7 +94,7 @@ async function loadHybridPersonalizationSettings(
 }
 
 export async function GET(req: Request, context: RouteContext) {
-  const access = await authorizeApiRequest(req);
+  const access = await authorizeApiRequest(req, { allowGuest: true });
   if (!access.ok) return access.response;
 
   const { id } = await context.params;
@@ -123,7 +124,7 @@ export async function GET(req: Request, context: RouteContext) {
 }
 
 export async function POST(req: Request, context: RouteContext) {
-  const access = await authorizeApiRequest(req);
+  const access = await authorizeApiRequest(req, { allowGuest: true });
   if (!access.ok) return access.response;
 
   const { id } = await context.params;
@@ -140,12 +141,16 @@ export async function POST(req: Request, context: RouteContext) {
       );
     }
 
-    const project = await readCampaignMemory(access.actor, id, access.allowFileFallback);
-    if (!project) {
-      return NextResponse.json({ error: 'Project not found.' }, { status: 404 });
-    }
+    const body = (await req.json().catch(() => ({}))) as {
+      parentPageId?: string;
+      brief?: StructuredBrief | null;
+      prospects?: ResearchEntry[];
+      drafts?: PersonalizationEntry[];
+      settings?: PersonalizationSettings | null;
+    };
 
-    const brief = project.structured_brief;
+    const project = await readCampaignMemory(access.actor, id, true).catch(() => null);
+    const brief = project?.structured_brief ?? body.brief ?? null;
     if (!brief) {
       return NextResponse.json(
         { error: 'Campaign does not have a structured brief configured.' },
@@ -153,15 +158,28 @@ export async function POST(req: Request, context: RouteContext) {
       );
     }
 
-    const [research, personalizations, settings] = await Promise.all([
-      loadHybridResearch(access.actor, id, access.allowFileFallback),
-      loadHybridPersonalizations(access.actor, id, access.allowFileFallback),
+    const [serverResearch, serverPersonalizations, serverSettings] = await Promise.all([
+      loadHybridResearch(access.actor, id, true).catch(() => [] as ResearchEntry[]),
+      loadHybridPersonalizations(access.actor, id, true).catch(() => [] as PersonalizationEntry[]),
       loadHybridPersonalizationSettings(access.actor, id),
     ]);
 
+    const research =
+      serverResearch.length > 0
+        ? serverResearch
+        : Array.isArray(body.prospects)
+          ? body.prospects
+          : [];
+    const settings = body.settings ?? serverSettings;
+
     const draftsMap: Record<string, PersonalizationEntry> = {};
-    for (const p of personalizations) {
-      draftsMap[p.record_id] = p;
+    for (const p of serverPersonalizations) {
+      if (p?.record_id) draftsMap[p.record_id] = p;
+    }
+    if (Array.isArray(body.drafts)) {
+      for (const p of body.drafts) {
+        if (p?.record_id) draftsMap[p.record_id] = p;
+      }
     }
 
     // Ensure shortlisted / contacted prospects always have adaptive outreach drafts ready for Notion
@@ -181,8 +199,6 @@ export async function POST(req: Request, context: RouteContext) {
         });
       }
     }
-
-    const body = (await req.json().catch(() => ({}))) as { parentPageId?: string };
 
     const result = await syncProjectToNotion(
       {

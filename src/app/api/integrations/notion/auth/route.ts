@@ -7,7 +7,7 @@ import {
 } from '@/marcom/integrations/notion/client';
 
 export async function GET(req: Request) {
-  const access = await authorizeApiRequest(req);
+  const access = await authorizeApiRequest(req, { allowGuest: true });
   if (!access.ok) return access.response;
 
   try {

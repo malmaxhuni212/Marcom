@@ -154,7 +154,10 @@ export async function authorizeApiRequest(
           !verifySessionCsrfToken(authConfig.authSecret, csrfCookie, session.csrfTokenHash) ||
           !verifySessionCsrfToken(authConfig.authSecret, csrfHeader, session.csrfTokenHash)
         ) {
-          return requestRejected();
+          if (!options?.allowGuest) {
+            return requestRejected();
+          }
+          session = null;
         }
       }
     } catch (error) {

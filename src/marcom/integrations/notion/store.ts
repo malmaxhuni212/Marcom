@@ -32,15 +32,68 @@ function isNetlifyBlobsEnvironment(): boolean {
   );
 }
 
-async function getNetlifyBlobStore() {
+async function getNetlifyBlobStore(strongConsistency = true) {
   if (!isNetlifyBlobsEnvironment()) {
     return null;
   }
   try {
     const { getStore } = await import('@netlify/blobs');
-    return getStore({ name: BLOB_STORE_NAME, consistency: 'strong' });
+    if (strongConsistency) {
+      try {
+        return getStore({
+          name: BLOB_STORE_NAME,
+          consistency: 'strong',
+          region: 'us-east-2',
+        });
+      } catch {
+        // Fall back to default store if strong consistency is unavailable
+      }
+    }
+    return getStore({
+      name: BLOB_STORE_NAME,
+      region: 'us-east-2',
+    });
   } catch {
     return null;
+  }
+}
+
+async function readBlobJson<T>(key: string): Promise<T | null> {
+  const strongStore = await getNetlifyBlobStore(true);
+  if (strongStore) {
+    try {
+      return (await strongStore.get(key, { type: 'json' })) as T | null;
+    } catch {
+      // Retry with eventual consistency store if strong consistency fails
+    }
+  }
+  const fallbackStore = await getNetlifyBlobStore(false);
+  if (!fallbackStore) return null;
+  try {
+    return (await fallbackStore.get(key, { type: 'json' })) as T | null;
+  } catch {
+    return null;
+  }
+}
+
+async function writeBlobJson(key: string, value: unknown): Promise<boolean> {
+  const strongStore = await getNetlifyBlobStore(true);
+  if (strongStore) {
+    try {
+      await strongStore.setJSON(key, value);
+      return true;
+    } catch {
+      // Retry with eventual consistency store if strong consistency fails
+    }
+  }
+  const fallbackStore = await getNetlifyBlobStore(false);
+  if (!fallbackStore) return false;
+  try {
+    await fallbackStore.setJSON(key, value);
+    return true;
+  } catch (err) {
+    console.warn(`Failed to save ${key} to Netlify Blobs:`, err);
+    return false;
   }
 }
 
@@ -64,21 +117,14 @@ export async function getNotionConnection(): Promise<NotionConnectionConfig | nu
   }
 
   // 2. Netlify Blobs (production serverless runtime)
-  const blobStore = await getNetlifyBlobStore();
-  if (blobStore) {
-    try {
-      const data = await blobStore.get(NOTION_BLOB_KEY, { type: 'json' });
-      if (
-        data &&
-        typeof data === 'object' &&
-        typeof (data as Record<string, unknown>).accessToken === 'string' &&
-        (data as Record<string, string>).accessToken.length > 0
-      ) {
-        return data as NotionConnectionConfig;
-      }
-    } catch {
-      // Fall through to local file
-    }
+  const blobData = await readBlobJson<Record<string, unknown>>(NOTION_BLOB_KEY);
+  if (
+    blobData &&
+    typeof blobData === 'object' &&
+    typeof blobData.accessToken === 'string' &&
+    blobData.accessToken.length > 0
+  ) {
+    return blobData as unknown as NotionConnectionConfig;
   }
 
   // 3. Local filesystem memory (development)
@@ -96,16 +142,7 @@ export async function getNotionConnection(): Promise<NotionConnectionConfig | nu
 }
 
 export async function saveNotionConnection(config: NotionConnectionConfig): Promise<void> {
-  let savedToBlob = false;
-  const blobStore = await getNetlifyBlobStore();
-  if (blobStore) {
-    try {
-      await blobStore.setJSON(NOTION_BLOB_KEY, config);
-      savedToBlob = true;
-    } catch (err) {
-      console.warn('Failed to save Notion connection to Netlify Blobs:', err);
-    }
-  }
+  const savedToBlob = await writeBlobJson(NOTION_BLOB_KEY, config);
 
   try {
     const dir = resolveMemoryDir();
@@ -137,12 +174,13 @@ export async function updateDefaultNotionParentPage(
 }
 
 export async function disconnectNotion(): Promise<void> {
-  const blobStore = await getNetlifyBlobStore();
-  if (blobStore) {
+  const strongStore = await getNetlifyBlobStore(true);
+  if (strongStore) {
     try {
-      await blobStore.delete(NOTION_BLOB_KEY);
+      await strongStore.delete(NOTION_BLOB_KEY);
     } catch {
-      // Ignore
+      const fallbackStore = await getNetlifyBlobStore(false);
+      await fallbackStore?.delete(NOTION_BLOB_KEY).catch(() => undefined);
     }
   }
 
@@ -170,16 +208,9 @@ export async function getNotionConnectionStatus(): Promise<NotionConnectionStatu
 }
 
 async function readAllProjectNotionSyncs(): Promise<Record<string, NotionProjectSyncRecord>> {
-  const blobStore = await getNetlifyBlobStore();
-  if (blobStore) {
-    try {
-      const data = await blobStore.get(NOTION_SYNCS_BLOB_KEY, { type: 'json' });
-      if (data && typeof data === 'object') {
-        return data as Record<string, NotionProjectSyncRecord>;
-      }
-    } catch {
-      // Fall through to local file
-    }
+  const blobData = await readBlobJson<Record<string, NotionProjectSyncRecord>>(NOTION_SYNCS_BLOB_KEY);
+  if (blobData && typeof blobData === 'object') {
+    return blobData;
   }
 
   try {
@@ -198,16 +229,7 @@ async function readAllProjectNotionSyncs(): Promise<Record<string, NotionProject
 async function writeAllProjectNotionSyncs(
   records: Record<string, NotionProjectSyncRecord>,
 ): Promise<void> {
-  let savedToBlob = false;
-  const blobStore = await getNetlifyBlobStore();
-  if (blobStore) {
-    try {
-      await blobStore.setJSON(NOTION_SYNCS_BLOB_KEY, records);
-      savedToBlob = true;
-    } catch (err) {
-      console.warn('Failed to save Notion project syncs to Netlify Blobs:', err);
-    }
-  }
+  const savedToBlob = await writeBlobJson(NOTION_SYNCS_BLOB_KEY, records);
 
   try {
     const dir = resolveMemoryDir();

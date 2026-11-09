@@ -3,7 +3,7 @@ import { authorizeApiRequest } from '@/auth/access';
 import { disconnectNotion } from '@/marcom/integrations/notion/store';
 
 export async function POST(req: Request) {
-  const access = await authorizeApiRequest(req);
+  const access = await authorizeApiRequest(req, { allowGuest: true });
   if (!access.ok) return access.response;
 
   try {
@@ -16,7 +16,7 @@ export async function POST(req: Request) {
 }
 
 export async function GET(req: Request) {
-  const access = await authorizeApiRequest(req);
+  const access = await authorizeApiRequest(req, { allowGuest: true });
   if (!access.ok) return access.response;
 
   try {

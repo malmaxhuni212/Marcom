@@ -12,7 +12,7 @@ import {
 import type { NotionAccessiblePage } from '@/marcom/integrations/notion/types';
 
 export async function GET(req: Request) {
-  const access = await authorizeApiRequest(req);
+  const access = await authorizeApiRequest(req, { allowGuest: true });
   if (!access.ok) return access.response;
 
   try {
@@ -42,7 +42,7 @@ export async function GET(req: Request) {
 }
 
 export async function PATCH(req: Request) {
-  const access = await authorizeApiRequest(req);
+  const access = await authorizeApiRequest(req, { allowGuest: true });
   if (!access.ok) return access.response;
 
   try {
