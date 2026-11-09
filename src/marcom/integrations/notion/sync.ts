@@ -178,6 +178,17 @@ export async function syncProjectToNotion(
   };
 
   if (
+    options.skipHubUpdate &&
+    storedSync?.campaignPageId &&
+    storedSync?.databaseId
+  ) {
+    isResync = true;
+    parentPageId = storedSync.parentPageId || parentPageId;
+    campaignPageId = storedSync.campaignPageId;
+    campaignPageUrl = storedSync.campaignPageUrl || notionPageUrlFromId(storedSync.campaignPageId);
+    databaseId = storedSync.databaseId;
+    databaseUrl = storedSync.databaseUrl || notionPageUrlFromId(storedSync.databaseId);
+  } else if (
     storedSync &&
     (!options.notionWorkspaceId ||
       !storedSync.notionWorkspaceId ||
@@ -226,25 +237,27 @@ export async function syncProjectToNotion(
 
   // 2. Create or update the Campaign Hub Page & Prospects Database
   if (isResync) {
-    await updateNotionPage(accessToken, campaignPageId, {
-      properties: {
-        title: {
-          title: [richText(hubTitle)],
+    if (!options.skipHubUpdate) {
+      await updateNotionPage(accessToken, campaignPageId, {
+        properties: {
+          title: {
+            title: [richText(hubTitle)],
+          },
         },
-      },
-    }).catch(() => null);
+      }).catch(() => null);
 
-    // Update top summary callout block in-place so the child_database position is preserved
-    try {
-      const topBlocks = await listNotionBlockChildren(accessToken, campaignPageId);
-      if (topBlocks[0]?.type === 'callout') {
-        const updatedCallout = buildCampaignSummaryCallout(brief, syncStats);
-        await updateNotionBlock(accessToken, topBlocks[0].id, {
-          callout: updatedCallout.callout,
-        });
+      // Update top summary callout block in-place so the child_database position is preserved
+      try {
+        const topBlocks = await listNotionBlockChildren(accessToken, campaignPageId);
+        if (topBlocks[0]?.type === 'callout') {
+          const updatedCallout = buildCampaignSummaryCallout(brief, syncStats);
+          await updateNotionBlock(accessToken, topBlocks[0].id, {
+            callout: updatedCallout.callout,
+          });
+        }
+      } catch {
+        // Non-fatal if callout block was manually edited or removed in Notion
       }
-    } catch {
-      // Non-fatal if callout block was manually edited or removed in Notion
     }
   } else {
     if (!parentPageId) {
@@ -301,13 +314,31 @@ export async function syncProjectToNotion(
     campaignPageUrl = campaignPage.url;
     databaseId = database.id;
     databaseUrl = database.url;
+
+    // Persist Hub & Database IDs immediately so subsequent batches or retries reuse them
+    await saveProjectNotionSync({
+      projectId,
+      notionWorkspaceId: options.notionWorkspaceId || storedSync?.notionWorkspaceId || '',
+      parentPageId,
+      campaignPageId,
+      campaignPageUrl,
+      databaseId,
+      databaseUrl,
+      prospectPageIds,
+      syncedCount: 0,
+      lastSyncedAt: nowIso,
+    }).catch(() => undefined);
   }
 
   // 3. If re-syncing, index existing rows in the database to prevent duplicates
   const existingRowByRecordId = new Map<string, string>();
   const existingRowByName = new Map<string, string>();
 
-  if (isResync) {
+  if (isResync && options.skipHubUpdate) {
+    for (const [recId, pageId] of Object.entries(prospectPageIds)) {
+      if (pageId) existingRowByRecordId.set(recId, pageId);
+    }
+  } else if (isResync) {
     try {
       const existingRows = await queryNotionDatabaseRows(accessToken, databaseId);
       const activeIds = new Set(existingRows.map((r) => r.id));
@@ -339,7 +370,7 @@ export async function syncProjectToNotion(
   let updatedCount = 0;
   const errors: string[] = [];
 
-  await runWithConcurrency(prospects, 2, async (entry) => {
+  await runWithConcurrency(prospects, 3, async (entry) => {
     const recId = entry.record.record_id;
     const prospectName = (entry.record.identity.name || entry.seed.name || 'Unnamed Prospect').trim();
 

@@ -18,6 +18,7 @@ import {
   getNotionConnection,
   getProjectNotionSync,
 } from '@/marcom/integrations/notion/store';
+import type { NotionProjectSyncRecord } from '@/marcom/integrations/notion/types';
 import { syncProjectToNotion } from '@/marcom/integrations/notion/sync';
 import type { StructuredBrief } from '@/marcom/schemas/structured-brief';
 import type { ResearchEntry } from '@/marcom/schemas/research-record';
@@ -101,7 +102,7 @@ export async function GET(req: Request, context: RouteContext) {
 
   try {
     const [connection, syncRecord] = await Promise.all([
-      getNotionConnection(),
+      getNotionConnection(req),
       getProjectNotionSync(id),
     ]);
 
@@ -130,7 +131,7 @@ export async function POST(req: Request, context: RouteContext) {
   const { id } = await context.params;
 
   try {
-    const connection = await getNotionConnection();
+    const connection = await getNotionConnection(req);
     if (!connection?.accessToken) {
       return NextResponse.json(
         {
@@ -147,6 +148,9 @@ export async function POST(req: Request, context: RouteContext) {
       prospects?: ResearchEntry[];
       drafts?: PersonalizationEntry[];
       settings?: PersonalizationSettings | null;
+      batchMode?: boolean;
+      skipHubUpdate?: boolean;
+      existingSync?: NotionProjectSyncRecord | null;
     };
 
     const project = await readCampaignMemory(access.actor, id, true).catch(() => null);
@@ -165,11 +169,13 @@ export async function POST(req: Request, context: RouteContext) {
     ]);
 
     const research =
-      serverResearch.length > 0
-        ? serverResearch
-        : Array.isArray(body.prospects)
-          ? body.prospects
-          : [];
+      body.batchMode && Array.isArray(body.prospects)
+        ? body.prospects
+        : serverResearch.length > 0
+          ? serverResearch
+          : Array.isArray(body.prospects)
+            ? body.prospects
+            : [];
     const settings = body.settings ?? serverSettings;
 
     const draftsMap: Record<string, PersonalizationEntry> = {};
@@ -208,6 +214,8 @@ export async function POST(req: Request, context: RouteContext) {
         drafts: draftsMap,
         parentPageId: body.parentPageId || connection.defaultParentPageId || undefined,
         notionWorkspaceId: connection.workspaceId,
+        ...(body.existingSync !== undefined ? { existingSync: body.existingSync } : {}),
+        ...(body.skipHubUpdate ? { skipHubUpdate: true } : {}),
       },
       connection.accessToken,
     );

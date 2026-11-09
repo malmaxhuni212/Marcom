@@ -6,7 +6,10 @@ import {
   searchNotionAccessiblePages,
   verifyNotionOAuthState,
 } from '@/marcom/integrations/notion/client';
-import { saveNotionConnection } from '@/marcom/integrations/notion/store';
+import {
+  saveNotionConnection,
+  setNotionConnectionCookieOnResponse,
+} from '@/marcom/integrations/notion/store';
 
 function resolveSafeReturnOrigin(
   candidateOrigin: string | undefined,
@@ -37,7 +40,7 @@ function resolveSafeReturnOrigin(
 }
 
 export async function GET(req: Request) {
-  const access = await authorizeApiRequest(req);
+  const access = await authorizeApiRequest(req, { allowGuest: true });
 
   const url = new URL(req.url);
   const code = url.searchParams.get('code');
@@ -91,7 +94,9 @@ export async function GET(req: Request) {
 
     await saveNotionConnection(connection);
 
-    return NextResponse.redirect(new URL('/integrations?notion=connected', baseOrigin));
+    const response = NextResponse.redirect(new URL('/integrations?notion=connected', baseOrigin));
+    setNotionConnectionCookieOnResponse(response, connection);
+    return response;
   } catch (err) {
     const msg = (err as Error).message || 'Failed to complete Notion connection.';
     return NextResponse.redirect(

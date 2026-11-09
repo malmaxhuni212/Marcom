@@ -15,10 +15,15 @@ export class NotionApiError extends Error {
   }
 }
 
+function stripSurroundingQuotes(val: string | undefined): string | undefined {
+  if (!val) return undefined;
+  return val.trim().replace(/^["'“”]+|["'“”]+$/g, '').trim() || undefined;
+}
+
 export function getNotionOAuthConfig() {
-  const clientId = process.env.NOTION_CLIENT_ID?.trim();
-  const clientSecret = process.env.NOTION_CLIENT_SECRET?.trim();
-  const configuredRedirect = process.env.NOTION_REDIRECT_URI?.trim();
+  const clientId = stripSurroundingQuotes(process.env.NOTION_CLIENT_ID);
+  const clientSecret = stripSurroundingQuotes(process.env.NOTION_CLIENT_SECRET);
+  const configuredRedirect = stripSurroundingQuotes(process.env.NOTION_REDIRECT_URI);
 
   return {
     clientId,

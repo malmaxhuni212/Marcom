@@ -590,66 +590,133 @@ function ProspectsBody({ initialTab }: { initialTab?: TabId }) {
     setSyncingNotion(true);
     setNotionNotice(null);
     try {
-      const res = await authenticatedFetch(`/api/projects/${projectId}/notion/sync`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          brief: bundle?.project.structured_brief ?? null,
-          prospects: bundle?.research ?? [],
-          drafts: bundle?.drafts ?? [],
-          settings: bundle?.settings ?? null,
-        }),
-      });
-      const data = await res.json().catch(() => ({}));
-      const resolvedUrl: string | null = data.url || data.campaignPageUrl || null;
-      if (resolvedUrl) {
-        setNotionUrl(resolvedUrl);
-      }
-      if (data.prospectPageIds && typeof data.prospectPageIds === 'object') {
-        setNotionProspectPageIds(data.prospectPageIds);
-      }
-
-      if (!res.ok) {
-        const errorText: string =
-          data.error || data.detail || data.title || 'Failed to sync campaign to Notion.';
-        if (
-          errorText.toLowerCase().includes('not connected') ||
-          errorText.toLowerCase().includes('integrations')
-        ) {
-          setNotionNotice({
-            tone: 'error',
-            text: 'Notion is not connected. Connect your workspace in Settings > Integrations.',
-          });
-        } else {
-          setNotionNotice({
-            tone: 'error',
-            text: errorText,
-          });
+      const allProspects = bundle?.research ?? [];
+      const BATCH_SIZE = 3;
+      const chunks: (typeof allProspects)[] = [];
+      if (allProspects.length === 0) {
+        chunks.push([]);
+      } else {
+        for (let i = 0; i < allProspects.length; i += BATCH_SIZE) {
+          chunks.push(allProspects.slice(i, i + BATCH_SIZE));
         }
-        return;
       }
 
-      const count: number =
-        typeof data.syncedCount === 'number'
-          ? data.syncedCount
-          : typeof data.prospectsSynced === 'number'
-            ? data.prospectsSynced
-            : bundle?.research.length ?? 0;
+      let totalSynced = 0;
+      let totalCreated = 0;
+      let totalUpdated = 0;
+      let totalFailed = 0;
+      let wasResync = false;
+      const allErrors: string[] = [];
+      let resolvedUrl: string | null = null;
+      let mergedPageIds: Record<string, string> = { ...notionProspectPageIds };
+      let activeSyncRecord: Record<string, unknown> | undefined = undefined;
 
-      if (data.failedCount > 0) {
+      for (let idx = 0; idx < chunks.length; idx += 1) {
+        const chunk = chunks[idx]!;
+        const res = await authenticatedFetch(`/api/projects/${projectId}/notion/sync`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            batchMode: true,
+            skipHubUpdate: idx > 0,
+            ...(activeSyncRecord ? { existingSync: activeSyncRecord } : {}),
+            brief: bundle?.project.structured_brief ?? null,
+            prospects: chunk,
+            drafts: bundle?.drafts ?? [],
+            settings: bundle?.settings ?? null,
+          }),
+        });
+
+        const rawText = await res.text().catch(() => '');
+        let data: Record<string, any> = {};
+        try {
+          data = rawText ? JSON.parse(rawText) : {};
+        } catch {
+          data = {};
+        }
+
+        const chunkUrl: string | null = data.url || data.campaignPageUrl || null;
+        if (chunkUrl) {
+          resolvedUrl = chunkUrl;
+          setNotionUrl(chunkUrl);
+        }
+        if (data.prospectPageIds && typeof data.prospectPageIds === 'object') {
+          mergedPageIds = { ...mergedPageIds, ...data.prospectPageIds };
+          setNotionProspectPageIds(mergedPageIds);
+        }
+
+        if (!res.ok) {
+          const errorText: string =
+            data.error ||
+            data.detail ||
+            data.title ||
+            `Failed to sync campaign to Notion (HTTP ${res.status}).`;
+          if (
+            errorText.toLowerCase().includes('not connected') ||
+            errorText.toLowerCase().includes('integrations')
+          ) {
+            setNotionNotice({
+              tone: 'error',
+              text: 'Notion is not connected. Connect your workspace in Settings > Integrations.',
+            });
+          } else {
+            setNotionNotice({
+              tone: 'error',
+              text: errorText,
+            });
+          }
+          return;
+        }
+
+        if (idx === 0 && Boolean(data.isResync)) {
+          wasResync = true;
+        }
+
+        if (data.campaignPageId && data.databaseId) {
+          activeSyncRecord = {
+            projectId,
+            notionWorkspaceId: '',
+            parentPageId: '',
+            campaignPageId: data.campaignPageId,
+            campaignPageUrl: chunkUrl || resolvedUrl || '',
+            databaseId: data.databaseId,
+            databaseUrl: data.databaseUrl || '',
+            prospectPageIds: mergedPageIds,
+            syncedCount:
+              totalSynced +
+              (typeof data.syncedCount === 'number' ? data.syncedCount : chunk.length),
+            lastSyncedAt: data.lastSyncedAt || new Date().toISOString(),
+          };
+        }
+
+        totalSynced +=
+          typeof data.syncedCount === 'number'
+            ? data.syncedCount
+            : typeof data.prospectsSynced === 'number'
+              ? data.prospectsSynced
+              : chunk.length;
+        totalCreated += typeof data.createdCount === 'number' ? data.createdCount : 0;
+        totalUpdated += typeof data.updatedCount === 'number' ? data.updatedCount : 0;
+        totalFailed += typeof data.failedCount === 'number' ? data.failedCount : 0;
+        if (Array.isArray(data.errors)) {
+          allErrors.push(...data.errors);
+        }
+      }
+
+      if (totalFailed > 0) {
         setNotionNotice({
           tone: 'error',
-          text: `Synced ${count} ${count === 1 ? 'prospect' : 'prospects'} to Notion, with ${data.failedCount} ${data.failedCount === 1 ? 'warning' : 'warnings'}: ${data.errors?.[0] || 'Check Notion page permissions.'}`,
+          text: `Synced ${totalSynced} ${totalSynced === 1 ? 'prospect' : 'prospects'} to Notion, with ${totalFailed} ${totalFailed === 1 ? 'warning' : 'warnings'}: ${allErrors[0] || 'Check Notion page permissions.'}`,
         });
-      } else if (data.isResync) {
+      } else if (wasResync) {
         setNotionNotice({
           tone: 'info',
-          text: `Updated Notion Campaign Hub — ${count} ${count === 1 ? 'prospect' : 'prospects'} synced (${data.createdCount ?? 0} added, ${data.updatedCount ?? 0} updated).`,
+          text: `Updated Notion Campaign Hub — ${totalSynced} ${totalSynced === 1 ? 'prospect' : 'prospects'} synced (${totalCreated} added, ${totalUpdated} updated).`,
         });
       } else {
         setNotionNotice({
           tone: 'info',
-          text: `Synced Campaign Hub and ${count} ${count === 1 ? 'prospect' : 'prospects'} to Notion!`,
+          text: `Synced Campaign Hub and ${totalSynced} ${totalSynced === 1 ? 'prospect' : 'prospects'} to Notion!`,
         });
       }
     } catch (err) {

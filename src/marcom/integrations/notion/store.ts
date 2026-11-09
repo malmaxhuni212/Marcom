@@ -1,5 +1,8 @@
+import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto';
 import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises';
+import os from 'node:os';
 import path from 'node:path';
+import type { NextResponse } from 'next/server';
 import type {
   NotionConnectionConfig,
   NotionConnectionStatus,
@@ -9,31 +12,124 @@ import type {
 const BLOB_STORE_NAME = 'marcom-integrations';
 const NOTION_BLOB_KEY = 'notion-connection';
 const NOTION_SYNCS_BLOB_KEY = 'notion-project-syncs';
+export const NOTION_CONNECTION_COOKIE = 'marcom_notion_conn';
 
-function resolveMemoryDir(): string {
+function stripQuotes(val: string | undefined): string {
+  if (!val) return '';
+  return val.trim().replace(/^["'“”]+|["'“”]+$/g, '').trim();
+}
+
+function getCookieCipherKey(): Buffer {
+  const secret =
+    stripQuotes(process.env.NOTION_CLIENT_SECRET) ||
+    stripQuotes(process.env.AUTH_SECRET) ||
+    'marcom-notion-fallback-cookie-secret-key';
+  return createHash('sha256').update(secret).digest();
+}
+
+export function serializeNotionConnectionCookie(config: NotionConnectionConfig): string | null {
+  try {
+    const minimal: NotionConnectionConfig = {
+      accessToken: config.accessToken,
+      workspaceId: config.workspaceId,
+      workspaceName: config.workspaceName ?? null,
+      workspaceIcon: config.workspaceIcon ?? null,
+      botId: config.botId || 'bot',
+      owner: null,
+      connectedAt: config.connectedAt || new Date().toISOString(),
+      defaultParentPageId: config.defaultParentPageId ?? null,
+      defaultParentPageTitle: config.defaultParentPageTitle ?? null,
+    };
+    const key = getCookieCipherKey();
+    const iv = randomBytes(12);
+    const cipher = createCipheriv('aes-256-gcm', key, iv);
+    const plaintext = Buffer.from(JSON.stringify(minimal), 'utf8');
+    const encrypted = Buffer.concat([cipher.update(plaintext), cipher.final()]);
+    const tag = cipher.getAuthTag();
+    return `${iv.toString('base64url')}.${tag.toString('base64url')}.${encrypted.toString('base64url')}`;
+  } catch {
+    return null;
+  }
+}
+
+export function parseNotionConnectionCookie(req?: Request | null): NotionConnectionConfig | null {
+  if (!req) return null;
+  try {
+    const cookieHeader = req.headers.get('cookie');
+    if (!cookieHeader) return null;
+    let rawCookie: string | null = null;
+    for (const part of cookieHeader.split(';')) {
+      const trimmed = part.trim();
+      const eqIdx = trimmed.indexOf('=');
+      if (eqIdx <= 0) continue;
+      if (trimmed.slice(0, eqIdx) === NOTION_CONNECTION_COOKIE) {
+        rawCookie = decodeURIComponent(trimmed.slice(eqIdx + 1));
+        break;
+      }
+    }
+    if (!rawCookie) return null;
+    const segments = rawCookie.split('.');
+    if (segments.length !== 3) return null;
+    const [ivB64, tagB64, dataB64] = segments;
+    const key = getCookieCipherKey();
+    const decipher = createDecipheriv(
+      'aes-256-gcm',
+      key,
+      Buffer.from(ivB64!, 'base64url'),
+    );
+    decipher.setAuthTag(Buffer.from(tagB64!, 'base64url'));
+    const decrypted = Buffer.concat([
+      decipher.update(Buffer.from(dataB64!, 'base64url')),
+      decipher.final(),
+    ]);
+    const parsed = JSON.parse(decrypted.toString('utf8')) as NotionConnectionConfig;
+    if (parsed && typeof parsed.accessToken === 'string' && parsed.accessToken.length > 0) {
+      return parsed;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+export function setNotionConnectionCookieOnResponse(
+  res: NextResponse,
+  config: NotionConnectionConfig | null,
+): void {
+  if (!config) {
+    res.cookies.set(NOTION_CONNECTION_COOKIE, '', {
+      path: '/',
+      httpOnly: true,
+      sameSite: 'lax',
+      maxAge: 0,
+    });
+    return;
+  }
+  const encoded = serializeNotionConnectionCookie(config);
+  if (!encoded) return;
+  res.cookies.set(NOTION_CONNECTION_COOKIE, encoded, {
+    path: '/',
+    httpOnly: true,
+    sameSite: 'lax',
+    maxAge: 60 * 60 * 24 * 365,
+  });
+}
+
+function candidateMemoryDirs(): string[] {
   const override = process.env.MARCOM_NOTION_STORE_DIR?.trim();
-  if (override) return override;
-  return path.join(process.cwd(), 'memory', 'integrations');
+  if (override) return [override];
+  return [
+    path.join(process.cwd(), 'memory', 'integrations'),
+    path.join(os.tmpdir(), 'marcom-integrations'),
+  ];
 }
 
-function localNotionFilePath(): string {
-  return path.join(resolveMemoryDir(), 'notion.json');
-}
-
-function localNotionSyncsFilePath(): string {
-  return path.join(resolveMemoryDir(), 'notion-syncs.json');
-}
-
-function isNetlifyBlobsEnvironment(): boolean {
-  return Boolean(
-    process.env.NETLIFY === 'true' ||
-      process.env.NETLIFY_BLOBS_CONTEXT ||
-      (globalThis as Record<string, unknown>).netlifyBlobsContext,
-  );
+function isCustomTestStoreDir(): boolean {
+  return Boolean(process.env.MARCOM_NOTION_STORE_DIR?.trim());
 }
 
 async function getNetlifyBlobStore(strongConsistency = true) {
-  if (!isNetlifyBlobsEnvironment()) {
+  if (isCustomTestStoreDir()) {
     return null;
   }
   try {
@@ -91,16 +187,15 @@ async function writeBlobJson(key: string, value: unknown): Promise<boolean> {
   try {
     await fallbackStore.setJSON(key, value);
     return true;
-  } catch (err) {
-    console.warn(`Failed to save ${key} to Netlify Blobs:`, err);
+  } catch {
     return false;
   }
 }
 
-export async function getNotionConnection(): Promise<NotionConnectionConfig | null> {
+export async function getNotionConnection(req?: Request | null): Promise<NotionConnectionConfig | null> {
   // 1. Static environment variable fallback (for private internal token setups)
   if (process.env.NOTION_ACCESS_TOKEN || process.env.NOTION_INTERNAL_TOKEN) {
-    const token = (process.env.NOTION_ACCESS_TOKEN || process.env.NOTION_INTERNAL_TOKEN)!.trim();
+    const token = stripQuotes(process.env.NOTION_ACCESS_TOKEN || process.env.NOTION_INTERNAL_TOKEN);
     if (token) {
       return {
         accessToken: token,
@@ -110,13 +205,16 @@ export async function getNotionConnection(): Promise<NotionConnectionConfig | nu
         botId: 'env-bot',
         owner: null,
         connectedAt: new Date().toISOString(),
-        defaultParentPageId: process.env.NOTION_DEFAULT_PARENT_PAGE_ID || null,
+        defaultParentPageId: stripQuotes(process.env.NOTION_DEFAULT_PARENT_PAGE_ID) || null,
         defaultParentPageTitle: null,
       };
     }
   }
 
-  // 2. Netlify Blobs (production serverless runtime)
+  // 2. Check signed encrypted browser cookie first if available (instant consistency across serverless instances)
+  const cookieConn = parseNotionConnectionCookie(req);
+
+  // 3. Netlify Blobs (production serverless runtime)
   const blobData = await readBlobJson<Record<string, unknown>>(NOTION_BLOB_KEY);
   if (
     blobData &&
@@ -124,18 +222,33 @@ export async function getNotionConnection(): Promise<NotionConnectionConfig | nu
     typeof blobData.accessToken === 'string' &&
     blobData.accessToken.length > 0
   ) {
-    return blobData as unknown as NotionConnectionConfig;
+    const blobConn = blobData as unknown as NotionConnectionConfig;
+    if (cookieConn && cookieConn.workspaceId === blobConn.workspaceId) {
+      return {
+        ...blobConn,
+        defaultParentPageId: cookieConn.defaultParentPageId ?? blobConn.defaultParentPageId ?? null,
+        defaultParentPageTitle:
+          cookieConn.defaultParentPageTitle ?? blobConn.defaultParentPageTitle ?? null,
+      };
+    }
+    return blobConn;
   }
 
-  // 3. Local filesystem memory (development)
-  try {
-    const raw = await readFile(localNotionFilePath(), 'utf8');
-    const parsed = JSON.parse(raw) as NotionConnectionConfig;
-    if (parsed && typeof parsed.accessToken === 'string' && parsed.accessToken.length > 0) {
-      return parsed;
+  if (cookieConn) {
+    return cookieConn;
+  }
+
+  // 4. Local or /tmp filesystem memory
+  for (const dir of candidateMemoryDirs()) {
+    try {
+      const raw = await readFile(path.join(dir, 'notion.json'), 'utf8');
+      const parsed = JSON.parse(raw) as NotionConnectionConfig;
+      if (parsed && typeof parsed.accessToken === 'string' && parsed.accessToken.length > 0) {
+        return parsed;
+      }
+    } catch {
+      // Try next candidate directory
     }
-  } catch {
-    // File not found or invalid
   }
 
   return null;
@@ -143,24 +256,30 @@ export async function getNotionConnection(): Promise<NotionConnectionConfig | nu
 
 export async function saveNotionConnection(config: NotionConnectionConfig): Promise<void> {
   const savedToBlob = await writeBlobJson(NOTION_BLOB_KEY, config);
+  let savedLocally = false;
 
-  try {
-    const dir = resolveMemoryDir();
-    await mkdir(dir, { recursive: true });
-    await writeFile(localNotionFilePath(), JSON.stringify(config, null, 2), 'utf8');
-  } catch (err) {
-    if (!savedToBlob) {
-      console.warn('Failed to save Notion connection locally:', err);
-      throw err;
+  for (const dir of candidateMemoryDirs()) {
+    try {
+      await mkdir(dir, { recursive: true });
+      await writeFile(path.join(dir, 'notion.json'), JSON.stringify(config, null, 2), 'utf8');
+      savedLocally = true;
+      break;
+    } catch {
+      // Try next candidate directory (e.g. os.tmpdir() on Lambda/Netlify)
     }
+  }
+
+  if (!savedToBlob && !savedLocally) {
+    console.warn('Could not persist Notion connection to Blobs or local disk.');
   }
 }
 
 export async function updateDefaultNotionParentPage(
   pageId: string | null,
   pageTitle?: string | null,
+  req?: Request | null,
 ): Promise<NotionConnectionConfig | null> {
-  const existing = await getNotionConnection();
+  const existing = await getNotionConnection(req);
   if (!existing) return null;
   if (existing.workspaceId === 'env-workspace') return existing;
 
@@ -184,15 +303,19 @@ export async function disconnectNotion(): Promise<void> {
     }
   }
 
-  try {
-    await unlink(localNotionFilePath());
-  } catch {
-    // Ignore if already deleted
+  for (const dir of candidateMemoryDirs()) {
+    try {
+      await unlink(path.join(dir, 'notion.json'));
+    } catch {
+      // Ignore if already deleted
+    }
   }
 }
 
-export async function getNotionConnectionStatus(): Promise<NotionConnectionStatus> {
-  const conn = await getNotionConnection();
+export async function getNotionConnectionStatus(
+  req?: Request | null,
+): Promise<NotionConnectionStatus> {
+  const conn = await getNotionConnection(req);
   if (!conn) {
     return { connected: false };
   }
@@ -213,14 +336,16 @@ async function readAllProjectNotionSyncs(): Promise<Record<string, NotionProject
     return blobData;
   }
 
-  try {
-    const raw = await readFile(localNotionSyncsFilePath(), 'utf8');
-    const parsed = JSON.parse(raw) as Record<string, NotionProjectSyncRecord>;
-    if (parsed && typeof parsed === 'object') {
-      return parsed;
+  for (const dir of candidateMemoryDirs()) {
+    try {
+      const raw = await readFile(path.join(dir, 'notion-syncs.json'), 'utf8');
+      const parsed = JSON.parse(raw) as Record<string, NotionProjectSyncRecord>;
+      if (parsed && typeof parsed === 'object') {
+        return parsed;
+      }
+    } catch {
+      // Try next candidate directory
     }
-  } catch {
-    // File not found or invalid
   }
 
   return {};
@@ -229,15 +354,15 @@ async function readAllProjectNotionSyncs(): Promise<Record<string, NotionProject
 async function writeAllProjectNotionSyncs(
   records: Record<string, NotionProjectSyncRecord>,
 ): Promise<void> {
-  const savedToBlob = await writeBlobJson(NOTION_SYNCS_BLOB_KEY, records);
+  await writeBlobJson(NOTION_SYNCS_BLOB_KEY, records);
 
-  try {
-    const dir = resolveMemoryDir();
-    await mkdir(dir, { recursive: true });
-    await writeFile(localNotionSyncsFilePath(), JSON.stringify(records, null, 2), 'utf8');
-  } catch (err) {
-    if (!savedToBlob) {
-      console.warn('Failed to save Notion project syncs locally:', err);
+  for (const dir of candidateMemoryDirs()) {
+    try {
+      await mkdir(dir, { recursive: true });
+      await writeFile(path.join(dir, 'notion-syncs.json'), JSON.stringify(records, null, 2), 'utf8');
+      break;
+    } catch {
+      // Try next candidate directory
     }
   }
 }

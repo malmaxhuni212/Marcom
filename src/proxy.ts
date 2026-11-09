@@ -20,6 +20,8 @@ function isPublicPath(pathname: string): boolean {
   if (PUBLIC_PATHS.has(pathname)) return true;
   if (pathname.startsWith('/_next/')) return true;
   if (pathname === '/favicon.ico') return true;
+  if (pathname.startsWith('/api/integrations/notion/')) return true;
+  if (/^\/api\/projects\/[^/]+\/notion\/sync$/.test(pathname)) return true;
   if (!pathname.startsWith('/api/')) return true;
   return false;
 }

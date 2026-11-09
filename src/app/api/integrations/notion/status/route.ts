@@ -3,6 +3,7 @@ import { authorizeApiRequest } from '@/auth/access';
 import {
   getNotionConnection,
   getNotionConnectionStatus,
+  setNotionConnectionCookieOnResponse,
   updateDefaultNotionParentPage,
 } from '@/marcom/integrations/notion/store';
 import {
@@ -16,14 +17,14 @@ export async function GET(req: Request) {
   if (!access.ok) return access.response;
 
   try {
-    const status = await getNotionConnectionStatus();
+    const status = await getNotionConnectionStatus(req);
     const { isConfigured } = getNotionOAuthConfig();
     const url = new URL(req.url);
     const includePages = url.searchParams.get('includePages') === '1';
 
     let accessiblePages: NotionAccessiblePage[] | undefined;
     if (status.connected && includePages) {
-      const conn = await getNotionConnection();
+      const conn = await getNotionConnection(req);
       if (conn?.accessToken) {
         accessiblePages = await searchNotionAccessiblePages(conn.accessToken).catch(() => []);
       }
@@ -54,6 +55,7 @@ export async function PATCH(req: Request) {
     const updated = await updateDefaultNotionParentPage(
       body.defaultParentPageId ?? null,
       body.defaultParentPageTitle ?? null,
+      req,
     );
 
     if (!updated) {
@@ -63,11 +65,13 @@ export async function PATCH(req: Request) {
       );
     }
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       defaultParentPageId: updated.defaultParentPageId ?? null,
       defaultParentPageTitle: updated.defaultParentPageTitle ?? null,
     });
+    setNotionConnectionCookieOnResponse(response, updated);
+    return response;
   } catch (err) {
     const msg = (err as Error).message || 'Failed to update Notion parent page setting.';
     return NextResponse.json({ error: msg }, { status: 500 });

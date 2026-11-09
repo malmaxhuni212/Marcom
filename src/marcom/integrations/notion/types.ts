@@ -53,6 +53,7 @@ export interface NotionSyncOptions {
   parentPageId?: string;
   notionWorkspaceId?: string;
   existingSync?: NotionProjectSyncRecord | null;
+  skipHubUpdate?: boolean;
 }
 
 export interface NotionSyncResult {
