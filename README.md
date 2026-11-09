@@ -1,6 +1,8 @@
 # MARCOM automation prototype
 
-This Next.js prototype analyses campaign briefs, stores structured campaign data, discovers prospects, and builds evidence-backed research records for human review.
+> 🌐 **Live Demo:** [https://marcom-automation.netlify.app/](https://marcom-automation.netlify.app/)
+
+This Next.js application analyses campaign briefs, stores structured campaign data, discovers prospects, builds evidence-backed research records for human review, generates adaptive personalized outreach, and syncs campaigns directly with Notion.
 
 The brief analyser remains separate from prospect search:
 
