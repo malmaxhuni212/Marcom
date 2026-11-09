@@ -1,4 +1,4 @@
-# MARCOM automation prototype
+# MARCOM Automation Platform
 
 > 🌐 **Live Link:** [https://marcom-automation.netlify.app/](https://marcom-automation.netlify.app/)
 
