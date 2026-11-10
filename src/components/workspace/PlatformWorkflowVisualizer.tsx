@@ -91,7 +91,7 @@ export default function PlatformWorkflowVisualizer({
   return (
     <section
       aria-label="How MARCOM Works Platform Visualization"
-      className="flex flex-col gap-6 rounded-3xl border border-[#2A2F39] bg-[#12151B] p-6 sm:p-8"
+      className="flex flex-col gap-6 rounded-2xl sm:rounded-3xl border border-[#2A2F39] bg-[#12151B] p-5 sm:p-7 lg:p-8"
     >
       {/* Header */}
       <div className="flex flex-wrap items-end justify-between gap-4 border-b border-[#232832] pb-6">
@@ -112,7 +112,7 @@ export default function PlatformWorkflowVisualizer({
       </div>
 
       {/* Workflow Step Grid with connection indicators */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         {WORKFLOW_STEPS.map((step, idx) => (
           <div
             key={step.step}
@@ -178,9 +178,9 @@ export default function PlatformWorkflowVisualizer({
               </ul>
             </div>
 
-            {/* Connector arrow for desktop (except last item) */}
+            {/* Connector arrow for widescreen 5-col layout (except last item) */}
             {idx < WORKFLOW_STEPS.length - 1 && (
-              <div className="hidden lg:block absolute -right-2.5 top-1/2 -translate-y-1/2 z-10 text-[#424856]">
+              <div className="hidden xl:block absolute -right-2.5 top-1/2 -translate-y-1/2 z-10 text-[#424856]">
                 <Icon name="chevronRight" size={14} stroke={2.5} />
               </div>
             )}
@@ -189,7 +189,7 @@ export default function PlatformWorkflowVisualizer({
       </div>
 
       {/* Platform Guarantees Banner */}
-      <div className="grid gap-3 rounded-2xl border border-[#232832] bg-[#0E1015] p-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 rounded-2xl border border-[#232832] bg-[#0E1015] p-4 sm:grid-cols-2 lg:grid-cols-3">
         <div className="flex items-start gap-3">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[#2E6B75] bg-[#12313A] text-[#5ED3DF]">
             <Icon name="shield" size={16} />

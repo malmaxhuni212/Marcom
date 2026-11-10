@@ -334,23 +334,41 @@ function SidebarNav({ onNavigate }: { onNavigate: () => void }) {
         })}
       </div>
 
-      {!isGuest && (
-        <>
-          <div className="mx-2 h-px bg-[#181B22]" />
+      <div className="mx-2 h-px bg-[#181B22]" />
 
-          <div className="flex flex-col gap-1">
-            <div className="px-2.5 pb-1 text-[10.5px] font-bold uppercase tracking-[0.12em] text-[#68707E]">
-              Configuration
-            </div>
-            {SECONDARY_NAV.map((item) => (
-              <Link key={item.href} href={item.href} onClick={onNavigate} className={`${linkClass(isActive(item.href))} !h-10 ${isActive(item.href) ? '' : '!text-[#8A909C]'}`}>
-                <Icon name={item.icon} size={17} stroke={1.8} />
-                {item.label}
-              </Link>
-            ))}
-          </div>
-        </>
-      )}
+      <div className="flex flex-col gap-1">
+        <div className="px-2.5 pb-1 text-[10.5px] font-bold uppercase tracking-[0.12em] text-[#68707E]">
+          Configuration
+        </div>
+        <Link
+          href="/integrations"
+          onClick={onNavigate}
+          className={`${linkClass(isActive('/integrations'))} !h-10 ${isActive('/integrations') ? '' : '!text-[#8A909C]'}`}
+        >
+          <Icon name="plug" size={17} stroke={1.8} />
+          <span>Integrations</span>
+        </Link>
+        {!isGuest && (
+          <>
+            <Link
+              href="/analytics"
+              onClick={onNavigate}
+              className={`${linkClass(isActive('/analytics'))} !h-10 ${isActive('/analytics') ? '' : '!text-[#8A909C]'}`}
+            >
+              <Icon name="chart" size={17} stroke={1.8} />
+              <span>Analytics</span>
+            </Link>
+            <Link
+              href="/settings"
+              onClick={onNavigate}
+              className={`${linkClass(isActive('/settings'))} !h-10 ${isActive('/settings') ? '' : '!text-[#8A909C]'}`}
+            >
+              <Icon name="settings" size={17} stroke={1.8} />
+              <span>Settings</span>
+            </Link>
+          </>
+        )}
+      </div>
 
       {isGuest && (
         <div className="mt-auto mb-1 rounded-2xl border border-[#232832] bg-[#12151C] p-3.5 text-xs text-[#9BA1AE] shadow-lg">
@@ -564,14 +582,16 @@ function AccountMenu() {
 
   if (isGuest) {
     return (
-      <div className="flex items-center gap-2.5">
+      <div className="flex items-center gap-1.5 sm:gap-2.5">
         <GuestUsageMenu />
         <Link
           href="/login"
-          className="inline-flex h-[42px] items-center gap-2 rounded-xl border border-[#2E6B75] bg-[#12313A] px-4 text-[13px] font-semibold text-[#9BE6EE] no-underline transition hover:border-[#5ED3DF] hover:bg-[#173D48] hover:text-[#F1F2F4]"
+          title="Team Login"
+          className="inline-flex h-[38px] sm:h-[42px] items-center gap-1.5 rounded-xl border border-[#2E6B75] bg-[#12313A] px-2.5 sm:px-3.5 text-xs sm:text-[13px] font-semibold text-[#9BE6EE] no-underline transition hover:border-[#5ED3DF] hover:bg-[#173D48] hover:text-[#F1F2F4] shrink-0"
         >
-          <Icon name="shield" size={15} stroke={2} />
-          <span>Team Login</span>
+          <Icon name="shield" size={14} stroke={2} />
+          <span className="hidden sm:inline">Team Login</span>
+          <span className="sm:hidden text-[11px]">Login</span>
         </Link>
       </div>
     );
@@ -633,12 +653,12 @@ function Topbar({ onMenu }: { onMenu: () => void }) {
   };
 
   return (
-    <header className="sticky top-0 z-40 flex h-[72px] items-center gap-4 border-b border-[#1C1F26] bg-[#0E1014]/95 px-4 backdrop-blur sm:px-10">
-      <button type="button" aria-label="Open navigation" onClick={onMenu} className="flex h-[42px] w-[42px] items-center justify-center rounded-xl border border-[#2A2F39] bg-[#171A20] text-[#F1F2F4] lg:hidden">
+    <header className="sticky top-0 z-40 flex h-[64px] sm:h-[72px] items-center gap-2.5 sm:gap-4 border-b border-[#1C1F26] bg-[#0E1014]/95 px-3.5 sm:px-8 lg:px-10 backdrop-blur">
+      <button type="button" aria-label="Open navigation" onClick={onMenu} className="flex h-[38px] w-[38px] sm:h-[42px] sm:w-[42px] shrink-0 items-center justify-center rounded-xl border border-[#2A2F39] bg-[#171A20] text-[#F1F2F4] lg:hidden">
         <Icon name="menu" size={18} />
       </button>
-      <form onSubmit={submit} role="search" className="flex h-[42px] min-w-0 max-w-[460px] flex-1 items-center gap-2.5 rounded-xl border border-[#2A2F39] bg-[#171A20] px-3.5 text-[#8A909C]">
-        <Icon name="search" size={16} />
+      <form onSubmit={submit} role="search" className="flex h-[38px] sm:h-[42px] min-w-0 max-w-[460px] flex-1 items-center gap-2 rounded-xl border border-[#2A2F39] bg-[#171A20] px-3 text-[#8A909C]">
+        <Icon name="search" size={15} className="shrink-0" />
         <input
           type="search"
           value={value}
@@ -646,12 +666,12 @@ function Topbar({ onMenu }: { onMenu: () => void }) {
             setValue(event.target.value);
             if (pathname.startsWith('/prospects')) setGlobalSearch(event.target.value);
           }}
-          placeholder="Search prospects by name, organisation or bio"
+          placeholder="Search prospects..."
           aria-label="Search prospects"
-          className="min-w-0 flex-1 border-0 bg-transparent text-sm text-[#F1F2F4] outline-none placeholder:text-[#8A909C]"
+          className="min-w-0 flex-1 border-0 bg-transparent text-xs sm:text-sm text-[#F1F2F4] outline-none placeholder:text-[#8A909C]"
         />
       </form>
-      <div className="ml-auto flex items-center gap-3">
+      <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-3">
         <NotificationBell />
         <AccountMenu />
       </div>
@@ -744,7 +764,7 @@ function ShellInner({ children }: { children: ReactNode }) {
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar onMenu={() => setMobileNav(true)} />
         <GuestQuotaAlertBanner />
-        {isGuest && (pathname === '/analytics' || pathname === '/integrations' || pathname === '/settings') ? (
+        {isGuest && (pathname === '/analytics' || pathname === '/settings') ? (
           <PageFrame>
             <div className="my-6 flex flex-col items-center justify-center gap-4 rounded-3xl border border-[#2A2F39] bg-[#171A20] p-12 text-center">
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-cyan-400/30 bg-cyan-500/10 text-cyan-300">
@@ -805,8 +825,8 @@ export default function AppShell({ children }: { children: ReactNode }) {
 /** Standard page frame used by workspace screens. */
 export function PageFrame({ children, wide = false, className = '' }: { children: ReactNode; wide?: boolean; className?: string }) {
   return (
-    <main className="min-w-0 flex-1 px-4 pb-12 pt-8 sm:px-10">
-      <div className={`mx-auto flex flex-col gap-6 ${wide ? 'max-w-[1400px]' : 'max-w-[1160px]'} ${className}`}>{children}</div>
+    <main className="min-w-0 flex-1 px-3.5 pb-12 pt-5 sm:px-6 sm:pt-7 lg:px-8 xl:px-10">
+      <div className={`mx-auto flex flex-col gap-5 sm:gap-6 ${wide ? 'max-w-[1400px]' : 'max-w-[1160px]'} ${className}`}>{children}</div>
     </main>
   );
 }
@@ -836,30 +856,30 @@ export function ProjectGate({ children }: { children: ReactNode }) {
   if (!projects.length) {
     return (
       <PageFrame>
-        <section className="relative overflow-hidden rounded-3xl border border-[#2A2F39] bg-[#171A20] p-8 sm:p-10">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+        <section className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-[#2A2F39] bg-[#171A20] p-5 sm:p-8 lg:p-10">
+          <div className="flex flex-col lg:flex-row lg:items-start xl:items-center justify-between gap-6 sm:gap-8">
             {/* Left side: Project creation & Guest Quotas */}
-            <div className="flex flex-1 flex-col items-start gap-5">
-              <div className="flex flex-wrap items-center gap-2.5">
+            <div className="flex flex-1 flex-col items-start gap-4 sm:gap-5">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
                 <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#F2C36B]">
                   {isGuest ? 'Guest Workspace · Ready to use' : 'Get started'}
                 </span>
                 {isGuest && (
-                  <span className="rounded-full border border-[#2E6B75] bg-[#12313A] px-2.5 py-0.5 text-[11px] font-medium text-[#9BE6EE]">
+                  <span className="rounded-full border border-[#2E6B75] bg-[#12313A] px-2.5 py-0.5 text-[10.5px] sm:text-[11px] font-medium text-[#9BE6EE]">
                     Saved only on this device
                   </span>
                 )}
               </div>
-              <h1 className="m-0 font-serif text-[32px] sm:text-[36px] font-semibold leading-tight text-[#F1F2F4]">
+              <h1 className="m-0 font-serif text-2xl sm:text-3xl lg:text-4xl font-semibold leading-tight text-[#F1F2F4]">
                 {isGuest ? 'Create your MARCOM project' : 'Create your first project'}
               </h1>
-              <p className="m-0 max-w-xl text-[14.5px] leading-relaxed text-[#A7ADB8]">
+              <p className="m-0 max-w-xl text-sm sm:text-[14.5px] leading-relaxed text-[#A7ADB8]">
                 Tell MARCOM what you&apos;re working on. Upload or paste your brief, use the Brief Analyzer to configure target lead categories, research prospects with the Research Agent, and generate personalised outreach messages.
               </p>
               {isGuest && (
-                <div className="grid w-full max-w-xl gap-3 sm:grid-cols-2">
-                  <div className="rounded-2xl border border-[#232832] bg-[#11141B] p-4">
-                    <div className="text-xs font-semibold uppercase tracking-wider text-[#5ED3DF]">
+                <div className="grid w-full max-w-xl grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div className="rounded-2xl border border-[#232832] bg-[#11141B] p-3.5 sm:p-4">
+                    <div className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-[#5ED3DF]">
                       Guest Research Allowance
                     </div>
                     <div className="mt-1 text-sm font-semibold text-[#F1F2F4]">
@@ -869,8 +889,8 @@ export function ProjectGate({ children }: { children: ReactNode }) {
                       {guestQuota?.research.dailyUsed ?? 0}/5 daily · {guestQuota?.research.monthlyUsed ?? 0}/15 monthly
                     </div>
                   </div>
-                  <div className="rounded-2xl border border-[#232832] bg-[#11141B] p-4">
-                    <div className="text-xs font-semibold uppercase tracking-wider text-[#F2C36B]">
+                  <div className="rounded-2xl border border-[#232832] bg-[#11141B] p-3.5 sm:p-4">
+                    <div className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-[#F2C36B]">
                       Guest Personalisation Allowance
                     </div>
                     <div className="mt-1 text-sm font-semibold text-[#F1F2F4]">
@@ -882,16 +902,16 @@ export function ProjectGate({ children }: { children: ReactNode }) {
                   </div>
                 </div>
               )}
-              <div className="flex flex-wrap items-center gap-3 pt-1">
+              <div className="flex w-full flex-col sm:flex-row sm:items-center gap-3 pt-1">
                 <button
                   type="button"
                   onClick={openNewProject}
-                  className="inline-flex h-[50px] items-center gap-2 rounded-[14px] bg-[#F1F2F4] px-6 text-[15px] font-semibold text-[#0E1014] transition hover:bg-white"
+                  className="inline-flex h-[46px] sm:h-[50px] w-full sm:w-auto items-center justify-center gap-2 rounded-[14px] bg-[#F1F2F4] px-6 text-sm sm:text-[15px] font-semibold text-[#0E1014] transition hover:bg-white shrink-0"
                 >
-                  <Icon name="plus" size={18} stroke={2.2} /> New project
+                  <Icon name="plus" size={17} stroke={2.2} /> New project
                 </button>
                 {isGuest && (
-                  <span className="text-xs text-[#8A909C]">
+                  <span className="text-xs text-[#8A909C] leading-relaxed">
                     Projects created in Guest Mode stay private to this browser and do not transfer across devices.
                   </span>
                 )}
@@ -899,7 +919,7 @@ export function ProjectGate({ children }: { children: ReactNode }) {
             </div>
 
             {/* Right side: Specialized AI Agent Suite Overview */}
-            <div className="w-full lg:w-[380px] shrink-0 rounded-2xl border border-[#2A303C] bg-[#11141A] p-5 shadow-2xl">
+            <div className="w-full lg:w-[360px] xl:w-[400px] shrink-0 rounded-2xl border border-[#2A303C] bg-[#11141A] p-4 sm:p-5 shadow-2xl">
               <div className="flex items-center justify-between border-b border-[#202530] pb-3">
                 <div className="flex items-center gap-2">
                   <span className="h-2 w-2 rounded-full bg-[#5BD69A] shadow-[0_0_8px_#5BD69A]" />
