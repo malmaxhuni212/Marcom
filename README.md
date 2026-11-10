@@ -1,6 +1,4 @@
-# MARCOM — Autonomous Marketing & Outreach Intelligence
-
-> 🌐 **Live Demo:** [https://marcom-automation.netlify.app/](https://marcom-automation.netlify.app/)
+# MARCOM Automation Platform
 
 **MARCOM** is an autonomous marketing communications platform that transforms raw campaign briefs into verified, research-backed outreach campaigns. It automates lead discovery, evidence verification, personalized copy generation, and workspace syncing so growth and marketing teams can launch high-converting campaigns in minutes.
 
