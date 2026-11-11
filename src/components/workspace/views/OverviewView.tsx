@@ -59,8 +59,10 @@ function OverviewBody() {
       .then((res) => res.json().catch(() => ({})))
       .then((data) => {
         if (cancelled) return;
-        if (data?.sync?.campaignPageUrl) {
+        if (data?.connected && data?.sync?.campaignPageUrl) {
           setNotionUrl(data.sync.campaignPageUrl);
+        } else {
+          setNotionUrl(null);
         }
       })
       .catch(() => {
@@ -78,14 +80,28 @@ function OverviewBody() {
     setNotionNotice(null);
     try {
       const allProspects = bundle.research ?? [];
+      const allDrafts = bundle.drafts ?? [];
+      const shortlistedCount = allProspects.filter(
+        (p) => p.review?.status === 'shortlisted' || p.relationship_status === 'contacted',
+      ).length;
+      const draftsReadyCount = allProspects.filter((p) => {
+        const recId = p.record.record_id;
+        return Boolean(
+          allDrafts.find((d) => d.record_id === recId)?.copy ||
+            p.review?.status === 'shortlisted' ||
+            p.relationship_status === 'contacted',
+        );
+      }).length;
+      const statsOverride = {
+        totalProspects: allProspects.length,
+        shortlistedCount,
+        draftsReadyCount,
+      };
+
       const BATCH_SIZE = 3;
-      const chunks: (typeof allProspects)[] = [];
-      if (allProspects.length === 0) {
-        chunks.push([]);
-      } else {
-        for (let i = 0; i < allProspects.length; i += BATCH_SIZE) {
-          chunks.push(allProspects.slice(i, i + BATCH_SIZE));
-        }
+      const chunks: (typeof allProspects)[] = [[]];
+      for (let i = 0; i < allProspects.length; i += BATCH_SIZE) {
+        chunks.push(allProspects.slice(i, i + BATCH_SIZE));
       }
 
       let totalSynced = 0;
@@ -100,12 +116,20 @@ function OverviewBody() {
 
       for (let idx = 0; idx < chunks.length; idx += 1) {
         const chunk = chunks[idx]!;
+        if (idx > 0 && allProspects.length > 0) {
+          setNotionNotice({
+            tone: 'info',
+            text: `Syncing prospects to Notion (${Math.min(totalSynced + chunk.length, allProspects.length)}/${allProspects.length})…`,
+          });
+        }
+
         const res = await authenticatedFetch(`/api/projects/${bundle.projectId}/notion/sync`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             batchMode: true,
             skipHubUpdate: idx > 0,
+            statsOverride,
             ...(activeSyncRecord ? { existingSync: activeSyncRecord } : {}),
             brief: bundle.project.structured_brief,
             prospects: chunk,

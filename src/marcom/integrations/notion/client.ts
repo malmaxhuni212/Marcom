@@ -41,6 +41,7 @@ function getOAuthStateSecret(): string {
 export interface NotionOAuthStatePayload {
   workspaceId?: string;
   returnOrigin?: string;
+  sessionScope?: string;
   ttlSeconds?: number;
 }
 
@@ -48,6 +49,7 @@ export interface VerifiedNotionOAuthState {
   valid: boolean;
   workspaceId?: string;
   returnOrigin?: string;
+  sessionScope?: string;
   error?: string;
 }
 
@@ -65,6 +67,7 @@ export function createNotionOAuthState(options: NotionOAuthStatePayload = {}): s
     n: randomBytes(16).toString('hex'),
     w: options.workspaceId || undefined,
     o: options.returnOrigin || undefined,
+    s: options.sessionScope || undefined,
     exp: Date.now() + ttlMs,
   };
 
@@ -108,6 +111,7 @@ export function verifyNotionOAuthState(stateToken: string | null | undefined): V
       n?: string;
       w?: string;
       o?: string;
+      s?: string;
       exp?: number;
     };
 
@@ -119,6 +123,7 @@ export function verifyNotionOAuthState(stateToken: string | null | undefined): V
       valid: true,
       workspaceId: decoded.w,
       returnOrigin: decoded.o,
+      sessionScope: decoded.s,
     };
   } catch {
     return { valid: false, error: 'Corrupted OAuth state payload.' };
@@ -213,11 +218,12 @@ export async function notionFetch(
   options: RequestInit = {},
 ): Promise<any> {
   const url = endpoint.startsWith('http') ? endpoint : `${NOTION_BASE_URL}${endpoint}`;
-  const maxRetries = 3;
+  const maxRetries = 2;
 
   for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
     const response = await fetch(url, {
       ...options,
+      signal: options.signal ?? AbortSignal.timeout(12000),
       headers: {
         Authorization: `Bearer ${accessToken}`,
         'Notion-Version': NOTION_API_VERSION,
@@ -238,8 +244,8 @@ export async function notionFetch(
       const retryAfterSec = Number(response.headers.get('retry-after'));
       const waitMs =
         Number.isFinite(retryAfterSec) && retryAfterSec > 0
-          ? Math.min(retryAfterSec * 1000, 5000)
-          : 500 * Math.pow(2, attempt);
+          ? Math.min(retryAfterSec * 1000, 2000)
+          : 400 * Math.pow(2, attempt);
       await sleep(waitMs);
       continue;
     }
@@ -555,8 +561,9 @@ export async function updateNotionBlock(
 }
 
 /**
- * Replaces the body blocks of a prospect page (preserving any child_database blocks if present)
- * and appends the refreshed dossier blocks.
+ * Updates the top summary callout and outreach section of a prospect page above the divider
+ * without touching the static intelligence dossier blocks below the divider.
+ * Falls back to full block replacement if the page has no divider structure.
  */
 export async function replaceNotionPageBlocks(
   accessToken: string,
@@ -564,12 +571,52 @@ export async function replaceNotionPageBlocks(
   newBlocks: any[],
 ): Promise<void> {
   const existing = await listNotionBlockChildren(accessToken, pageId);
+  const existingDividerIdx = existing.findIndex((b) => b.type === 'divider');
+  const newDividerIdx = newBlocks.findIndex((b) => b.type === 'divider');
+
+  if (
+    existingDividerIdx >= 2 &&
+    newDividerIdx >= 2 &&
+    existing[0]?.type === 'callout' &&
+    newBlocks[0]?.type === 'callout' &&
+    existing[1]?.type === 'heading_2'
+  ) {
+    // 1. Update top summary callout in-place (preserves block ID & comments)
+    await updateNotionBlock(accessToken, existing[0].id, {
+      callout: newBlocks[0].callout,
+    }).catch(() => null);
+
+    // 2. Replace only the outreach section between heading_2 (index 1) and the divider
+    const oldOutreachBlocks = existing.slice(2, existingDividerIdx);
+    const newOutreachBlocks = newBlocks.slice(2, newDividerIdx);
+
+    const BATCH_SIZE = 4;
+    for (let i = 0; i < oldOutreachBlocks.length; i += BATCH_SIZE) {
+      const batch = oldOutreachBlocks.slice(i, i + BATCH_SIZE);
+      await Promise.all(
+        batch.map((blk) =>
+          notionFetch(`/blocks/${blk.id}`, accessToken, { method: 'DELETE' }).catch(() => null),
+        ),
+      );
+    }
+
+    if (newOutreachBlocks.length > 0) {
+      await notionFetch(`/blocks/${pageId}/children`, accessToken, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          children: newOutreachBlocks.slice(0, 80),
+          after: existing[1].id,
+        }),
+      });
+    }
+    return;
+  }
+
   const deletable = existing.filter(
     (b) => b.type !== 'child_database' && b.type !== 'child_page',
   );
 
-  // Archive old blocks in small concurrent batches to stay friendly to Notion's 3 req/s average rate limit
-  const BATCH_SIZE = 3;
+  const BATCH_SIZE = 4;
   for (let i = 0; i < deletable.length; i += BATCH_SIZE) {
     const batch = deletable.slice(i, i + BATCH_SIZE);
     await Promise.all(

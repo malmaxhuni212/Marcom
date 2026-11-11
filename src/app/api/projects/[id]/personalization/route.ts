@@ -1005,6 +1005,7 @@ export async function POST(req: Request, { params }: RouteCtx) {
     targetEntries: refreshedResearch.filter((r) => personalizedIdSet.has(r.record.record_id)),
     draftsByRecordId,
     allProspects: refreshedResearch,
+    req,
   });
 
   return NextResponse.json({
@@ -1206,6 +1207,7 @@ export async function PATCH(req: Request, { params }: RouteCtx) {
         projectId,
         targetEntries: [targetResearch],
         draftsByRecordId: { [recordId]: updated },
+        req,
       });
     }
   }

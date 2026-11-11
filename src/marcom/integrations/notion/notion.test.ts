@@ -20,7 +20,14 @@ import {
   getNotionOAuthConfig,
   verifyNotionOAuthState,
 } from './client';
-import { getProjectNotionSync, saveNotionConnection } from './store';
+import {
+  disconnectNotion,
+  getNotionConnection,
+  getProjectNotionSync,
+  resolveNotionSessionScope,
+  saveNotionConnection,
+  serializeNotionConnectionCookie,
+} from './store';
 import {
   syncConnectedProjectRecordsToNotion,
   syncProjectToNotion,
@@ -692,6 +699,82 @@ test('syncProjectToNotion creates hub + rows on initial sync and upserts without
     globalThis.fetch = originalFetch;
     if (prevStoreDir === undefined) delete process.env.MARCOM_NOTION_STORE_DIR;
     else process.env.MARCOM_NOTION_STORE_DIR = prevStoreDir;
+    await rm(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('Shared/hosted mode isolates Notion connections per user login session so User B never sees User A connected', async () => {
+  const tempDir = await mkdtemp(path.join(os.tmpdir(), 'marcom-notion-isolation-'));
+  const prevStoreDir = process.env.MARCOM_NOTION_STORE_DIR;
+  const prevAccessMode = process.env.APP_ACCESS_MODE;
+  const prevSecret = process.env.NOTION_CLIENT_SECRET;
+
+  process.env.MARCOM_NOTION_STORE_DIR = tempDir;
+  process.env.APP_ACCESS_MODE = 'shared';
+  process.env.NOTION_CLIENT_SECRET = 'secret_test_isolation_key';
+
+  try {
+    const reqUserA = new Request('https://marcom-automation.netlify.app/api/integrations/notion', {
+      headers: {
+        cookie: '__Host-marcom_session=session_token_user_A_12345',
+      },
+    });
+    const reqUserB = new Request('https://marcom-automation.netlify.app/api/integrations/notion', {
+      headers: {
+        cookie: '__Host-marcom_session=session_token_user_B_67890',
+      },
+    });
+
+    const scopeA = resolveNotionSessionScope(reqUserA);
+    const scopeB = resolveNotionSessionScope(reqUserB);
+    assert.notEqual(scopeA, scopeB);
+    assert.ok(scopeA.startsWith('sess_'));
+    assert.ok(scopeB.startsWith('sess_'));
+
+    // User A connects Notion
+    const connA = {
+      accessToken: 'ntn_user_a_token',
+      workspaceId: 'ws-user-a',
+      workspaceName: 'User A Workspace',
+      workspaceIcon: null,
+      botId: 'bot-a',
+      connectedAt: new Date().toISOString(),
+    };
+    await saveNotionConnection(connA, scopeA);
+
+    // User A sees their connection
+    const loadedForA = await getNotionConnection(reqUserA);
+    assert.ok(loadedForA);
+    assert.equal(loadedForA.workspaceName, 'User A Workspace');
+
+    // User B logging into the same shared pilot app from another session MUST NOT see User A's Notion connection
+    const loadedForB = await getNotionConnection(reqUserB);
+    assert.equal(loadedForB, null);
+
+    // Even if an old cookie from User A is sent with User B's session cookie, scope mismatch rejects it
+    const cookieA = serializeNotionConnectionCookie(connA, scopeA);
+    assert.ok(cookieA);
+    const reqUserBWithStaleCookie = new Request(
+      'https://marcom-automation.netlify.app/api/integrations/notion',
+      {
+        headers: {
+          cookie: `__Host-marcom_session=session_token_user_B_67890; ${cookieA.split(';')[0]}`,
+        },
+      },
+    );
+    const loadedForBStale = await getNotionConnection(reqUserBWithStaleCookie);
+    assert.equal(loadedForBStale, null);
+
+    // Disconnecting User A clears only User A
+    await disconnectNotion(reqUserA);
+    assert.equal(await getNotionConnection(reqUserA), null);
+  } finally {
+    if (prevStoreDir === undefined) delete process.env.MARCOM_NOTION_STORE_DIR;
+    else process.env.MARCOM_NOTION_STORE_DIR = prevStoreDir;
+    if (prevAccessMode === undefined) delete process.env.APP_ACCESS_MODE;
+    else process.env.APP_ACCESS_MODE = prevAccessMode;
+    if (prevSecret === undefined) delete process.env.NOTION_CLIENT_SECRET;
+    else process.env.NOTION_CLIENT_SECRET = prevSecret;
     await rm(tempDir, { recursive: true, force: true });
   }
 });

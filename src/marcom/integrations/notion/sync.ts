@@ -142,20 +142,24 @@ export async function syncProjectToNotion(
   const hubTitle = `${campaignName} — Intelligence & Outreach Hub`;
   const nowIso = new Date().toISOString();
 
-  const shortlistedCount = prospects.filter(
-    (p) => p.review?.status === 'shortlisted' || p.relationship_status === 'contacted',
-  ).length;
-  const draftsReadyCount = prospects.filter((p) => {
-    const recId = p.record.record_id;
-    const pName = (p.record.identity.name || p.seed.name || '').toLowerCase();
-    const d =
-      drafts[recId] ||
-      Object.values(drafts).find((item) => item.prospect_name.toLowerCase() === pName);
-    return Boolean(d?.copy);
-  }).length;
+  const shortlistedCount =
+    options.statsOverride?.shortlistedCount ??
+    prospects.filter(
+      (p) => p.review?.status === 'shortlisted' || p.relationship_status === 'contacted',
+    ).length;
+  const draftsReadyCount =
+    options.statsOverride?.draftsReadyCount ??
+    prospects.filter((p) => {
+      const recId = p.record.record_id;
+      const pName = (p.record.identity.name || p.seed.name || '').toLowerCase();
+      const d =
+        drafts[recId] ||
+        Object.values(drafts).find((item) => item.prospect_name.toLowerCase() === pName);
+      return Boolean(d?.copy);
+    }).length;
 
   const syncStats: CampaignBriefSyncStats = {
-    totalProspects: prospects.length,
+    totalProspects: options.statsOverride?.totalProspects ?? prospects.length,
     shortlistedCount,
     draftsReadyCount,
     syncedAtIso: nowIso,
@@ -218,7 +222,7 @@ export async function syncProjectToNotion(
 
   // 1b. If no stored sync state matched, check if an identical Campaign Hub already exists in Notion
   // (e.g., from an earlier sync before sync-state persistence was active)
-  if (!isResync && !options.parentPageId) {
+  if (!isResync && !options.skipHubUpdate) {
     const recovered = await findRecoverableCampaignHub(accessToken, hubTitle);
     if (recovered) {
       isResync = true;
@@ -354,6 +358,7 @@ export async function syncProjectToNotion(
       for (const row of existingRows) {
         if (row.recordId && !existingRowByRecordId.has(row.recordId)) {
           existingRowByRecordId.set(row.recordId, row.id);
+          prospectPageIds[row.recordId] = row.id;
         }
         if (row.prospectName) {
           existingRowByName.set(row.prospectName.toLowerCase(), row.id);
@@ -471,6 +476,7 @@ export interface TargetedNotionSyncOptions {
   targetEntries: ResearchEntry[];
   draftsByRecordId?: Record<string, PersonalizationEntry>;
   allProspects?: ResearchEntry[];
+  req?: Request | null;
 }
 
 export interface TargetedNotionSyncResult {
@@ -494,12 +500,13 @@ export async function syncConnectedProjectRecordsToNotion(
       return { synced: false };
     }
 
-    const [connection, storedSync] = await Promise.all([
-      getNotionConnection(),
-      getProjectNotionSync(options.projectId),
-    ]);
+    const connection = await getNotionConnection(options.req);
+    if (!connection?.accessToken) {
+      return { synced: false };
+    }
 
-    if (!connection?.accessToken || !storedSync?.databaseId) {
+    const storedSync = await getProjectNotionSync(options.projectId);
+    if (!storedSync?.databaseId) {
       return { synced: false };
     }
 

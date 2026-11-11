@@ -54,6 +54,11 @@ export interface NotionSyncOptions {
   notionWorkspaceId?: string;
   existingSync?: NotionProjectSyncRecord | null;
   skipHubUpdate?: boolean;
+  statsOverride?: {
+    totalProspects: number;
+    shortlistedCount: number;
+    draftsReadyCount: number;
+  };
 }
 
 export interface NotionSyncResult {
