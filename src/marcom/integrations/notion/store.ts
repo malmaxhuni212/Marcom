@@ -1,3 +1,4 @@
+import { getStore } from '@netlify/blobs';
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto';
 import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises';
 import os from 'node:os';
@@ -14,6 +15,10 @@ const NOTION_BLOB_KEY = 'notion-connection';
 const NOTION_SYNCS_BLOB_KEY = 'notion-project-syncs';
 export const NOTION_CONNECTION_COOKIE = 'marcom_notion_conn';
 
+const BLOB_OP_TIMEOUT_MS = 1800;
+const BLOBS_COOLDOWN_MS = 60_000;
+let blobsUnavailableUntil = 0;
+
 function stripQuotes(val: string | undefined): string {
   if (!val) return '';
   return val.trim().replace(/^["'“”]+|["'“”]+$/g, '').trim();
@@ -27,9 +32,88 @@ function getCookieCipherKey(): Buffer {
   return createHash('sha256').update(secret).digest();
 }
 
-export function serializeNotionConnectionCookie(config: NotionConnectionConfig): string | null {
+function readCookieFromRequest(req: Request | null | undefined, cookieName: string): string | null {
+  if (!req) return null;
+  const cookieHeader = req.headers.get('cookie');
+  if (!cookieHeader) return null;
+  for (const part of cookieHeader.split(';')) {
+    const trimmed = part.trim();
+    const eqIdx = trimmed.indexOf('=');
+    if (eqIdx <= 0) continue;
+    if (trimmed.slice(0, eqIdx) === cookieName) {
+      try {
+        return decodeURIComponent(trimmed.slice(eqIdx + 1));
+      } catch {
+        return trimmed.slice(eqIdx + 1);
+      }
+    }
+  }
+  return null;
+}
+
+function isHostedOrSharedEnvironment(): boolean {
+  return Boolean(
+    process.env.APP_ACCESS_MODE === 'shared' ||
+      process.env.NODE_ENV === 'production' ||
+      process.env.NETLIFY === 'true' ||
+      process.env.NETLIFY_BLOBS_CONTEXT ||
+      (globalThis as Record<string, unknown>).netlifyBlobsContext,
+  );
+}
+
+/**
+ * Resolves a per-session / per-browser scope identifier so that in shared/hosted mode,
+ * User B never inherits User A's Notion workspace connection.
+ * Falls back to 'default' in local development (`APP_ACCESS_MODE=local` without session cookies)
+ * and unit tests where `req` is omitted.
+ */
+export function resolveNotionSessionScope(req?: Request | null): string {
+  if (!req) return 'default';
+
+  const sessionToken =
+    readCookieFromRequest(req, '__Host-marcom_session') ||
+    readCookieFromRequest(req, 'marcom_session');
+  if (sessionToken) {
+    const hash = createHash('sha256').update(sessionToken).digest('hex').slice(0, 24);
+    return `sess_${hash}`;
+  }
+
+  const guestToken =
+    readCookieFromRequest(req, '__Host-marcom_guest') ||
+    readCookieFromRequest(req, 'marcom_guest');
+  if (guestToken) {
+    const hash = createHash('sha256').update(guestToken).digest('hex').slice(0, 24);
+    return `guest_${hash}`;
+  }
+
+  if (isHostedOrSharedEnvironment()) {
+    return 'anon';
+  }
+
+  return 'default';
+}
+
+function scopedNotionBlobKey(scope: string): string {
+  if (!scope || scope === 'default') return NOTION_BLOB_KEY;
+  return `${NOTION_BLOB_KEY}:${scope}`;
+}
+
+function scopedNotionFileName(scope: string): string {
+  if (!scope || scope === 'default') return 'notion.json';
+  const safeScope = scope.replace(/[^a-zA-Z0-9_-]/g, '');
+  return `notion-${safeScope}.json`;
+}
+
+interface CookiePayload extends NotionConnectionConfig {
+  _scope?: string;
+}
+
+export function serializeNotionConnectionCookie(
+  config: NotionConnectionConfig,
+  scope = 'default',
+): string | null {
   try {
-    const minimal: NotionConnectionConfig = {
+    const minimal: CookiePayload = {
       accessToken: config.accessToken,
       workspaceId: config.workspaceId,
       workspaceName: config.workspaceName ?? null,
@@ -39,6 +123,7 @@ export function serializeNotionConnectionCookie(config: NotionConnectionConfig):
       connectedAt: config.connectedAt || new Date().toISOString(),
       defaultParentPageId: config.defaultParentPageId ?? null,
       defaultParentPageTitle: config.defaultParentPageTitle ?? null,
+      _scope: scope,
     };
     const key = getCookieCipherKey();
     const iv = randomBytes(12);
@@ -52,21 +137,13 @@ export function serializeNotionConnectionCookie(config: NotionConnectionConfig):
   }
 }
 
-export function parseNotionConnectionCookie(req?: Request | null): NotionConnectionConfig | null {
+export function parseNotionConnectionCookie(
+  req?: Request | null,
+  expectedScope?: string,
+): NotionConnectionConfig | null {
   if (!req) return null;
   try {
-    const cookieHeader = req.headers.get('cookie');
-    if (!cookieHeader) return null;
-    let rawCookie: string | null = null;
-    for (const part of cookieHeader.split(';')) {
-      const trimmed = part.trim();
-      const eqIdx = trimmed.indexOf('=');
-      if (eqIdx <= 0) continue;
-      if (trimmed.slice(0, eqIdx) === NOTION_CONNECTION_COOKIE) {
-        rawCookie = decodeURIComponent(trimmed.slice(eqIdx + 1));
-        break;
-      }
-    }
+    const rawCookie = readCookieFromRequest(req, NOTION_CONNECTION_COOKIE);
     if (!rawCookie) return null;
     const segments = rawCookie.split('.');
     if (segments.length !== 3) return null;
@@ -82,11 +159,24 @@ export function parseNotionConnectionCookie(req?: Request | null): NotionConnect
       decipher.update(Buffer.from(dataB64!, 'base64url')),
       decipher.final(),
     ]);
-    const parsed = JSON.parse(decrypted.toString('utf8')) as NotionConnectionConfig;
-    if (parsed && typeof parsed.accessToken === 'string' && parsed.accessToken.length > 0) {
-      return parsed;
+    const parsed = JSON.parse(decrypted.toString('utf8')) as CookiePayload;
+    if (!parsed || typeof parsed.accessToken !== 'string' || parsed.accessToken.length === 0) {
+      return null;
     }
-    return null;
+
+    const activeScope = expectedScope ?? resolveNotionSessionScope(req);
+    if (
+      activeScope.startsWith('sess_') &&
+      parsed._scope &&
+      parsed._scope.startsWith('sess_') &&
+      parsed._scope !== activeScope
+    ) {
+      // A different user session logged in on this browser; do not leak previous session's Notion token
+      return null;
+    }
+
+    const { _scope: _ignored, ...cleanConfig } = parsed;
+    return cleanConfig;
   } catch {
     return null;
   }
@@ -95,22 +185,33 @@ export function parseNotionConnectionCookie(req?: Request | null): NotionConnect
 export function setNotionConnectionCookieOnResponse(
   res: NextResponse,
   config: NotionConnectionConfig | null,
+  reqOrScope?: Request | string | null,
 ): void {
+  const isSecure =
+    process.env.NODE_ENV === 'production' &&
+    Boolean(process.env.APP_ORIGIN?.trim().startsWith('https://'));
+
   if (!config) {
     res.cookies.set(NOTION_CONNECTION_COOKIE, '', {
       path: '/',
       httpOnly: true,
       sameSite: 'lax',
+      secure: isSecure,
       maxAge: 0,
     });
     return;
   }
-  const encoded = serializeNotionConnectionCookie(config);
+  const scope =
+    typeof reqOrScope === 'string'
+      ? reqOrScope
+      : resolveNotionSessionScope(reqOrScope);
+  const encoded = serializeNotionConnectionCookie(config, scope);
   if (!encoded) return;
   res.cookies.set(NOTION_CONNECTION_COOKIE, encoded, {
     path: '/',
     httpOnly: true,
     sameSite: 'lax',
+    secure: isSecure,
     maxAge: 60 * 60 * 24 * 365,
   });
 }
@@ -128,71 +229,108 @@ function isCustomTestStoreDir(): boolean {
   return Boolean(process.env.MARCOM_NOTION_STORE_DIR?.trim());
 }
 
-async function getNetlifyBlobStore(strongConsistency = true) {
-  if (isCustomTestStoreDir()) {
+function isNetlifyBlobsEnvironment(): boolean {
+  if (isCustomTestStoreDir()) return false;
+  if (Date.now() < blobsUnavailableUntil) return false;
+  return Boolean(
+    process.env.NETLIFY === 'true' ||
+      process.env.NETLIFY_BLOBS_CONTEXT ||
+      (globalThis as Record<string, unknown>).netlifyBlobsContext,
+  );
+}
+
+/**
+ * Custom fetch wrapper for @netlify/blobs that enforces a 1.5s timeout and prevents
+ * @netlify/blobs's internal `fetchAndRetry` from sleeping 5,000ms x 5 (25s+) on 5xx errors.
+ */
+const fastBlobFetch: typeof fetch = async (input, init) => {
+  const res = await fetch(input, {
+    ...init,
+    signal: AbortSignal.timeout(1500),
+  });
+  if (res.status >= 500 || res.status === 429) {
+    blobsUnavailableUntil = Date.now() + BLOBS_COOLDOWN_MS;
+    return new Response(res.body, {
+      status: 400,
+      statusText: res.statusText,
+      headers: res.headers,
+    });
+  }
+  return res;
+};
+
+function withBlobTimeout<T>(promise: Promise<T>, fallback: T): Promise<T> {
+  return new Promise<T>((resolve) => {
+    const timer = setTimeout(() => {
+      blobsUnavailableUntil = Date.now() + BLOBS_COOLDOWN_MS;
+      resolve(fallback);
+    }, BLOB_OP_TIMEOUT_MS);
+
+    promise
+      .then((val) => {
+        clearTimeout(timer);
+        resolve(val);
+      })
+      .catch(() => {
+        clearTimeout(timer);
+        blobsUnavailableUntil = Date.now() + BLOBS_COOLDOWN_MS;
+        resolve(fallback);
+      });
+  });
+}
+
+function getNetlifyBlobStore() {
+  if (!isNetlifyBlobsEnvironment()) {
     return null;
   }
+  const configuredRegion = process.env.NETLIFY_BLOBS_REGION?.trim();
   try {
-    const { getStore } = await import('@netlify/blobs');
-    if (strongConsistency) {
-      try {
-        return getStore({
-          name: BLOB_STORE_NAME,
-          consistency: 'strong',
-          region: 'us-east-2',
-        });
-      } catch {
-        // Fall back to default store if strong consistency is unavailable
-      }
-    }
     return getStore({
       name: BLOB_STORE_NAME,
-      region: 'us-east-2',
+      ...(configuredRegion ? { region: configuredRegion as any } : {}),
+      fetch: fastBlobFetch,
     });
   } catch {
-    return null;
+    try {
+      return getStore({
+        name: BLOB_STORE_NAME,
+        region: 'us-east-2',
+        fetch: fastBlobFetch,
+      });
+    } catch {
+      blobsUnavailableUntil = Date.now() + BLOBS_COOLDOWN_MS;
+      return null;
+    }
   }
 }
 
 async function readBlobJson<T>(key: string): Promise<T | null> {
-  const strongStore = await getNetlifyBlobStore(true);
-  if (strongStore) {
-    try {
-      return (await strongStore.get(key, { type: 'json' })) as T | null;
-    } catch {
-      // Retry with eventual consistency store if strong consistency fails
-    }
-  }
-  const fallbackStore = await getNetlifyBlobStore(false);
-  if (!fallbackStore) return null;
-  try {
-    return (await fallbackStore.get(key, { type: 'json' })) as T | null;
-  } catch {
-    return null;
-  }
+  const store = getNetlifyBlobStore();
+  if (!store) return null;
+  return withBlobTimeout(
+    store.get(key, { type: 'json' }) as Promise<T | null>,
+    null,
+  );
 }
 
 async function writeBlobJson(key: string, value: unknown): Promise<boolean> {
-  const strongStore = await getNetlifyBlobStore(true);
-  if (strongStore) {
-    try {
-      await strongStore.setJSON(key, value);
-      return true;
-    } catch {
-      // Retry with eventual consistency store if strong consistency fails
-    }
-  }
-  const fallbackStore = await getNetlifyBlobStore(false);
-  if (!fallbackStore) return false;
-  try {
-    await fallbackStore.setJSON(key, value);
-    return true;
-  } catch {
-    return false;
-  }
+  const store = getNetlifyBlobStore();
+  if (!store) return false;
+  return withBlobTimeout(
+    store.setJSON(key, value).then(() => true),
+    false,
+  );
 }
 
-export async function getNotionConnection(req?: Request | null): Promise<NotionConnectionConfig | null> {
+async function deleteBlobKey(key: string): Promise<void> {
+  const store = getNetlifyBlobStore();
+  if (!store) return;
+  await withBlobTimeout(store.delete(key), undefined);
+}
+
+export async function getNotionConnection(
+  reqOrScope?: Request | string | null,
+): Promise<NotionConnectionConfig | null> {
   // 1. Static environment variable fallback (for private internal token setups)
   if (process.env.NOTION_ACCESS_TOKEN || process.env.NOTION_INTERNAL_TOKEN) {
     const token = stripQuotes(process.env.NOTION_ACCESS_TOKEN || process.env.NOTION_INTERNAL_TOKEN);
@@ -211,37 +349,42 @@ export async function getNotionConnection(req?: Request | null): Promise<NotionC
     }
   }
 
-  // 2. Check signed encrypted browser cookie first if available (instant consistency across serverless instances)
-  const cookieConn = parseNotionConnectionCookie(req);
+  const req = typeof reqOrScope === 'object' ? reqOrScope : null;
+  const scope =
+    typeof reqOrScope === 'string'
+      ? reqOrScope
+      : resolveNotionSessionScope(req);
 
-  // 3. Netlify Blobs (production serverless runtime)
-  const blobData = await readBlobJson<Record<string, unknown>>(NOTION_BLOB_KEY);
+  // 2. Check signed encrypted browser cookie first (0.1ms, zero network latency, strictly isolated per browser/session)
+  if (req) {
+    const cookieConn = parseNotionConnectionCookie(req, scope);
+    if (cookieConn) {
+      return cookieConn;
+    }
+  }
+
+  // Never allow an unauthenticated/anonymous browser in hosted/shared mode to read someone else's stored token
+  if (scope === 'anon') {
+    return null;
+  }
+
+  // 3. Scoped Netlify Blobs lookup
+  const blobKey = scopedNotionBlobKey(scope);
+  const blobData = await readBlobJson<Record<string, unknown>>(blobKey);
   if (
     blobData &&
     typeof blobData === 'object' &&
     typeof blobData.accessToken === 'string' &&
     blobData.accessToken.length > 0
   ) {
-    const blobConn = blobData as unknown as NotionConnectionConfig;
-    if (cookieConn && cookieConn.workspaceId === blobConn.workspaceId) {
-      return {
-        ...blobConn,
-        defaultParentPageId: cookieConn.defaultParentPageId ?? blobConn.defaultParentPageId ?? null,
-        defaultParentPageTitle:
-          cookieConn.defaultParentPageTitle ?? blobConn.defaultParentPageTitle ?? null,
-      };
-    }
-    return blobConn;
+    return blobData as unknown as NotionConnectionConfig;
   }
 
-  if (cookieConn) {
-    return cookieConn;
-  }
-
-  // 4. Local or /tmp filesystem memory
+  // 4. Scoped local or /tmp filesystem memory
+  const fileName = scopedNotionFileName(scope);
   for (const dir of candidateMemoryDirs()) {
     try {
-      const raw = await readFile(path.join(dir, 'notion.json'), 'utf8');
+      const raw = await readFile(path.join(dir, fileName), 'utf8');
       const parsed = JSON.parse(raw) as NotionConnectionConfig;
       if (parsed && typeof parsed.accessToken === 'string' && parsed.accessToken.length > 0) {
         return parsed;
@@ -254,14 +397,24 @@ export async function getNotionConnection(req?: Request | null): Promise<NotionC
   return null;
 }
 
-export async function saveNotionConnection(config: NotionConnectionConfig): Promise<void> {
-  const savedToBlob = await writeBlobJson(NOTION_BLOB_KEY, config);
+export async function saveNotionConnection(
+  config: NotionConnectionConfig,
+  reqOrScope?: Request | string | null,
+): Promise<void> {
+  const scope =
+    typeof reqOrScope === 'string'
+      ? reqOrScope
+      : resolveNotionSessionScope(reqOrScope);
+  const blobKey = scopedNotionBlobKey(scope);
+  const fileName = scopedNotionFileName(scope);
+
+  const savedToBlob = await writeBlobJson(blobKey, config);
   let savedLocally = false;
 
   for (const dir of candidateMemoryDirs()) {
     try {
       await mkdir(dir, { recursive: true });
-      await writeFile(path.join(dir, 'notion.json'), JSON.stringify(config, null, 2), 'utf8');
+      await writeFile(path.join(dir, fileName), JSON.stringify(config, null, 2), 'utf8');
       savedLocally = true;
       break;
     } catch {
@@ -277,9 +430,9 @@ export async function saveNotionConnection(config: NotionConnectionConfig): Prom
 export async function updateDefaultNotionParentPage(
   pageId: string | null,
   pageTitle?: string | null,
-  req?: Request | null,
+  reqOrScope?: Request | string | null,
 ): Promise<NotionConnectionConfig | null> {
-  const existing = await getNotionConnection(req);
+  const existing = await getNotionConnection(reqOrScope);
   if (!existing) return null;
   if (existing.workspaceId === 'env-workspace') return existing;
 
@@ -288,24 +441,25 @@ export async function updateDefaultNotionParentPage(
     defaultParentPageId: pageId || null,
     defaultParentPageTitle: pageTitle || null,
   };
-  await saveNotionConnection(updated);
+  await saveNotionConnection(updated, reqOrScope);
   return updated;
 }
 
-export async function disconnectNotion(): Promise<void> {
-  const strongStore = await getNetlifyBlobStore(true);
-  if (strongStore) {
-    try {
-      await strongStore.delete(NOTION_BLOB_KEY);
-    } catch {
-      const fallbackStore = await getNetlifyBlobStore(false);
-      await fallbackStore?.delete(NOTION_BLOB_KEY).catch(() => undefined);
-    }
-  }
+export async function disconnectNotion(
+  reqOrScope?: Request | string | null,
+): Promise<void> {
+  const scope =
+    typeof reqOrScope === 'string'
+      ? reqOrScope
+      : resolveNotionSessionScope(reqOrScope);
+  const blobKey = scopedNotionBlobKey(scope);
+  const fileName = scopedNotionFileName(scope);
+
+  await deleteBlobKey(blobKey);
 
   for (const dir of candidateMemoryDirs()) {
     try {
-      await unlink(path.join(dir, 'notion.json'));
+      await unlink(path.join(dir, fileName));
     } catch {
       // Ignore if already deleted
     }
@@ -313,9 +467,9 @@ export async function disconnectNotion(): Promise<void> {
 }
 
 export async function getNotionConnectionStatus(
-  req?: Request | null,
+  reqOrScope?: Request | string | null,
 ): Promise<NotionConnectionStatus> {
-  const conn = await getNotionConnection(req);
+  const conn = await getNotionConnection(reqOrScope);
   if (!conn) {
     return { connected: false };
   }

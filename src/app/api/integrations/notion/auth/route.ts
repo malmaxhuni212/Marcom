@@ -5,6 +5,7 @@ import {
   createNotionOAuthState,
   getNotionOAuthConfig,
 } from '@/marcom/integrations/notion/client';
+import { resolveNotionSessionScope } from '@/marcom/integrations/notion/store';
 
 export async function GET(req: Request) {
   const access = await authorizeApiRequest(req, { allowGuest: true });
@@ -38,6 +39,7 @@ export async function GET(req: Request) {
     const state = createNotionOAuthState({
       workspaceId: access.actor.workspaceId,
       returnOrigin: callerOrigin,
+      sessionScope: resolveNotionSessionScope(req),
     });
 
     const authUrl = buildNotionAuthUrl(redirectUri, state);

@@ -101,21 +101,29 @@ export async function GET(req: Request, context: RouteContext) {
   const { id } = await context.params;
 
   try {
-    const [connection, syncRecord] = await Promise.all([
-      getNotionConnection(req),
-      getProjectNotionSync(id),
-    ]);
+    const connection = await getNotionConnection(req);
+    if (!connection?.accessToken) {
+      return NextResponse.json({
+        success: true,
+        connected: false,
+        workspaceName: null,
+        workspaceId: null,
+        sync: null,
+      });
+    }
 
+    const syncRecord = await getProjectNotionSync(id);
     const matchesWorkspace =
       syncRecord &&
-      (!connection?.workspaceId ||
+      (!connection.workspaceId ||
         !syncRecord.notionWorkspaceId ||
         syncRecord.notionWorkspaceId === connection.workspaceId);
 
     return NextResponse.json({
       success: true,
-      connected: Boolean(connection?.accessToken),
-      workspaceName: connection?.workspaceName ?? null,
+      connected: true,
+      workspaceName: connection.workspaceName ?? null,
+      workspaceId: connection.workspaceId ?? null,
       sync: matchesWorkspace ? syncRecord : null,
     });
   } catch (err) {
@@ -151,10 +159,18 @@ export async function POST(req: Request, context: RouteContext) {
       batchMode?: boolean;
       skipHubUpdate?: boolean;
       existingSync?: NotionProjectSyncRecord | null;
+      statsOverride?: {
+        totalProspects: number;
+        shortlistedCount: number;
+        draftsReadyCount: number;
+      };
     };
 
-    const project = await readCampaignMemory(access.actor, id, true).catch(() => null);
-    const brief = project?.structured_brief ?? body.brief ?? null;
+    const isClientBatch = Boolean(body.batchMode && body.brief && Array.isArray(body.prospects));
+    const project = isClientBatch
+      ? null
+      : await readCampaignMemory(access.actor, id, true).catch(() => null);
+    const brief = body.brief ?? project?.structured_brief ?? null;
     if (!brief) {
       return NextResponse.json(
         { error: 'Campaign does not have a structured brief configured.' },
@@ -162,29 +178,43 @@ export async function POST(req: Request, context: RouteContext) {
       );
     }
 
-    const [serverResearch, serverPersonalizations, serverSettings] = await Promise.all([
-      loadHybridResearch(access.actor, id, true).catch(() => [] as ResearchEntry[]),
-      loadHybridPersonalizations(access.actor, id, true).catch(() => [] as PersonalizationEntry[]),
-      loadHybridPersonalizationSettings(access.actor, id),
-    ]);
-
-    const research =
-      body.batchMode && Array.isArray(body.prospects)
-        ? body.prospects
-        : serverResearch.length > 0
-          ? serverResearch
-          : Array.isArray(body.prospects)
-            ? body.prospects
-            : [];
-    const settings = body.settings ?? serverSettings;
-
+    let research: ResearchEntry[];
+    let settings: PersonalizationSettings;
     const draftsMap: Record<string, PersonalizationEntry> = {};
-    for (const p of serverPersonalizations) {
-      if (p?.record_id) draftsMap[p.record_id] = p;
-    }
-    if (Array.isArray(body.drafts)) {
-      for (const p of body.drafts) {
+
+    if (isClientBatch) {
+      research = body.prospects || [];
+      settings =
+        body.settings ?? (await loadHybridPersonalizationSettings(access.actor, id));
+      if (Array.isArray(body.drafts)) {
+        for (const p of body.drafts) {
+          if (p?.record_id) draftsMap[p.record_id] = p;
+        }
+      }
+    } else {
+      const [serverResearch, serverPersonalizations, serverSettings] = await Promise.all([
+        loadHybridResearch(access.actor, id, true).catch(() => [] as ResearchEntry[]),
+        loadHybridPersonalizations(access.actor, id, true).catch(() => [] as PersonalizationEntry[]),
+        loadHybridPersonalizationSettings(access.actor, id),
+      ]);
+
+      research =
+        body.batchMode && Array.isArray(body.prospects)
+          ? body.prospects
+          : serverResearch.length > 0
+            ? serverResearch
+            : Array.isArray(body.prospects)
+              ? body.prospects
+              : [];
+      settings = body.settings ?? serverSettings;
+
+      for (const p of serverPersonalizations) {
         if (p?.record_id) draftsMap[p.record_id] = p;
+      }
+      if (Array.isArray(body.drafts)) {
+        for (const p of body.drafts) {
+          if (p?.record_id) draftsMap[p.record_id] = p;
+        }
       }
     }
 
@@ -216,6 +246,7 @@ export async function POST(req: Request, context: RouteContext) {
         notionWorkspaceId: connection.workspaceId,
         ...(body.existingSync !== undefined ? { existingSync: body.existingSync } : {}),
         ...(body.skipHubUpdate ? { skipHubUpdate: true } : {}),
+        ...(body.statsOverride ? { statsOverride: body.statsOverride } : {}),
       },
       connection.accessToken,
     );

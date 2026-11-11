@@ -237,6 +237,7 @@ export async function POST(req: Request, { params }: RouteCtx) {
           projectId,
           brief: project.structured_brief,
           targetEntries: [entry],
+          req,
         });
 
         onProgress({ stage: 'complete', message: 'Research complete' });
@@ -305,6 +306,7 @@ export async function PATCH(req: Request, { params }: RouteCtx) {
       projectId,
       targetEntries: [updated],
       draftsByRecordId: existingDraft ? { [parsed.data.record_id]: existingDraft } : {},
+      req,
     });
   }
 

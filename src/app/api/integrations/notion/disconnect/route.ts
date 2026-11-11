@@ -10,9 +10,9 @@ export async function POST(req: Request) {
   if (!access.ok) return access.response;
 
   try {
-    await disconnectNotion();
+    await disconnectNotion(req);
     const response = NextResponse.json({ success: true, disconnected: true });
-    setNotionConnectionCookieOnResponse(response, null);
+    setNotionConnectionCookieOnResponse(response, null, req);
     return response;
   } catch (err) {
     const msg = (err as Error).message || 'Failed to disconnect Notion.';
@@ -25,11 +25,11 @@ export async function GET(req: Request) {
   if (!access.ok) return access.response;
 
   try {
-    await disconnectNotion();
+    await disconnectNotion(req);
     const url = new URL(req.url);
     const returnTo = url.searchParams.get('returnTo') || '/integrations';
     const response = NextResponse.redirect(new URL(`${returnTo}?notion=disconnected`, req.url));
-    setNotionConnectionCookieOnResponse(response, null);
+    setNotionConnectionCookieOnResponse(response, null, req);
     return response;
   } catch (err) {
     const msg = (err as Error).message || 'Failed to disconnect Notion.';

@@ -7,6 +7,7 @@ import {
   verifyNotionOAuthState,
 } from '@/marcom/integrations/notion/client';
 import {
+  resolveNotionSessionScope,
   saveNotionConnection,
   setNotionConnectionCookieOnResponse,
 } from '@/marcom/integrations/notion/store';
@@ -103,10 +104,11 @@ export async function GET(req: Request) {
       }
     }
 
-    await saveNotionConnection(connection);
+    const scope = stateCheck.sessionScope || resolveNotionSessionScope(req);
+    await saveNotionConnection(connection, scope);
 
     const response = NextResponse.redirect(new URL('/integrations?notion=connected', baseOrigin));
-    setNotionConnectionCookieOnResponse(response, connection);
+    setNotionConnectionCookieOnResponse(response, connection, scope);
     return response;
   } catch (err) {
     const msg = (err as Error).message || 'Failed to complete Notion connection.';
