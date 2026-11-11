@@ -16,6 +16,17 @@ function resolveSafeReturnOrigin(
   requestUrl: URL,
 ): string {
   const configuredOrigin = process.env.APP_ORIGIN?.trim();
+  const isSharedOrProd =
+    process.env.APP_ACCESS_MODE === 'shared' || process.env.NODE_ENV === 'production';
+
+  if (isSharedOrProd && configuredOrigin) {
+    try {
+      return new URL(configuredOrigin).origin;
+    } catch {
+      // Fall through if APP_ORIGIN is malformed
+    }
+  }
+
   const fallbackOrigin = configuredOrigin || requestUrl.origin;
   if (!candidateOrigin) return fallbackOrigin;
 

@@ -23,16 +23,21 @@ export async function GET(req: Request) {
     }
 
     const requestUrl = new URL(req.url);
-    const host = req.headers.get('x-forwarded-host') || req.headers.get('host') || 'localhost:3000';
+    const host =
+      req.headers.get('x-forwarded-host') ||
+      req.headers.get('host') ||
+      requestUrl.host ||
+      'localhost:3000';
     const proto =
       req.headers.get('x-forwarded-proto') ||
       (host.startsWith('localhost') || host.startsWith('127.0.0.1') ? 'http' : 'https');
+    const callerOrigin = `${proto}://${host}`;
     const redirectUri =
-      process.env.NOTION_REDIRECT_URI || `${proto}://${host}/api/integrations/notion/callback`;
+      process.env.NOTION_REDIRECT_URI || `${callerOrigin}/api/integrations/notion/callback`;
 
     const state = createNotionOAuthState({
       workspaceId: access.actor.workspaceId,
-      returnOrigin: requestUrl.origin,
+      returnOrigin: callerOrigin,
     });
 
     const authUrl = buildNotionAuthUrl(redirectUri, state);
