@@ -100,17 +100,42 @@ export function saveResearch(projectId: string, entry: ResearchEntry): void {
   writeResearch(projectId, next);
 }
 
+export function updateResearchEntryById(
+  projectId: string,
+  updatedEntry: ResearchEntry,
+): ResearchEntry | null {
+  const entries = listResearch(projectId);
+  const index = entries.findIndex(
+    (entry) => entry.record.record_id === updatedEntry.record.record_id,
+  );
+  if (index === -1) return null;
+  entries[index] = updatedEntry;
+  writeResearch(projectId, entries);
+  return updatedEntry;
+}
+
 export function updateResearchReview(
   projectId: string,
   recordId: string,
   status: ReviewStatus,
   note: string | null,
+  relationshipStatus?: string | null,
 ): ResearchEntry | null {
   const entries = listResearch(projectId);
   const index = entries.findIndex((entry) => entry.record.record_id === recordId);
   if (index === -1) return null;
+  const current = entries[index]!;
+  const nextRelationshipStatus =
+    relationshipStatus !== undefined
+      ? relationshipStatus === 'contacted' || relationshipStatus === 'sent'
+        ? 'contacted'
+        : null
+      : status !== 'shortlisted'
+        ? null
+        : current.relationship_status ?? null;
   const updated: ResearchEntry = {
-    ...entries[index],
+    ...current,
+    relationship_status: nextRelationshipStatus,
     review: { project_id: projectId, record_id: recordId, status, note: note?.trim() || null, reviewed_at: new Date().toISOString(), reviewed_by: 'user' },
   };
   entries[index] = updated;

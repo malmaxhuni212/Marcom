@@ -330,9 +330,17 @@ export function sourceUsage(entry: ResearchEntry, sourceId: string): string[] {
 /** Pulls an explicit numeric prospect goal (e.g. "about 2,000 qualified prospects") from the brief, if stated. */
 export function prospectGoal(brief: StructuredBrief | null | undefined): number | null {
   if (!brief) return null;
-  const text = [brief.project.primary_objective, ...brief.project.success_metrics, ...brief.project.secondary_objectives].join(' \n ');
+  const text = [
+    brief.project.primary_objective,
+    brief.project.description,
+    ...brief.project.success_metrics,
+    ...brief.project.secondary_objectives,
+    ...brief.targets.map((t) => t.description),
+  ]
+    .filter(Boolean)
+    .join(' \n ');
   const match = text.match(
-    /(\d{1,3}(?:,\d{3})+|\d+)\s*(?:\+\s*)?(?:[a-z-]+\s+){0,3}?(prospects|leads|contacts|partners|partnerships|people|organisations|organizations|companies|sponsors|creators|authors|investors|candidates|venues|customers)/i,
+    /(\d{1,3}(?:,\d{3})+|\d+)\s*(?:\+\s*)?(?:[a-z-]+\s+){0,3}?(prospects|leads|contacts|partners|partnerships|people|organisations|organizations|companies|sponsors|creators|authors|investors|candidates|venues|customers|audience|audiences|targets|members|users|subscribers|clients|attendees|participants)/i,
   );
   if (!match) return null;
   const value = Number.parseInt(match[1]!.replace(/,/g, ''), 10);

@@ -31,9 +31,50 @@ export interface NotionConnectionStatus {
   defaultParentPageTitle?: string | null;
 }
 
+export interface NotionDatabaseRowSnapshot {
+  id: string;
+  url: string;
+  recordId: string | null;
+  prospectName: string | null;
+  lastEditedTime?: string | null;
+  reviewStatus?: string | null;
+  outreachStatus?: string | null;
+  topSubjectLine?: string | null;
+  primaryEmailDraft?: string | null;
+  linkedinDraft?: string | null;
+  role?: string | null;
+  organisation?: string | null;
+  location?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  linkedinUrl?: string | null;
+  websiteUrl?: string | null;
+  fitScore?: number | null;
+  qualificationRating?: string | null;
+  targetSegment?: string | null;
+}
+
+export interface NotionReconciledReviewUpdate {
+  recordId: string;
+  status: 'needs_review' | 'shortlisted' | 'rejected' | 'enrichment_requested';
+  note: string | null;
+  relationshipStatus?: 'contacted' | null;
+}
+
+export interface NotionReconciledChanges {
+  updatedBrief?: StructuredBrief | null;
+  updatedResearchEntries?: ResearchEntry[];
+  updatedDrafts: PersonalizationEntry[];
+  updatedReviews: NotionReconciledReviewUpdate[];
+  pulledCount: number;
+}
+
 export interface NotionProjectSyncRecord {
   projectId: string;
   notionWorkspaceId: string;
+  workspaceName?: string | null;
+  /** Server-side token bound to this specific synced campaign so collaborators on the project share Notion sync */
+  projectAccessToken?: string;
   parentPageId: string;
   campaignPageId: string;
   campaignPageUrl: string;
@@ -43,17 +84,21 @@ export interface NotionProjectSyncRecord {
   prospectPageIds: Record<string, string>;
   syncedCount: number;
   lastSyncedAt: string;
+  /** Optional snapshot of Notion database rows captured during Step 0 for batch reconciliation */
+  existingRowsSnapshot?: NotionDatabaseRowSnapshot[];
 }
 
 export interface NotionSyncOptions {
   projectId: string;
   brief: StructuredBrief;
+  configurationUpdatedAt?: string | null;
   prospects: ResearchEntry[];
   drafts?: Record<string, PersonalizationEntry>;
   parentPageId?: string;
   notionWorkspaceId?: string;
   existingSync?: NotionProjectSyncRecord | null;
   skipHubUpdate?: boolean;
+  activeRecordIds?: string[];
   statsOverride?: {
     totalProspects: number;
     shortlistedCount: number;
@@ -76,5 +121,7 @@ export interface NotionSyncResult {
   isResync: boolean;
   lastSyncedAt: string;
   prospectPageIds?: Record<string, string>;
+  existingRowsSnapshot?: NotionDatabaseRowSnapshot[];
+  reconciledChanges?: NotionReconciledChanges;
   errors?: string[];
 }

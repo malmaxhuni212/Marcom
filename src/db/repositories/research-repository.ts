@@ -186,7 +186,13 @@ export async function listResearch(
 ): Promise<ResearchEntry[]> {
   if (!UUID_REGEX.test(campaignId)) return [];
   const rows = await database
-    .selectDistinctOn([campaignProspects.id], { metadata: researchResults.metadata, researchStatus: campaignProspects.researchStatus, reviewNotes: campaignProspects.reviewNotes, reviewedAt: campaignProspects.updatedAt })
+    .selectDistinctOn([campaignProspects.id], {
+      metadata: researchResults.metadata,
+      researchStatus: campaignProspects.researchStatus,
+      engagementStatus: campaignProspects.engagementStatus,
+      reviewNotes: campaignProspects.reviewNotes,
+      reviewedAt: campaignProspects.updatedAt,
+    })
     .from(researchResults)
     .innerJoin(researchRuns, eq(researchRuns.id, researchResults.researchRunId))
     .innerJoin(jobs, eq(jobs.id, researchRuns.jobId))
@@ -197,8 +203,13 @@ export async function listResearch(
   return rows.flatMap((row) => {
     const entry = readEntry(row.metadata);
     if (!entry) return [];
+    const resolvedRelationshipStatus =
+      row.engagementStatus === 'sent'
+        ? 'contacted'
+        : entry.relationship_status ?? null;
     return [{
       ...entry,
+      relationship_status: resolvedRelationshipStatus,
       review: {
         project_id: campaignId,
         record_id: entry.record.record_id,
@@ -860,6 +871,7 @@ export async function updateResearchReview(
   recordId: string,
   status: ReviewStatus,
   note: string | null,
+  relationshipStatus?: string | null,
   database: MarcomDatabase = getDatabase(),
 ): Promise<ResearchEntry | null> {
   if (!UUID_REGEX.test(campaignId)) return null;
@@ -884,9 +896,27 @@ export async function updateResearchReview(
       reviewed_at: now.toISOString(),
       reviewed_by: 'user',
     };
-    const updatedEntry: ResearchEntry = { ...entry, review };
+    const nextRelationshipStatus =
+      relationshipStatus !== undefined
+        ? relationshipStatus === 'contacted' || relationshipStatus === 'sent'
+          ? 'contacted'
+          : null
+        : status !== 'shortlisted'
+          ? null
+          : entry.relationship_status ?? null;
+    const updatedEntry: ResearchEntry = {
+      ...entry,
+      relationship_status: nextRelationshipStatus,
+      review,
+    };
     await transaction.update(campaignProspects).set({
       researchStatus: researchStatusForReview(status),
+      engagementStatus:
+        nextRelationshipStatus === 'contacted'
+          ? 'sent'
+          : row.campaignProspect.engagementStatus === 'sent'
+            ? 'not_started'
+            : row.campaignProspect.engagementStatus,
       reviewNotes: review.note,
       rejectionReason: status === 'rejected' ? review.note : null,
       shortlistedAt: status === 'shortlisted' ? now : null,
@@ -904,8 +934,97 @@ export async function updateResearchReview(
       subjectType: 'campaign_prospect',
       subjectId: row.campaignProspect.id,
       reason: review.note,
-      safeDiff: { previousStatus: row.campaignProspect.researchStatus, status },
+      safeDiff: {
+        previousStatus: row.campaignProspect.researchStatus,
+        status,
+        relationshipStatus: nextRelationshipStatus,
+      },
     });
+    return updatedEntry;
+  });
+}
+
+export async function updateResearchEntryFromSync(
+  actor: ActorContext,
+  campaignId: string,
+  updatedEntry: ResearchEntry,
+  database: MarcomDatabase = getDatabase(),
+): Promise<ResearchEntry | null> {
+  if (!UUID_REGEX.test(campaignId)) return null;
+  const recordId = updatedEntry.record.record_id;
+  return database.transaction(async (transaction) => {
+    const [row] = await transaction
+      .select({ result: researchResults, campaignProspect: campaignProspects })
+      .from(researchResults)
+      .innerJoin(researchRuns, eq(researchRuns.id, researchResults.researchRunId))
+      .innerJoin(jobs, eq(jobs.id, researchRuns.jobId))
+      .innerJoin(campaignProspects, eq(campaignProspects.id, researchResults.campaignProspectId))
+      .where(
+        and(
+          eq(researchRuns.campaignId, campaignId),
+          eq(jobs.workspaceId, actor.workspaceId),
+          eq(researchResults.providerResultId, recordId),
+        ),
+      )
+      .limit(1);
+    if (!row) return null;
+
+    const now = new Date();
+    const canonicalName = (
+      updatedEntry.record.identity.name ??
+      updatedEntry.seed.name ??
+      'Unnamed Prospect'
+    )
+      .trim()
+      .slice(0, 240);
+
+    await transaction
+      .update(prospects)
+      .set({
+        canonicalName,
+        locationText: updatedEntry.record.location ?? updatedEntry.record.country,
+        updatedAt: now,
+      })
+      .where(eq(prospects.id, row.campaignProspect.prospectId));
+
+    await transaction
+      .update(campaignProspects)
+      .set({
+        engagementStatus:
+          updatedEntry.relationship_status === 'contacted'
+            ? 'sent'
+            : row.campaignProspect.engagementStatus === 'sent'
+              ? 'not_started'
+              : row.campaignProspect.engagementStatus,
+        fitSummary:
+          updatedEntry.record.reason_for_relevance ?? updatedEntry.record.summary,
+        customFields: {
+          schemaVersion: 1,
+          targetType: updatedEntry.record.target_type,
+          role: updatedEntry.record.role,
+          organisation: updatedEntry.record.organisation,
+          country: updatedEntry.record.country,
+          qualificationAssessment: updatedEntry.record.qualification_assessment,
+          fit: updatedEntry.record.fit,
+          unknowns: updatedEntry.record.unknowns,
+        },
+        updatedAt: now,
+      })
+      .where(eq(campaignProspects.id, row.campaignProspect.id));
+
+    await transaction
+      .update(researchResults)
+      .set({
+        title: canonicalName,
+        snippet: (updatedEntry.record.summary || '').slice(0, 1_000),
+        metadata: entrySnapshot({
+          ...updatedEntry,
+          record: { ...updatedEntry.record, project_id: campaignId },
+        }),
+        updatedAt: now,
+      })
+      .where(eq(researchResults.id, row.result.id));
+
     return updatedEntry;
   });
 }

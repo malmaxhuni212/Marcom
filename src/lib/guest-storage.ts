@@ -566,6 +566,7 @@ export async function updateGuestResearchReview(
   recordId: string,
   status: ReviewStatus,
   note: string | null,
+  relationshipStatus?: string | null,
 ): Promise<ResearchEntry | null> {
   const campaign = await getStoredGuestCampaign(projectId);
   if (!campaign) return null;
@@ -574,8 +575,17 @@ export async function updateGuestResearchReview(
   const now = new Date().toISOString();
   const nextResearch = (campaign.research ?? []).map((entry) => {
     if (entry.record.record_id !== recordId) return entry;
+    const nextRelationshipStatus =
+      relationshipStatus !== undefined
+        ? relationshipStatus === 'contacted' || relationshipStatus === 'sent'
+          ? 'contacted'
+          : null
+        : status !== 'shortlisted'
+          ? null
+          : entry.relationship_status ?? null;
     updated = {
       ...entry,
+      relationship_status: nextRelationshipStatus,
       review: {
         project_id: projectId,
         record_id: recordId,

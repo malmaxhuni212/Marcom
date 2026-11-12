@@ -23,12 +23,16 @@ import {
 import {
   disconnectNotion,
   getNotionConnection,
+  getProjectNotionConnection,
   getProjectNotionSync,
   resolveNotionSessionScope,
+  sanitizeProjectSyncRecordForClient,
   saveNotionConnection,
   serializeNotionConnectionCookie,
 } from './store';
 import {
+  markDeletedProjectRecordsInNotion,
+  pullNotionChangesForProject,
   syncConnectedProjectRecordsToNotion,
   syncProjectToNotion,
 } from './sync';
@@ -775,6 +779,672 @@ test('Shared/hosted mode isolates Notion connections per user login session so U
     else process.env.APP_ACCESS_MODE = prevAccessMode;
     if (prevSecret === undefined) delete process.env.NOTION_CLIENT_SECRET;
     else process.env.NOTION_CLIENT_SECRET = prevSecret;
+    await rm(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('Two-way Notion sync pulls newer Notion draft/status edits, updates blocks in-place without deleting comments, and marks deleted prospects', async () => {
+  const tempDir = await mkdtemp(path.join(os.tmpdir(), 'marcom-notion-twoway-'));
+  const prevStoreDir = process.env.MARCOM_NOTION_STORE_DIR;
+  const originalFetch = globalThis.fetch;
+
+  process.env.MARCOM_NOTION_STORE_DIR = tempDir;
+
+  const brief = mockBrief();
+  const p1 = mockResearchEntry('rec-test-1', 'Dr Kerry Ryan');
+  const draft1 = mockPersonalization();
+  const initialBlocks = buildProspectPageBodyBlocks(p1, draft1);
+
+  let simulatedNotionEmailText = draft1.copy!.email_body;
+  let simulatedNotionOutreachStatus = 'Approved';
+  let simulatedNotionEditIso = '2026-10-29T14:00:00Z';
+  const calls: Array<{ method: string; url: string; body?: any }> = [];
+
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = String(input);
+    const method = (init?.method || 'GET').toUpperCase();
+    const body = init?.body ? JSON.parse(String(init.body)) : undefined;
+    calls.push({ method, url, body });
+
+    if (url.includes('/pages/hub-page-1') && method === 'GET') {
+      return new Response(
+        JSON.stringify({ id: 'hub-page-1', url: 'https://notion.so/hub-page-1', archived: false, in_trash: false }),
+        { status: 200 },
+      );
+    }
+
+    if (url.includes('/databases/db-1') && method === 'GET') {
+      return new Response(
+        JSON.stringify({
+          id: 'db-1',
+          url: 'https://notion.so/db-1',
+          archived: false,
+          in_trash: false,
+          properties: buildProspectsDatabaseSchema('hub-page-1').properties,
+        }),
+        { status: 200 },
+      );
+    }
+
+    if (url.includes('/databases/db-1/query') && method === 'POST') {
+      return new Response(
+        JSON.stringify({
+          results: [
+            {
+              id: 'prospect-page-1',
+              url: 'https://notion.so/prospect-page-1',
+              archived: false,
+              last_edited_time: simulatedNotionEditIso,
+              properties: {
+                Prospect: { title: [{ plain_text: 'Dr Kerry Ryan' }] },
+                'Record ID': { rich_text: [{ plain_text: 'rec-test-1' }] },
+                'Review Status': { select: { name: 'Personalized' } },
+                'Outreach Status': { select: { name: simulatedNotionOutreachStatus } },
+                'Top Subject Line': {
+                  rich_text: [{ plain_text: 'Maya Poetry Book Awards — Note on The Good Other' }],
+                },
+                'Primary Email Draft': {
+                  rich_text: [{ plain_text: simulatedNotionEmailText }],
+                },
+              },
+            },
+          ],
+          has_more: false,
+        }),
+        { status: 200 },
+      );
+    }
+
+    if (url.includes('/blocks/prospect-page-1/children') && method === 'GET') {
+      const results = initialBlocks.map((b, idx) => {
+        if (b.type === 'quote' && idx === 7) {
+          return {
+            ...b,
+            id: `blk-${idx}`,
+            last_edited_time: simulatedNotionEditIso,
+            quote: { rich_text: [{ plain_text: simulatedNotionEmailText }] },
+          };
+        }
+        return {
+          ...b,
+          id: `blk-${idx}`,
+          last_edited_time: simulatedNotionEditIso,
+        };
+      });
+      return new Response(JSON.stringify({ results, has_more: false }), { status: 200 });
+    }
+
+    if (url.includes('/blocks/') && url.includes('/children') && method === 'GET') {
+      return new Response(
+        JSON.stringify({
+          results: [{ id: 'callout-blk-1', type: 'callout', archived: false }],
+          has_more: false,
+        }),
+        { status: 200 },
+      );
+    }
+
+    return new Response(JSON.stringify({ id: 'ok', url: 'https://notion.so/ok' }), { status: 200 });
+  }) as typeof fetch;
+
+  try {
+    await saveNotionConnection({
+      accessToken: 'ntn_test_token',
+      workspaceId: 'ws-1',
+      workspaceName: 'Test Workspace',
+      workspaceIcon: null,
+      botId: 'bot-1',
+      connectedAt: new Date().toISOString(),
+    });
+
+    // Case 1: Human edits the email draft & status in Notion AFTER Marcom's updated_at (2026-10-29T14:30:00Z)
+    simulatedNotionEmailText = 'Dear Dr. Ryan,\n\n[Edited directly in Notion by reviewer]';
+    simulatedNotionOutreachStatus = 'Needs Revision';
+    simulatedNotionEditIso = '2026-10-29T16:00:00Z';
+
+    const pullResult = await syncProjectToNotion(
+      {
+        projectId: 'proj-twoway',
+        brief,
+        prospects: [p1],
+        drafts: { 'rec-test-1': draft1 },
+        notionWorkspaceId: 'ws-1',
+        existingSync: {
+          projectId: 'proj-twoway',
+          notionWorkspaceId: 'ws-1',
+          parentPageId: 'parent-1',
+          campaignPageId: 'hub-page-1',
+          campaignPageUrl: 'https://notion.so/hub-page-1',
+          databaseId: 'db-1',
+          databaseUrl: 'https://notion.so/db-1',
+          prospectPageIds: { 'rec-test-1': 'prospect-page-1' },
+          syncedCount: 1,
+          lastSyncedAt: '2026-10-29T15:00:00Z',
+        },
+      },
+      'ntn_test_token',
+    );
+
+    assert.equal(pullResult.success, true);
+    assert.ok(pullResult.reconciledChanges);
+    assert.equal(pullResult.reconciledChanges.updatedDrafts.length, 1);
+    assert.equal(
+      pullResult.reconciledChanges.updatedDrafts[0]!.copy?.email_body,
+      'Dear Dr. Ryan,\n\n[Edited directly in Notion by reviewer]',
+    );
+    assert.equal(pullResult.reconciledChanges.updatedDrafts[0]!.status, 'needs_more_research');
+    assert.equal(pullResult.reconciledChanges.updatedDrafts[0]!.edited_by_human, true);
+
+    // Ensure the email quote block (blk-7) was NOT deleted (preserving inline comments!)
+    const deletedQuoteBlock = calls.find(
+      (c) => c.method === 'DELETE' && c.url.endsWith('/blocks/blk-7'),
+    );
+    assert.equal(deletedQuoteBlock, undefined);
+
+    // Case 2: Marcom regenerates the draft AFTER the Notion edit (2026-10-29T17:00:00Z)
+    calls.length = 0;
+    const regeneratedDraft: PersonalizationEntry = {
+      ...draft1,
+      updated_at: '2026-10-29T17:00:00Z',
+      copy: {
+        ...draft1.copy!,
+        email_body: 'Dear Dr. Ryan,\n\n[Freshly regenerated in Marcom v2]',
+      },
+    };
+
+    const pushResult = await syncProjectToNotion(
+      {
+        projectId: 'proj-twoway',
+        brief,
+        prospects: [p1],
+        drafts: { 'rec-test-1': regeneratedDraft },
+        notionWorkspaceId: 'ws-1',
+        existingSync: {
+          projectId: 'proj-twoway',
+          notionWorkspaceId: 'ws-1',
+          parentPageId: 'parent-1',
+          campaignPageId: 'hub-page-1',
+          campaignPageUrl: 'https://notion.so/hub-page-1',
+          databaseId: 'db-1',
+          databaseUrl: 'https://notion.so/db-1',
+          prospectPageIds: { 'rec-test-1': 'prospect-page-1' },
+          syncedCount: 1,
+          lastSyncedAt: '2026-10-29T16:05:00Z',
+        },
+      },
+      'ntn_test_token',
+    );
+
+    assert.equal(pushResult.success, true);
+    // Verify blk-7 (email quote block) was updated IN-PLACE via PATCH /blocks/blk-7, not deleted!
+    const patchedQuoteCall = calls.find(
+      (c) => c.method === 'PATCH' && c.url.endsWith('/blocks/blk-7'),
+    );
+    assert.ok(patchedQuoteCall);
+    assert.equal(
+      patchedQuoteCall.body.quote.rich_text[0].text.content,
+      'Dear Dr. Ryan,\n\n[Freshly regenerated in Marcom v2]',
+    );
+
+    // Case 3: Deleting the prospect in Marcom marks the Notion page as "Removed in Marcom"
+    calls.length = 0;
+    await markDeletedProjectRecordsInNotion({
+      projectId: 'proj-twoway',
+      deletedRecordIds: ['rec-test-1'],
+    });
+    const removedPagePatch = calls.find(
+      (c) => c.method === 'PATCH' && c.url.endsWith('/pages/prospect-page-1'),
+    );
+    assert.ok(removedPagePatch);
+    assert.equal(
+      removedPagePatch.body.properties['Review Status'].select.name,
+      'Removed in Marcom',
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (prevStoreDir === undefined) delete process.env.MARCOM_NOTION_STORE_DIR;
+    else process.env.MARCOM_NOTION_STORE_DIR = prevStoreDir;
+    await rm(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('Campaign Hub config edits (e.g. target 2000 -> 3000), Prospect research edits, and page refresh pull sync cleanly while making 0 block DELETEs', async () => {
+  const tempDir = await mkdtemp(path.join(os.tmpdir(), 'marcom-notion-hub-research-'));
+  const prevStoreDir = process.env.MARCOM_NOTION_STORE_DIR;
+  const originalFetch = globalThis.fetch;
+
+  process.env.MARCOM_NOTION_STORE_DIR = tempDir;
+
+  const brief = mockBrief();
+  brief.project.primary_objective = 'Identify 2000 poetry prize judges and literary curators';
+  brief.project.description = 'Outreach campaign targeting 2000 qualified prospects across the UK.';
+  brief.targets[0]!.description = 'Reach 2000 UK literary scholars and creative writing lecturers.';
+
+  const p1 = mockResearchEntry('rec-test-1', 'Dr Kerry Ryan');
+  const draft1 = mockPersonalization();
+  const initialProspectBlocks = buildProspectPageBodyBlocks(p1, draft1);
+
+  const calls: Array<{ method: string; url: string; body?: any }> = [];
+
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = String(input);
+    const method = (init?.method || 'GET').toUpperCase();
+    const body = init?.body ? JSON.parse(String(init.body)) : undefined;
+    calls.push({ method, url, body });
+
+    if (url.includes('/pages/hub-page-1') && method === 'GET') {
+      return new Response(
+        JSON.stringify({
+          id: 'hub-page-1',
+          url: 'https://notion.so/hub-page-1',
+          archived: false,
+          in_trash: false,
+          last_edited_time: '2026-10-29T16:30:00Z',
+          properties: {
+            title: {
+              type: 'title',
+              title: [{ plain_text: 'Maya Poetry Book Awards — Intelligence & Outreach Hub' }],
+            },
+          },
+        }),
+        { status: 200 },
+      );
+    }
+
+    if (url.includes('/databases/db-1') && method === 'GET') {
+      return new Response(
+        JSON.stringify({
+          id: 'db-1',
+          url: 'https://notion.so/db-1',
+          archived: false,
+          in_trash: false,
+          properties: buildProspectsDatabaseSchema('hub-page-1').properties,
+        }),
+        { status: 200 },
+      );
+    }
+
+    if (url.includes('/blocks/hub-page-1/children') && method === 'GET') {
+      return new Response(
+        JSON.stringify({
+          results: [
+            {
+              id: 'hub-callout-1',
+              type: 'callout',
+              last_edited_time: '2026-10-29T16:30:00Z',
+              callout: {
+                rich_text: [
+                  {
+                    plain_text:
+                      'Primary Objective: Identify 2000 poetry prize judges and literary curators\nPipeline Snapshot: 1 researched prospects · 1 shortlisted · 1 personalized outreach drafts ready · Synced 2026-10-29 15:00 UTC',
+                  },
+                ],
+              },
+            },
+            {
+              id: 'hub-desc-1',
+              type: 'paragraph',
+              last_edited_time: '2026-10-29T16:30:00Z',
+              paragraph: {
+                rich_text: [
+                  {
+                    plain_text:
+                      'Outreach campaign targeting 2000 qualified prospects across the UK.',
+                  },
+                ],
+              },
+            },
+            {
+              id: 'hub-target-toggle-1',
+              type: 'toggle',
+              last_edited_time: '2026-10-29T16:30:00Z',
+              toggle: {
+                rich_text: [
+                  {
+                    plain_text:
+                      'Target Group: Poetry Award Judges (person) — Priority: PRIMARY',
+                  },
+                ],
+              },
+            },
+          ],
+          has_more: false,
+        }),
+        { status: 200 },
+      );
+    }
+
+    if (url.includes('/blocks/hub-target-toggle-1/children') && method === 'GET') {
+      // User updated target audience from 2000 to 3000 inside the Target Group toggle in Notion!
+      return new Response(
+        JSON.stringify({
+          results: [
+            {
+              id: 'target-desc-child-1',
+              type: 'paragraph',
+              last_edited_time: '2026-10-29T16:30:00Z',
+              paragraph: {
+                rich_text: [
+                  {
+                    plain_text:
+                      'Target Description: Reach 3000 UK literary scholars and creative writing lecturers.',
+                  },
+                ],
+              },
+            },
+          ],
+          has_more: false,
+        }),
+        { status: 200 },
+      );
+    }
+
+    if (url.includes('/databases/db-1/query') && method === 'POST') {
+      return new Response(
+        JSON.stringify({
+          results: [
+            {
+              id: 'prospect-page-1',
+              url: 'https://notion.so/prospect-page-1',
+              archived: false,
+              last_edited_time: '2026-10-29T16:30:00Z',
+              properties: {
+                Prospect: { title: [{ plain_text: 'Dr Kerry Ryan-Updated' }] },
+                'Record ID': { rich_text: [{ plain_text: 'rec-test-1' }] },
+                'Role / Title': { rich_text: [{ plain_text: 'Professor of Creative Writing' }] },
+                Organisation: { rich_text: [{ plain_text: 'Oxford Brookes University' }] },
+                Email: { email: 'k.ryan@brookes.ac.uk' },
+                'Fit Score': { number: 96 },
+                'Review Status': { select: { name: 'Personalized' } },
+                'Outreach Status': { select: { name: 'Draft Ready' } },
+                'Top Subject Line': {
+                  rich_text: [{ plain_text: draft1.copy!.subject_lines[0]!.text }],
+                },
+                'Primary Email Draft': {
+                  rich_text: [{ plain_text: draft1.copy!.email_body }],
+                },
+              },
+            },
+          ],
+          has_more: false,
+        }),
+        { status: 200 },
+      );
+    }
+
+    if (url.includes('/blocks/prospect-page-1/children') && method === 'GET') {
+      const results = initialProspectBlocks.map((b, idx) => ({
+        ...b,
+        id: `p-blk-${idx}`,
+        last_edited_time: '2026-10-29T15:00:00Z',
+      }));
+      return new Response(JSON.stringify({ results, has_more: false }), { status: 200 });
+    }
+
+    return new Response(JSON.stringify({ id: 'ok', url: 'https://notion.so/ok' }), { status: 200 });
+  }) as typeof fetch;
+
+  try {
+    const syncState = {
+      projectId: 'proj-hub-sync',
+      notionWorkspaceId: 'ws-1',
+      parentPageId: 'parent-1',
+      campaignPageId: 'hub-page-1',
+      campaignPageUrl: 'https://notion.so/hub-page-1',
+      databaseId: 'db-1',
+      databaseUrl: 'https://notion.so/db-1',
+      prospectPageIds: { 'rec-test-1': 'prospect-page-1' },
+      syncedCount: 1,
+      lastSyncedAt: '2026-10-29T15:00:00Z',
+    };
+
+    // 1. Page Refresh pull (`pullNotionChangesForProject`) pulls both Campaign Hub (2000 -> 3000) and Prospect edits
+    const pulled = await pullNotionChangesForProject(
+      {
+        projectId: 'proj-hub-sync',
+        brief,
+        configurationUpdatedAt: '2026-10-29T14:00:00Z',
+        prospects: [p1],
+        drafts: { 'rec-test-1': draft1 },
+        existingSync: syncState,
+      },
+      'ntn_test_token',
+    );
+
+    assert.ok(pulled.pulledCount >= 2);
+    assert.ok(pulled.updatedBrief);
+    assert.ok(pulled.updatedBrief.targets[0]!.description.includes('3000'));
+    assert.ok(pulled.updatedBrief.project.primary_objective.includes('3000'));
+    assert.ok(pulled.updatedBrief.project.description.includes('3000'));
+
+    assert.equal(pulled.updatedResearchEntries?.length, 1);
+    const updatedProspect = pulled.updatedResearchEntries![0]!;
+    assert.equal(updatedProspect.record.identity.name, 'Dr Kerry Ryan-Updated');
+    assert.equal(updatedProspect.record.role, 'Professor of Creative Writing');
+    assert.equal(updatedProspect.record.organisation, 'Oxford Brookes University');
+    assert.equal(updatedProspect.record.fit.score, 96);
+    assert.equal(updatedProspect.record.public_contact[0]?.value, 'k.ryan@brookes.ac.uk');
+
+    // 2. Full Re-sync (`syncProjectToNotion`) preserves 100% of Notion blocks (0 DELETE calls and 0 outreach PATCH calls)
+    calls.length = 0;
+    const fullSync = await syncProjectToNotion(
+      {
+        projectId: 'proj-hub-sync',
+        brief,
+        configurationUpdatedAt: '2026-10-29T14:00:00Z',
+        prospects: [p1],
+        drafts: { 'rec-test-1': draft1 },
+        notionWorkspaceId: 'ws-1',
+        existingSync: syncState,
+      },
+      'ntn_test_token',
+    );
+
+    assert.equal(fullSync.success, true);
+    const deleteCalls = calls.filter((c) => c.method === 'DELETE');
+    assert.equal(deleteCalls.length, 0, 'Must never call DELETE on content blocks');
+
+    const outreachBlockPatches = calls.filter(
+      (c) => c.method === 'PATCH' && c.url.includes('/blocks/p-blk-'),
+    );
+    assert.equal(
+      outreachBlockPatches.length,
+      0,
+      'Must not PATCH prospect blocks when draft was not changed in Marcom, preserving inline comment anchors',
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (prevStoreDir === undefined) delete process.env.MARCOM_NOTION_STORE_DIR;
+    else process.env.MARCOM_NOTION_STORE_DIR = prevStoreDir;
+    await rm(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('Campaign collaboration: Collaborator B in a separate browser session can sync Sent status on a campaign synced by Collaborator A without exposing global integrations', async () => {
+  const tempDir = await mkdtemp(path.join(os.tmpdir(), 'marcom-notion-collab-'));
+  const prevStoreDir = process.env.MARCOM_NOTION_STORE_DIR;
+  const prevAccessMode = process.env.APP_ACCESS_MODE;
+  const originalFetch = globalThis.fetch;
+
+  process.env.MARCOM_NOTION_STORE_DIR = tempDir;
+  process.env.APP_ACCESS_MODE = 'shared';
+
+  const brief = mockBrief();
+  const p1 = mockResearchEntry('rec-collab-1', 'Dr Kerry Ryan');
+  const draft1 = mockPersonalization();
+  const initialProspectBlocks = buildProspectPageBodyBlocks(p1, draft1);
+
+  const calls: Array<{ method: string; url: string; body?: any }> = [];
+
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = String(input);
+    const method = (init?.method || 'GET').toUpperCase();
+    const body = init?.body ? JSON.parse(String(init.body)) : undefined;
+    calls.push({ method, url, body });
+
+    if (url.includes('/pages/hub-collab-1') && method === 'GET') {
+      return new Response(
+        JSON.stringify({
+          id: 'hub-collab-1',
+          url: 'https://notion.so/hub-collab-1',
+          archived: false,
+          in_trash: false,
+        }),
+        { status: 200 },
+      );
+    }
+
+    if (url.includes('/databases/db-collab-1') && method === 'GET') {
+      return new Response(
+        JSON.stringify({
+          id: 'db-collab-1',
+          url: 'https://notion.so/db-collab-1',
+          archived: false,
+          in_trash: false,
+          properties: buildProspectsDatabaseSchema('hub-collab-1').properties,
+        }),
+        { status: 200 },
+      );
+    }
+
+    if (url.includes('/databases/db-collab-1/query') && method === 'POST') {
+      return new Response(
+        JSON.stringify({
+          results: [
+            {
+              id: 'prospect-collab-1',
+              url: 'https://notion.so/prospect-collab-1',
+              archived: false,
+              last_edited_time: '2026-10-29T16:00:00Z',
+              properties: {
+                Prospect: { title: [{ plain_text: 'Dr Kerry Ryan' }] },
+                'Record ID': { rich_text: [{ plain_text: 'rec-collab-1' }] },
+                'Review Status': { select: { name: 'Sent / Contacted' } },
+                'Outreach Status': { select: { name: 'Sent' } },
+              },
+            },
+          ],
+          has_more: false,
+        }),
+        { status: 200 },
+      );
+    }
+
+    if (url.includes('/blocks/prospect-collab-1/children') && method === 'GET') {
+      const results = initialProspectBlocks.map((b, idx) => ({
+        ...b,
+        id: `c-blk-${idx}`,
+        last_edited_time: '2026-10-29T15:00:00Z',
+      }));
+      return new Response(JSON.stringify({ results, has_more: false }), { status: 200 });
+    }
+
+    return new Response(
+      JSON.stringify({ id: 'prospect-collab-1', url: 'https://notion.so/prospect-collab-1' }),
+      { status: 200 },
+    );
+  }) as typeof fetch;
+
+  try {
+    const reqUserA = new Request('https://marcom-automation.netlify.app/api/projects/proj-collab/notion/sync', {
+      headers: { cookie: '__Host-marcom_session=session_token_user_A_collab' },
+    });
+    const reqUserB = new Request('https://marcom-automation.netlify.app/api/projects/proj-collab/notion/sync', {
+      headers: { cookie: '__Host-marcom_session=session_token_user_B_collab' },
+    });
+
+    await saveNotionConnection(
+      {
+        accessToken: 'ntn_collab_token_A',
+        workspaceId: 'ws-collab',
+        workspaceName: 'Shared Campaign Workspace',
+        workspaceIcon: null,
+        botId: 'bot-collab',
+        connectedAt: new Date().toISOString(),
+      },
+      reqUserA,
+    );
+
+    // Collaborator A syncs the campaign project to Notion
+    await syncProjectToNotion(
+      {
+        projectId: 'proj-collab',
+        brief,
+        prospects: [p1],
+        drafts: { 'rec-collab-1': draft1 },
+        notionWorkspaceId: 'ws-collab',
+        existingSync: {
+          projectId: 'proj-collab',
+          notionWorkspaceId: 'ws-collab',
+          parentPageId: 'parent-1',
+          campaignPageId: 'hub-collab-1',
+          campaignPageUrl: 'https://notion.so/hub-collab-1',
+          databaseId: 'db-collab-1',
+          databaseUrl: 'https://notion.so/db-collab-1',
+          prospectPageIds: { 'rec-collab-1': 'prospect-collab-1' },
+          syncedCount: 1,
+          lastSyncedAt: '2026-10-29T15:00:00Z',
+        },
+      },
+      'ntn_collab_token_A',
+    );
+
+    // Global Notion connection remains strictly isolated: User B does not inherit User A's global Integrations connection
+    assert.equal(await getNotionConnection(reqUserB), null);
+    assert.equal(await getProjectNotionConnection('unsynced-other-proj', reqUserB), null);
+
+    // However, on the synced campaign 'proj-collab', Collaborator B CAN access the project's Notion sync!
+    const projectConnForB = await getProjectNotionConnection('proj-collab', reqUserB);
+    assert.ok(projectConnForB);
+    assert.equal(projectConnForB.accessToken, 'ntn_collab_token_A');
+
+    // Sanitized sync record never leaks raw token to client JSON responses
+    const rawSync = await getProjectNotionSync('proj-collab');
+    const safeSync = sanitizeProjectSyncRecordForClient(rawSync);
+    assert.ok(safeSync);
+    assert.equal(safeSync.projectAccessToken, undefined);
+
+    // Collaborator B marks the entry as Sent in Marcom (`relationship_status: 'contacted'`), which syncs to Notion via User B's request
+    calls.length = 0;
+    const sentEntry: ResearchEntry = {
+      ...p1,
+      relationship_status: 'contacted',
+    };
+    const targetedRes = await syncConnectedProjectRecordsToNotion({
+      projectId: 'proj-collab',
+      targetEntries: [sentEntry],
+      draftsByRecordId: { 'rec-collab-1': draft1 },
+      req: reqUserB,
+    });
+    assert.equal(targetedRes.synced, true);
+    const pagePatch = calls.find(
+      (c) => c.method === 'PATCH' && c.url.includes('/pages/prospect-collab-1'),
+    );
+    assert.ok(pagePatch);
+    assert.equal(pagePatch.body.properties['Review Status'].select.name, 'Sent / Contacted');
+    assert.equal(pagePatch.body.properties['Outreach Status'].select.name, 'Sent');
+
+    // Conversely, if a collaborator marks 'Sent / Contacted' in Notion, pulling changes sets relationshipStatus: 'contacted' in Marcom
+    const pulled = await pullNotionChangesForProject(
+      {
+        projectId: 'proj-collab',
+        brief,
+        prospects: [p1], // p1 has relationship_status: null
+        drafts: { 'rec-collab-1': draft1 },
+        existingSync: rawSync!,
+      },
+      projectConnForB.accessToken,
+    );
+    assert.equal(pulled.updatedReviews.length, 1);
+    assert.equal(pulled.updatedReviews[0]?.recordId, 'rec-collab-1');
+    assert.equal(pulled.updatedReviews[0]?.status, 'shortlisted');
+    assert.equal(pulled.updatedReviews[0]?.relationshipStatus, 'contacted');
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (prevStoreDir === undefined) delete process.env.MARCOM_NOTION_STORE_DIR;
+    else process.env.MARCOM_NOTION_STORE_DIR = prevStoreDir;
+    if (prevAccessMode === undefined) delete process.env.APP_ACCESS_MODE;
+    else process.env.APP_ACCESS_MODE = prevAccessMode;
     await rm(tempDir, { recursive: true, force: true });
   }
 });

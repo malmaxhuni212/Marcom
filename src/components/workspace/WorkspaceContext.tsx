@@ -83,7 +83,12 @@ interface WorkspaceValue {
   reload: () => Promise<void>;
   refreshProjects: () => Promise<Project[]>;
   updateDraft: (entry: PersonalizationEntry) => void;
-  updateResearchReview: (recordId: string, status: ReviewStatus, note: string | null) => void;
+  updateResearchReview: (
+    recordId: string,
+    status: ReviewStatus,
+    note: string | null,
+    relationshipStatus?: 'contacted' | null,
+  ) => void;
   setSettings: (settings: PersonalizationSettings) => void;
   researchRun: ResearchRun | null;
   startResearch: (input: StartResearchInput) => Promise<void>;
@@ -365,13 +370,25 @@ function WorkspaceProviderRoot({
   }, []);
 
   const updateResearchReview = useCallback(
-    (recordId: string, status: ReviewStatus, note: string | null) => {
+    (
+      recordId: string,
+      status: ReviewStatus,
+      note: string | null,
+      relationshipStatus?: 'contacted' | null,
+    ) => {
       setBundle((current) => {
         if (!current) return current;
         const nextResearch = current.research.map((entry) => {
           if (entry.record.record_id !== recordId) return entry;
+          const nextRelationshipStatus =
+            relationshipStatus !== undefined
+              ? relationshipStatus
+              : status !== 'shortlisted'
+                ? null
+                : entry.relationship_status ?? null;
           return {
             ...entry,
+            relationship_status: nextRelationshipStatus,
             review: {
               project_id: current.projectId,
               record_id: recordId,

@@ -528,8 +528,64 @@ export async function getProjectNotionSync(
   return all[projectId] ?? null;
 }
 
+export function sanitizeProjectSyncRecordForClient(
+  record: NotionProjectSyncRecord | null,
+): NotionProjectSyncRecord | null {
+  if (!record) return null;
+  const { projectAccessToken: _ignored, ...safeRecord } = record;
+  return safeRecord;
+}
+
+/**
+ * Resolves the Notion connection for a specific campaign project.
+ * - Prefers the caller's session-scoped connection if it matches the project's synced workspace (or if the project hasn't been synced yet).
+ * - Falls back to the project's stored `projectAccessToken` when a campaign has already been synced to Notion,
+ *   allowing all collaborators on that campaign project to view, pull, and push Notion updates seamlessly
+ *   without leaking global Notion workspace connections across unrelated sessions or unsynced projects.
+ */
+export async function getProjectNotionConnection(
+  projectId: string,
+  reqOrScope?: Request | string | null,
+): Promise<NotionConnectionConfig | null> {
+  const [sessionConn, syncRecord] = await Promise.all([
+    getNotionConnection(reqOrScope),
+    getProjectNotionSync(projectId),
+  ]);
+
+  if (sessionConn?.accessToken) {
+    const matchesProjectWorkspace =
+      !syncRecord?.notionWorkspaceId ||
+      !sessionConn.workspaceId ||
+      syncRecord.notionWorkspaceId === sessionConn.workspaceId;
+    if (matchesProjectWorkspace || !syncRecord?.projectAccessToken) {
+      return sessionConn;
+    }
+  }
+
+  if (syncRecord?.projectAccessToken && syncRecord.databaseId) {
+    return {
+      accessToken: syncRecord.projectAccessToken,
+      workspaceId: syncRecord.notionWorkspaceId || 'project-workspace',
+      workspaceName: syncRecord.workspaceName ?? 'Campaign Notion Workspace',
+      workspaceIcon: null,
+      botId: 'project-bot',
+      owner: null,
+      connectedAt: syncRecord.lastSyncedAt || new Date().toISOString(),
+      defaultParentPageId: syncRecord.parentPageId || null,
+      defaultParentPageTitle: null,
+    };
+  }
+
+  return sessionConn;
+}
+
 export async function saveProjectNotionSync(record: NotionProjectSyncRecord): Promise<void> {
   const all = await readAllProjectNotionSyncs();
-  all[record.projectId] = record;
+  const previous = all[record.projectId];
+  all[record.projectId] = {
+    ...record,
+    projectAccessToken: record.projectAccessToken ?? previous?.projectAccessToken,
+    workspaceName: record.workspaceName ?? previous?.workspaceName ?? null,
+  };
   await writeAllProjectNotionSyncs(all);
 }

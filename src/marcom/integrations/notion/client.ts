@@ -1,5 +1,9 @@
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
-import type { NotionAccessiblePage, NotionConnectionConfig } from './types';
+import type {
+  NotionAccessiblePage,
+  NotionConnectionConfig,
+  NotionDatabaseRowSnapshot,
+} from './types';
 
 export const NOTION_API_VERSION = '2022-06-28';
 const NOTION_BASE_URL = 'https://api.notion.com/v1';
@@ -360,12 +364,21 @@ export async function createNotionPage(
 export async function getNotionPage(
   accessToken: string,
   pageId: string,
-): Promise<{ id: string; url: string; archived: boolean; inTrash: boolean } | null> {
+): Promise<{
+  id: string;
+  url: string;
+  title: string;
+  lastEditedTime: string | null;
+  archived: boolean;
+  inTrash: boolean;
+} | null> {
   try {
     const data = await notionFetch(`/pages/${pageId}`, accessToken, { method: 'GET' });
     return {
       id: data.id,
       url: data.url,
+      title: extractNotionPageTitle(data),
+      lastEditedTime: data.last_edited_time || null,
       archived: Boolean(data.archived),
       inTrash: Boolean(data.in_trash),
     };
@@ -451,14 +464,42 @@ export async function updateNotionDatabase(
   return { id: data.id, url: data.url };
 }
 
+function joinRichTextPlain(richArr: any): string {
+  if (!Array.isArray(richArr)) return '';
+  return richArr
+    .map((t: any) => t?.plain_text ?? t?.text?.content ?? '')
+    .join('')
+    .trim();
+}
+
+export function extractBlockPlainText(blk: Record<string, any> | null | undefined): string {
+  if (!blk || typeof blk !== 'object') return '';
+  if (typeof blk.plainText === 'string') return blk.plainText;
+  const type = blk.type;
+  if (!type || !blk[type]) return '';
+  return joinRichTextPlain(blk[type].rich_text);
+}
+
+export function normalizeComparableBlockText(raw: string | null | undefined): string {
+  if (!raw) return '';
+  return raw
+    .replace(/\r\n/g, '\n')
+    .replace(/\s*·\s*Synced\s+\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}\s+UTC/gi, '')
+    .split('\n')
+    .filter((line) => !line.trim().startsWith('🔄 '))
+    .join('\n')
+    .trim();
+}
+
 /**
- * Queries all active rows in a Notion Prospects database so re-syncs can match by Record ID or Prospect Name.
+ * Queries all active rows in a Notion Prospects database so re-syncs can match by Record ID or Prospect Name
+ * and reconcile any status, research field, or draft edits made directly in Notion.
  */
 export async function queryNotionDatabaseRows(
   accessToken: string,
   databaseId: string,
-): Promise<Array<{ id: string; url: string; recordId: string | null; prospectName: string | null }>> {
-  const rows: Array<{ id: string; url: string; recordId: string | null; prospectName: string | null }> = [];
+): Promise<NotionDatabaseRowSnapshot[]> {
+  const rows: NotionDatabaseRowSnapshot[] = [];
   let startCursor: string | undefined;
 
   do {
@@ -474,20 +515,47 @@ export async function queryNotionDatabaseRows(
     for (const page of pageResults) {
       if (page.archived || page.in_trash) continue;
       const props = page.properties || {};
-      const recordIdRich = props['Record ID']?.rich_text;
-      const recordId = Array.isArray(recordIdRich)
-        ? recordIdRich.map((t: any) => t?.plain_text || '').join('').trim() || null
-        : null;
-      const titleArr = props.Prospect?.title;
-      const prospectName = Array.isArray(titleArr)
-        ? titleArr.map((t: any) => t?.plain_text || '').join('').trim() || null
-        : null;
+      const recordId = joinRichTextPlain(props['Record ID']?.rich_text) || null;
+      const prospectName = joinRichTextPlain(props.Prospect?.title) || null;
+      const reviewStatus: string | null = props['Review Status']?.select?.name || null;
+      const outreachStatus: string | null = props['Outreach Status']?.select?.name || null;
+      const topSubjectLine = joinRichTextPlain(props['Top Subject Line']?.rich_text) || null;
+      const primaryEmailDraft = joinRichTextPlain(props['Primary Email Draft']?.rich_text) || null;
+      const linkedinDraft = joinRichTextPlain(props['LinkedIn / DM Draft']?.rich_text) || null;
+      const role = joinRichTextPlain(props['Role / Title']?.rich_text) || null;
+      const organisation = joinRichTextPlain(props.Organisation?.rich_text) || null;
+      const location = joinRichTextPlain(props.Location?.rich_text) || null;
+      const email: string | null = props.Email?.email || null;
+      const phone: string | null = props.Phone?.phone_number || null;
+      const linkedinUrl: string | null = props.LinkedIn?.url || null;
+      const websiteUrl: string | null = props.Website?.url || null;
+      const fitScore: number | null =
+        typeof props['Fit Score']?.number === 'number' ? props['Fit Score'].number : null;
+      const qualificationRating: string | null =
+        props['Qualification Rating']?.select?.name || null;
+      const targetSegment: string | null = props['Target Segment']?.select?.name || null;
 
       rows.push({
         id: page.id,
         url: page.url,
         recordId,
         prospectName,
+        lastEditedTime: page.last_edited_time || null,
+        reviewStatus,
+        outreachStatus,
+        topSubjectLine,
+        primaryEmailDraft,
+        linkedinDraft,
+        role,
+        organisation,
+        location,
+        email,
+        phone,
+        linkedinUrl,
+        websiteUrl,
+        fitScore,
+        qualificationRating,
+        targetSegment,
       });
     }
 
@@ -517,14 +585,21 @@ export async function appendNotionBlocks(
   }
 }
 
+export interface NotionBlockChild {
+  id: string;
+  type: string;
+  lastEditedTime?: string | null;
+  plainText?: string;
+}
+
 /**
- * Lists top-level child blocks of a page or block.
+ * Lists top-level child blocks of a page or block, including plain text and lastEditedTime.
  */
 export async function listNotionBlockChildren(
   accessToken: string,
   blockId: string,
-): Promise<Array<{ id: string; type: string }>> {
-  const blocks: Array<{ id: string; type: string }> = [];
+): Promise<NotionBlockChild[]> {
+  const blocks: NotionBlockChild[] = [];
   let startCursor: string | undefined;
 
   do {
@@ -536,7 +611,12 @@ export async function listNotionBlockChildren(
     const results: any[] = Array.isArray(data.results) ? data.results : [];
     for (const blk of results) {
       if (blk?.id && !blk.archived && !blk.in_trash) {
-        blocks.push({ id: blk.id, type: blk.type });
+        blocks.push({
+          id: blk.id,
+          type: blk.type,
+          lastEditedTime: blk.last_edited_time || null,
+          plainText: extractBlockPlainText(blk),
+        });
       }
     }
 
@@ -547,7 +627,7 @@ export async function listNotionBlockChildren(
 }
 
 /**
- * Updates a single Notion block in-place (e.g., updating a summary callout on re-sync).
+ * Updates a single Notion block in-place (e.g., updating a summary callout or email quote block on re-sync).
  */
 export async function updateNotionBlock(
   accessToken: string,
@@ -560,73 +640,163 @@ export async function updateNotionBlock(
   });
 }
 
+export interface ReplaceNotionPageBlocksOptions {
+  /**
+   * When false, the outreach section between the `✉️` heading and the `---` divider is NOT modified in Notion,
+   * preserving 100% of Notion inline text comment anchors, block comments, and user-added notes.
+   */
+  allowOutreachMutation?: boolean;
+  /**
+   * When false, the top summary callout block is NOT patched in Notion unless a status banner was added.
+   */
+  allowSummaryCalloutMutation?: boolean;
+}
+
 /**
- * Updates the top summary callout and outreach section of a prospect page above the divider
- * without touching the static intelligence dossier blocks below the divider.
- * Falls back to full block replacement if the page has no divider structure.
+ * Updates the top summary callout and outreach section of a prospect page in-place above the divider
+ * without touching the static intelligence dossier blocks below the divider or deleting blocks/comments.
  */
 export async function replaceNotionPageBlocks(
   accessToken: string,
   pageId: string,
   newBlocks: any[],
+  prefetchedExisting?: NotionBlockChild[],
+  options?: ReplaceNotionPageBlocksOptions,
 ): Promise<void> {
-  const existing = await listNotionBlockChildren(accessToken, pageId);
-  const existingDividerIdx = existing.findIndex((b) => b.type === 'divider');
-  const newDividerIdx = newBlocks.findIndex((b) => b.type === 'divider');
-
-  if (
-    existingDividerIdx >= 2 &&
-    newDividerIdx >= 2 &&
-    existing[0]?.type === 'callout' &&
-    newBlocks[0]?.type === 'callout' &&
-    existing[1]?.type === 'heading_2'
-  ) {
-    // 1. Update top summary callout in-place (preserves block ID & comments)
-    await updateNotionBlock(accessToken, existing[0].id, {
-      callout: newBlocks[0].callout,
-    }).catch(() => null);
-
-    // 2. Replace only the outreach section between heading_2 (index 1) and the divider
-    const oldOutreachBlocks = existing.slice(2, existingDividerIdx);
-    const newOutreachBlocks = newBlocks.slice(2, newDividerIdx);
-
-    const BATCH_SIZE = 4;
-    for (let i = 0; i < oldOutreachBlocks.length; i += BATCH_SIZE) {
-      const batch = oldOutreachBlocks.slice(i, i + BATCH_SIZE);
-      await Promise.all(
-        batch.map((blk) =>
-          notionFetch(`/blocks/${blk.id}`, accessToken, { method: 'DELETE' }).catch(() => null),
-        ),
-      );
-    }
-
-    if (newOutreachBlocks.length > 0) {
-      await notionFetch(`/blocks/${pageId}/children`, accessToken, {
-        method: 'PATCH',
-        body: JSON.stringify({
-          children: newOutreachBlocks.slice(0, 80),
-          after: existing[1].id,
-        }),
-      });
+  const existing = prefetchedExisting ?? (await listNotionBlockChildren(accessToken, pageId));
+  if (existing.length === 0) {
+    if (newBlocks.length > 0) {
+      await appendNotionBlocks(accessToken, pageId, newBlocks);
     }
     return;
   }
 
-  const deletable = existing.filter(
-    (b) => b.type !== 'child_database' && b.type !== 'child_page',
+  const existingDividerIdx = existing.findIndex((b) => b.type === 'divider');
+  const newDividerIdx = newBlocks.findIndex((b) => b.type === 'divider');
+  const existingHeadingIdx = existing.findIndex(
+    (b, idx) =>
+      b.type === 'heading_2' &&
+      (existingDividerIdx === -1 || idx < existingDividerIdx) &&
+      (b.plainText || '').toLowerCase().includes('outreach'),
   );
+  const resolvedHeadingIdx =
+    existingHeadingIdx !== -1
+      ? existingHeadingIdx
+      : existing[1]?.type === 'heading_2'
+        ? 1
+        : -1;
 
-  const BATCH_SIZE = 4;
-  for (let i = 0; i < deletable.length; i += BATCH_SIZE) {
-    const batch = deletable.slice(i, i + BATCH_SIZE);
-    await Promise.all(
-      batch.map((blk) =>
-        notionFetch(`/blocks/${blk.id}`, accessToken, { method: 'DELETE' }).catch(() => null),
-      ),
-    );
+  // 1. Update top summary callout in-place ONLY if its substantive text changed and allowed
+  const existingCallout = existing.find(
+    (b, idx) => b.type === 'callout' && (resolvedHeadingIdx === -1 || idx < resolvedHeadingIdx),
+  );
+  if (
+    existingCallout &&
+    newBlocks[0]?.type === 'callout' &&
+    options?.allowSummaryCalloutMutation !== false
+  ) {
+    const newSummaryNorm = normalizeComparableBlockText(extractBlockPlainText(newBlocks[0]));
+    const oldSummaryNorm = normalizeComparableBlockText(existingCallout.plainText ?? '');
+    if (newSummaryNorm !== oldSummaryNorm) {
+      await updateNotionBlock(accessToken, existingCallout.id, {
+        callout: newBlocks[0].callout,
+      }).catch(() => null);
+    }
   }
 
-  if (newBlocks.length > 0) {
-    await appendNotionBlocks(accessToken, pageId, newBlocks);
+  if (resolvedHeadingIdx === -1 || existingDividerIdx <= resolvedHeadingIdx || newDividerIdx < 2) {
+    // Never delete existing blocks on non-standard pages so user comments/notes are never lost
+    return;
+  }
+
+  const oldOutreach = existing.slice(resolvedHeadingIdx + 1, existingDividerIdx);
+  const newOutreach = newBlocks.slice(2, newDividerIdx);
+
+  // 2. Handle transition from unpersonalized placeholder callout -> newly generated outreach blocks
+  const placeholderBlock =
+    oldOutreach.length === 1 &&
+    oldOutreach[0]?.type === 'callout' &&
+    (oldOutreach[0].plainText || '').includes('have not been generated')
+      ? oldOutreach[0]
+      : null;
+  const newIsPlaceholder =
+    newOutreach.length === 1 &&
+    newOutreach[0]?.type === 'callout' &&
+    extractBlockPlainText(newOutreach[0]).includes('have not been generated');
+
+  if (placeholderBlock && !newIsPlaceholder && newOutreach.length > 0) {
+    await notionFetch(`/blocks/${pageId}/children`, accessToken, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        children: newOutreach.slice(0, 80),
+        after: existing[resolvedHeadingIdx]!.id,
+      }),
+    });
+    await notionFetch(`/blocks/${placeholderBlock.id}`, accessToken, {
+      method: 'DELETE',
+    }).catch(() => null);
+    return;
+  }
+
+  // 3. If outreach was not modified in Marcom (or the change originated in Notion), do NOT patch outreach blocks
+  if (options?.allowOutreachMutation === false) {
+    return;
+  }
+
+  // 4. Match leading non-toggle blocks of identical type and PATCH in-place ONLY when normalized text differs
+  let matchedPrefixLen = 0;
+  const minLen = Math.min(oldOutreach.length, newOutreach.length);
+  while (
+    matchedPrefixLen < minLen &&
+    oldOutreach[matchedPrefixLen]!.type === newOutreach[matchedPrefixLen]!.type &&
+    newOutreach[matchedPrefixLen]!.type !== 'toggle'
+  ) {
+    matchedPrefixLen += 1;
+  }
+
+  const inPlaceUpdates: Array<() => Promise<void>> = [];
+  for (let i = 0; i < matchedPrefixLen; i += 1) {
+    const oldBlk = oldOutreach[i]!;
+    const newBlk = newOutreach[i]!;
+    const blkType = newBlk.type;
+    const oldNorm = normalizeComparableBlockText(oldBlk.plainText ?? '');
+    const newNorm = normalizeComparableBlockText(extractBlockPlainText(newBlk));
+    if (oldNorm !== newNorm && newBlk[blkType]) {
+      inPlaceUpdates.push(() =>
+        updateNotionBlock(accessToken, oldBlk.id, {
+          [blkType]: newBlk[blkType],
+        }).catch(() => undefined),
+      );
+    }
+  }
+
+  const BATCH_SIZE = 4;
+  for (let i = 0; i < inPlaceUpdates.length; i += BATCH_SIZE) {
+    const batch = inPlaceUpdates.slice(i, i + BATCH_SIZE);
+    await Promise.all(batch.map((fn) => fn()));
+  }
+
+  // 5. If Marcom regenerated a draft and produced a "🕘 Previous Draft Version" backup toggle,
+  // append it before the divider without deleting any existing blocks or comments.
+  const backupToggle = newOutreach.find(
+    (b) =>
+      b.type === 'toggle' &&
+      extractBlockPlainText(b).includes('Previous Draft Version'),
+  );
+  if (backupToggle) {
+    const alreadyHasBackup = oldOutreach.some(
+      (b) => b.type === 'toggle' && (b.plainText || '').includes('Previous Draft Version'),
+    );
+    if (!alreadyHasBackup) {
+      const afterBlockId =
+        oldOutreach[oldOutreach.length - 1]?.id || existing[resolvedHeadingIdx]!.id;
+      await notionFetch(`/blocks/${pageId}/children`, accessToken, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          children: [backupToggle],
+          after: afterBlockId,
+        }),
+      }).catch(() => null);
+    }
   }
 }
