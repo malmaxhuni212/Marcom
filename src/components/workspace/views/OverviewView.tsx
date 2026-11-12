@@ -64,6 +64,9 @@ function OverviewBody() {
         } else {
           setNotionUrl(null);
         }
+        if (typeof data?.pulledCount === 'number' && data.pulledCount > 0) {
+          void reload().catch(() => undefined);
+        }
       })
       .catch(() => {
         // Ignore background status check errors
@@ -98,6 +101,7 @@ function OverviewBody() {
         draftsReadyCount,
       };
 
+      const activeRecordIds = allProspects.map((p) => p.record.record_id);
       const BATCH_SIZE = 3;
       const chunks: (typeof allProspects)[] = [[]];
       for (let i = 0; i < allProspects.length; i += BATCH_SIZE) {
@@ -108,10 +112,12 @@ function OverviewBody() {
       let totalCreated = 0;
       let totalUpdated = 0;
       let totalFailed = 0;
+      let totalPulledFromNotion = 0;
       let wasResync = false;
       const allErrors: string[] = [];
       let resolvedUrl: string | null = null;
       let mergedPageIds: Record<string, string> = {};
+      let existingRowsSnapshot: unknown[] | undefined = undefined;
       let activeSyncRecord: Record<string, unknown> | undefined = undefined;
 
       for (let idx = 0; idx < chunks.length; idx += 1) {
@@ -130,8 +136,10 @@ function OverviewBody() {
             batchMode: true,
             skipHubUpdate: idx > 0,
             statsOverride,
+            ...(idx === 0 ? { activeRecordIds } : {}),
             ...(activeSyncRecord ? { existingSync: activeSyncRecord } : {}),
             brief: bundle.project.structured_brief,
+            configurationUpdatedAt: bundle.project.configuration_updated_at ?? null,
             prospects: chunk,
             drafts: bundle.drafts,
             settings: bundle.settings,
@@ -183,6 +191,13 @@ function OverviewBody() {
           mergedPageIds = { ...mergedPageIds, ...data.prospectPageIds };
         }
 
+        if (Array.isArray(data.existingRowsSnapshot) && data.existingRowsSnapshot.length > 0) {
+          existingRowsSnapshot = data.existingRowsSnapshot;
+        }
+        if (typeof data.reconciledChanges?.pulledCount === 'number') {
+          totalPulledFromNotion += data.reconciledChanges.pulledCount;
+        }
+
         if (data.campaignPageId && data.databaseId) {
           activeSyncRecord = {
             projectId: bundle.projectId,
@@ -193,6 +208,7 @@ function OverviewBody() {
             databaseId: data.databaseId,
             databaseUrl: data.databaseUrl || '',
             prospectPageIds: mergedPageIds,
+            ...(existingRowsSnapshot ? { existingRowsSnapshot } : {}),
             syncedCount:
               totalSynced +
               (typeof data.syncedCount === 'number' ? data.syncedCount : chunk.length),
@@ -214,6 +230,15 @@ function OverviewBody() {
         }
       }
 
+      if (totalPulledFromNotion > 0) {
+        await reload().catch(() => undefined);
+      }
+
+      const pulledSuffix =
+        totalPulledFromNotion > 0
+          ? ` · ${totalPulledFromNotion} Notion ${totalPulledFromNotion === 1 ? 'edit' : 'edits'} synced back to Marcom`
+          : '';
+
       if (totalFailed > 0) {
         setNotionNotice({
           tone: 'error',
@@ -222,7 +247,7 @@ function OverviewBody() {
       } else if (wasResync) {
         setNotionNotice({
           tone: 'info',
-          text: `Updated Notion Campaign Hub — ${totalSynced} ${totalSynced === 1 ? 'prospect' : 'prospects'} synced (${totalCreated} added, ${totalUpdated} updated).`,
+          text: `Updated Notion Campaign Hub — ${totalSynced} ${totalSynced === 1 ? 'prospect' : 'prospects'} synced (${totalCreated} added, ${totalUpdated} updated${pulledSuffix}).`,
         });
       } else {
         setNotionNotice({
@@ -272,6 +297,39 @@ function OverviewBody() {
       }
       await reload();
       setEditing(false);
+      if (notionUrl) {
+        const allProspects = bundle.research ?? [];
+        const allDrafts = bundle.drafts ?? [];
+        const shortlistedCount = allProspects.filter(
+          (p) => p.review?.status === 'shortlisted' || p.relationship_status === 'contacted',
+        ).length;
+        const draftsReadyCount = allProspects.filter((p) => {
+          const recId = p.record.record_id;
+          return Boolean(
+            allDrafts.find((d) => d.record_id === recId)?.copy ||
+              p.review?.status === 'shortlisted' ||
+              p.relationship_status === 'contacted',
+          );
+        }).length;
+        void authenticatedFetch(`/api/projects/${projectId}/notion/sync`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            batchMode: true,
+            skipHubUpdate: false,
+            statsOverride: {
+              totalProspects: allProspects.length,
+              shortlistedCount,
+              draftsReadyCount,
+            },
+            brief: updatedBrief,
+            configurationUpdatedAt:
+              data?.project?.configuration_updated_at || new Date().toISOString(),
+            prospects: [],
+            drafts: [],
+          }),
+        }).catch(() => undefined);
+      }
     } catch (err) {
       setSaveError((err as Error).message);
     } finally {

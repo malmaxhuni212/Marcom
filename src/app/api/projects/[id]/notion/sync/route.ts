@@ -1,25 +1,48 @@
+import { randomUUID } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { authorizeApiRequest } from '@/auth/access';
 import { isDatabaseConfigured } from '@/db/env';
 import type { ActorContext } from '@/db/local-actor';
-import { listResearch as listDbResearch } from '@/db/repositories/research-repository';
-import { listResearch as listFileResearch } from '@/marcom/memory/research-store';
+import {
+  getCampaign,
+  updateCampaignConfiguration,
+} from '@/db/repositories/campaign-repository';
+import {
+  listResearch as listDbResearch,
+  updateResearchEntryFromSync as updateDbResearchEntryFromSync,
+  updateResearchReview as updateDbResearchReview,
+} from '@/db/repositories/research-repository';
+import {
+  listResearch as listFileResearch,
+  updateResearchEntryById as updateFileResearchEntryById,
+  updateResearchReview as updateFileResearchReview,
+} from '@/marcom/memory/research-store';
+import { updateProject as updateFileProject } from '@/marcom/memory/project-store';
 import {
   getPersonalizationSettings as getDbPersonalizationSettings,
   listPersonalizations as listDbPersonalizations,
+  savePersonalization as saveDbPersonalization,
 } from '@/db/repositories/personalization-repository';
 import {
   getPersonalizationSettings as getFilePersonalizationSettings,
   listPersonalizations as listFilePersonalizations,
+  savePersonalization as saveFilePersonalization,
 } from '@/marcom/memory/personalization-store';
 import { readCampaignMemory } from '@/marcom/memory/server-store';
 import { buildAdaptivePersonalizationEntry } from '@/marcom/agents/personalization/agent';
 import {
-  getNotionConnection,
+  getProjectNotionConnection,
   getProjectNotionSync,
+  sanitizeProjectSyncRecordForClient,
 } from '@/marcom/integrations/notion/store';
-import type { NotionProjectSyncRecord } from '@/marcom/integrations/notion/types';
-import { syncProjectToNotion } from '@/marcom/integrations/notion/sync';
+import type {
+  NotionProjectSyncRecord,
+  NotionReconciledChanges,
+} from '@/marcom/integrations/notion/types';
+import {
+  pullNotionChangesForProject,
+  syncProjectToNotion,
+} from '@/marcom/integrations/notion/sync';
 import type { StructuredBrief } from '@/marcom/schemas/structured-brief';
 import type { ResearchEntry } from '@/marcom/schemas/research-record';
 import type {
@@ -94,6 +117,136 @@ async function loadHybridPersonalizationSettings(
   return getFilePersonalizationSettings(projectId);
 }
 
+function populateAdaptiveDrafts(
+  projectId: string,
+  research: ResearchEntry[],
+  brief: StructuredBrief,
+  settings: PersonalizationSettings,
+  draftsMap: Record<string, PersonalizationEntry>,
+) {
+  for (const entry of research) {
+    const recId = entry.record.record_id;
+    const isPersonalizedLead =
+      entry.review?.status === 'shortlisted' || entry.relationship_status === 'contacted';
+    const existing = draftsMap[recId];
+    if (isPersonalizedLead && (!existing || !existing.copy)) {
+      const adaptive = buildAdaptivePersonalizationEntry({
+        projectId,
+        researchEntry: entry,
+        brief,
+        settings,
+        leadSettings: settings.lead_settings?.[recId] ?? existing?.lead_settings,
+        existing,
+      });
+      const stableTimestamp =
+        entry.review?.reviewed_at ||
+        entry.record.researched_at ||
+        '2020-01-01T00:00:00.000Z';
+      draftsMap[recId] = {
+        ...adaptive,
+        generated_at: stableTimestamp,
+        updated_at: stableTimestamp,
+      };
+    }
+  }
+}
+
+async function persistReconciledNotionChanges(
+  actor: ActorContext,
+  projectId: string,
+  reconciled: NotionReconciledChanges,
+): Promise<void> {
+  const isDb = isDatabaseConfigured() && UUID_REGEX.test(projectId);
+
+  if (reconciled.updatedBrief) {
+    const nextBrief = reconciled.updatedBrief;
+    try {
+      updateFileProject(projectId, (current) => ({
+        ...current,
+        name: nextBrief.project.name || current.name,
+        summary: nextBrief.project.description || current.summary,
+        structured_brief: nextBrief,
+        target_definitions: nextBrief.targets.map((t) => ({
+          target_type: t.target_type,
+          definition: t.description,
+          aliases: [],
+        })),
+        configuration_revision: (current.configuration_revision ?? 1) + 1,
+        configuration_updated_at: new Date().toISOString(),
+      }));
+    } catch {
+      // Ignore file fallback write failure on read-only fs
+    }
+
+    if (isDb) {
+      try {
+        const currentCampaign = await getCampaign(actor, projectId);
+        if (currentCampaign) {
+          await updateCampaignConfiguration(actor, projectId, {
+            structuredBrief: nextBrief,
+            expectedRevision: currentCampaign.configuration_revision ?? 1,
+            requestId: randomUUID(),
+          });
+        }
+      } catch (err) {
+        console.warn('Failed to persist Notion-reconciled campaign brief to DB:', err);
+      }
+    }
+  }
+
+  for (const updatedEntry of reconciled.updatedResearchEntries || []) {
+    try {
+      updateFileResearchEntryById(projectId, updatedEntry);
+    } catch {
+      // Ignore file fallback write failure on read-only fs
+    }
+    if (isDb) {
+      await updateDbResearchEntryFromSync(actor, projectId, updatedEntry).catch((err) => {
+        console.warn('Failed to persist Notion-reconciled research entry to DB:', err);
+      });
+    }
+  }
+
+  for (const updatedDraft of reconciled.updatedDrafts) {
+    try {
+      saveFilePersonalization(projectId, updatedDraft);
+    } catch {
+      // Ignore file fallback write failure on read-only fs
+    }
+    if (isDb) {
+      await saveDbPersonalization(actor, projectId, updatedDraft).catch((err) => {
+        console.warn('Failed to persist Notion-reconciled draft to DB:', err);
+      });
+    }
+  }
+
+  for (const updatedRev of reconciled.updatedReviews) {
+    try {
+      updateFileResearchReview(
+        projectId,
+        updatedRev.recordId,
+        updatedRev.status,
+        updatedRev.note,
+        updatedRev.relationshipStatus,
+      );
+    } catch {
+      // Ignore file fallback write failure on read-only fs
+    }
+    if (isDb) {
+      await updateDbResearchReview(
+        actor,
+        projectId,
+        updatedRev.recordId,
+        updatedRev.status,
+        updatedRev.note,
+        updatedRev.relationshipStatus,
+      ).catch((err) => {
+        console.warn('Failed to persist Notion-reconciled review status to DB:', err);
+      });
+    }
+  }
+}
+
 export async function GET(req: Request, context: RouteContext) {
   const access = await authorizeApiRequest(req, { allowGuest: true });
   if (!access.ok) return access.response;
@@ -101,7 +254,7 @@ export async function GET(req: Request, context: RouteContext) {
   const { id } = await context.params;
 
   try {
-    const connection = await getNotionConnection(req);
+    const connection = await getProjectNotionConnection(id, req);
     if (!connection?.accessToken) {
       return NextResponse.json({
         success: true,
@@ -109,6 +262,7 @@ export async function GET(req: Request, context: RouteContext) {
         workspaceName: null,
         workspaceId: null,
         sync: null,
+        pulledCount: 0,
       });
     }
 
@@ -119,12 +273,64 @@ export async function GET(req: Request, context: RouteContext) {
         !syncRecord.notionWorkspaceId ||
         syncRecord.notionWorkspaceId === connection.workspaceId);
 
+    let pulledCount = 0;
+    let reconciledChanges: NotionReconciledChanges | undefined;
+
+    if (matchesWorkspace && syncRecord?.databaseId) {
+      try {
+        const [project, research, personalizations, settings] = await Promise.all([
+          readCampaignMemory(access.actor, id, true).catch(() => null),
+          loadHybridResearch(access.actor, id, true).catch(() => [] as ResearchEntry[]),
+          loadHybridPersonalizations(access.actor, id, true).catch(
+            () => [] as PersonalizationEntry[],
+          ),
+          loadHybridPersonalizationSettings(access.actor, id),
+        ]);
+
+        const draftsMap: Record<string, PersonalizationEntry> = {};
+        for (const p of personalizations) {
+          if (p?.record_id) draftsMap[p.record_id] = p;
+        }
+        if (project?.structured_brief) {
+          populateAdaptiveDrafts(
+            id,
+            research,
+            project.structured_brief,
+            settings,
+            draftsMap,
+          );
+        }
+
+        const reconciled = await pullNotionChangesForProject(
+          {
+            projectId: id,
+            brief: project?.structured_brief ?? null,
+            configurationUpdatedAt: project?.configuration_updated_at ?? null,
+            prospects: research,
+            drafts: draftsMap,
+            existingSync: syncRecord,
+          },
+          connection.accessToken,
+        );
+
+        if (reconciled.pulledCount > 0) {
+          await persistReconciledNotionChanges(access.actor, id, reconciled);
+          pulledCount = reconciled.pulledCount;
+          reconciledChanges = reconciled;
+        }
+      } catch (pullErr) {
+        console.warn(`Background Notion pull on GET failed for project ${id}:`, pullErr);
+      }
+    }
+
     return NextResponse.json({
       success: true,
       connected: true,
       workspaceName: connection.workspaceName ?? null,
       workspaceId: connection.workspaceId ?? null,
-      sync: matchesWorkspace ? syncRecord : null,
+      sync: matchesWorkspace ? sanitizeProjectSyncRecordForClient(syncRecord) : null,
+      pulledCount,
+      ...(reconciledChanges ? { reconciledChanges } : {}),
     });
   } catch (err) {
     const msg = (err as Error).message || 'Failed to read Notion sync state.';
@@ -139,7 +345,7 @@ export async function POST(req: Request, context: RouteContext) {
   const { id } = await context.params;
 
   try {
-    const connection = await getNotionConnection(req);
+    const connection = await getProjectNotionConnection(id, req);
     if (!connection?.accessToken) {
       return NextResponse.json(
         {
@@ -153,12 +359,14 @@ export async function POST(req: Request, context: RouteContext) {
     const body = (await req.json().catch(() => ({}))) as {
       parentPageId?: string;
       brief?: StructuredBrief | null;
+      configurationUpdatedAt?: string | null;
       prospects?: ResearchEntry[];
       drafts?: PersonalizationEntry[];
       settings?: PersonalizationSettings | null;
       batchMode?: boolean;
       skipHubUpdate?: boolean;
       existingSync?: NotionProjectSyncRecord | null;
+      activeRecordIds?: string[];
       statsOverride?: {
         totalProspects: number;
         shortlistedCount: number;
@@ -218,38 +426,29 @@ export async function POST(req: Request, context: RouteContext) {
       }
     }
 
-    // Ensure shortlisted / contacted prospects always have adaptive outreach drafts ready for Notion
-    for (const entry of research) {
-      const recId = entry.record.record_id;
-      const isPersonalizedLead =
-        entry.review?.status === 'shortlisted' || entry.relationship_status === 'contacted';
-      const existing = draftsMap[recId];
-      if (isPersonalizedLead && (!existing || !existing.copy)) {
-        draftsMap[recId] = buildAdaptivePersonalizationEntry({
-          projectId: id,
-          researchEntry: entry,
-          brief,
-          settings,
-          leadSettings: settings.lead_settings?.[recId] ?? existing?.lead_settings,
-          existing,
-        });
-      }
-    }
+    populateAdaptiveDrafts(id, research, brief, settings, draftsMap);
 
     const result = await syncProjectToNotion(
       {
         projectId: id,
         brief,
+        configurationUpdatedAt:
+          body.configurationUpdatedAt ?? project?.configuration_updated_at ?? null,
         prospects: research,
         drafts: draftsMap,
         parentPageId: body.parentPageId || connection.defaultParentPageId || undefined,
         notionWorkspaceId: connection.workspaceId,
         ...(body.existingSync !== undefined ? { existingSync: body.existingSync } : {}),
         ...(body.skipHubUpdate ? { skipHubUpdate: true } : {}),
+        ...(body.activeRecordIds ? { activeRecordIds: body.activeRecordIds } : {}),
         ...(body.statsOverride ? { statsOverride: body.statsOverride } : {}),
       },
       connection.accessToken,
     );
+
+    if (result.reconciledChanges && result.reconciledChanges.pulledCount > 0) {
+      await persistReconciledNotionChanges(access.actor, id, result.reconciledChanges);
+    }
 
     if (!result.success) {
       return NextResponse.json(

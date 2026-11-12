@@ -7,12 +7,23 @@ import { CloseButton, Dialog, Icon, btnPrimary, btnSecondary, serif } from './ui
 import { contactsOf, formatProfileDisplay, hostOf, longDate, plural, sourceUsage, targetFor, verificationOf } from './format';
 import type { StructuredBrief } from '@/marcom/schemas/structured-brief';
 
-/** Saves one human review decision (approve / reject / more research / restore). */
-export async function saveDecision(projectId: string, recordId: string, status: ReviewStatus, note: string | null) {
+/** Saves one human review decision (approve / reject / more research / restore / sent). */
+export async function saveDecision(
+  projectId: string,
+  recordId: string,
+  status: ReviewStatus,
+  note: string | null,
+  relationshipStatus?: 'contacted' | 'none' | null,
+) {
   const response = await authenticatedFetch(`/api/projects/${projectId}/research`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ record_id: recordId, status, note: note?.trim() || null }),
+    body: JSON.stringify({
+      record_id: recordId,
+      status,
+      note: note?.trim() || null,
+      ...(relationshipStatus !== undefined ? { relationship_status: relationshipStatus } : {}),
+    }),
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(data.error || 'The decision could not be saved.');

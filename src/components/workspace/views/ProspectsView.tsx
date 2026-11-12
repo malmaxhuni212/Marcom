@@ -583,6 +583,9 @@ function ProspectsBody({ initialTab }: { initialTab?: TabId }) {
         } else {
           setNotionProspectPageIds({});
         }
+        if (typeof data?.pulledCount === 'number' && data.pulledCount > 0) {
+          void reload().catch(() => undefined);
+        }
       })
       .catch(() => {
         // Ignore background sync status check errors
@@ -598,7 +601,14 @@ function ProspectsBody({ initialTab }: { initialTab?: TabId }) {
     setSyncingNotion(true);
     setNotionNotice(null);
     try {
-      const allProspects = bundle?.research ?? [];
+      const allProspects = (bundle?.research ?? []).map((p) => {
+        const isMarkedSent = Boolean(
+          sentIds[p.record.record_id] || p.relationship_status === 'contacted',
+        );
+        return isMarkedSent && p.relationship_status !== 'contacted'
+          ? { ...p, relationship_status: 'contacted' }
+          : p;
+      });
       const allDrafts = bundle?.drafts ?? [];
       const shortlistedCount = allProspects.filter(
         (p) => p.review?.status === 'shortlisted' || p.relationship_status === 'contacted',
@@ -617,6 +627,7 @@ function ProspectsBody({ initialTab }: { initialTab?: TabId }) {
         draftsReadyCount,
       };
 
+      const activeRecordIds = allProspects.map((p) => p.record.record_id);
       const BATCH_SIZE = 3;
       const chunks: (typeof allProspects)[] = [[]];
       for (let i = 0; i < allProspects.length; i += BATCH_SIZE) {
@@ -627,10 +638,12 @@ function ProspectsBody({ initialTab }: { initialTab?: TabId }) {
       let totalCreated = 0;
       let totalUpdated = 0;
       let totalFailed = 0;
+      let totalPulledFromNotion = 0;
       let wasResync = false;
       const allErrors: string[] = [];
       let resolvedUrl: string | null = null;
       let mergedPageIds: Record<string, string> = { ...notionProspectPageIds };
+      let existingRowsSnapshot: unknown[] | undefined = undefined;
       let activeSyncRecord: Record<string, unknown> | undefined = undefined;
 
       for (let idx = 0; idx < chunks.length; idx += 1) {
@@ -649,8 +662,10 @@ function ProspectsBody({ initialTab }: { initialTab?: TabId }) {
             batchMode: true,
             skipHubUpdate: idx > 0,
             statsOverride,
+            ...(idx === 0 ? { activeRecordIds } : {}),
             ...(activeSyncRecord ? { existingSync: activeSyncRecord } : {}),
             brief: bundle?.project.structured_brief ?? null,
+            configurationUpdatedAt: bundle?.project.configuration_updated_at ?? null,
             prospects: chunk,
             drafts: bundle?.drafts ?? [],
             settings: bundle?.settings ?? null,
@@ -702,6 +717,13 @@ function ProspectsBody({ initialTab }: { initialTab?: TabId }) {
           wasResync = true;
         }
 
+        if (Array.isArray(data.existingRowsSnapshot) && data.existingRowsSnapshot.length > 0) {
+          existingRowsSnapshot = data.existingRowsSnapshot;
+        }
+        if (typeof data.reconciledChanges?.pulledCount === 'number') {
+          totalPulledFromNotion += data.reconciledChanges.pulledCount;
+        }
+
         if (data.campaignPageId && data.databaseId) {
           activeSyncRecord = {
             projectId,
@@ -712,6 +734,7 @@ function ProspectsBody({ initialTab }: { initialTab?: TabId }) {
             databaseId: data.databaseId,
             databaseUrl: data.databaseUrl || '',
             prospectPageIds: mergedPageIds,
+            ...(existingRowsSnapshot ? { existingRowsSnapshot } : {}),
             syncedCount:
               totalSynced +
               (typeof data.syncedCount === 'number' ? data.syncedCount : chunk.length),
@@ -733,6 +756,15 @@ function ProspectsBody({ initialTab }: { initialTab?: TabId }) {
         }
       }
 
+      if (totalPulledFromNotion > 0) {
+        await reload().catch(() => undefined);
+      }
+
+      const pulledSuffix =
+        totalPulledFromNotion > 0
+          ? ` · ${totalPulledFromNotion} Notion ${totalPulledFromNotion === 1 ? 'edit' : 'edits'} synced back to Marcom`
+          : '';
+
       if (totalFailed > 0) {
         setNotionNotice({
           tone: 'error',
@@ -741,7 +773,7 @@ function ProspectsBody({ initialTab }: { initialTab?: TabId }) {
       } else if (wasResync) {
         setNotionNotice({
           tone: 'info',
-          text: `Updated Notion Campaign Hub — ${totalSynced} ${totalSynced === 1 ? 'prospect' : 'prospects'} synced (${totalCreated} added, ${totalUpdated} updated).`,
+          text: `Updated Notion Campaign Hub — ${totalSynced} ${totalSynced === 1 ? 'prospect' : 'prospects'} synced (${totalCreated} added, ${totalUpdated} updated${pulledSuffix}).`,
         });
       } else {
         setNotionNotice({
@@ -759,32 +791,112 @@ function ProspectsBody({ initialTab }: { initialTab?: TabId }) {
     }
   };
 
-  // Load persisted sent records for this project
+  // Load persisted sent records for this project and keep in sync with shared server `relationship_status`
   useEffect(() => {
     if (!projectId) return;
+    const researchList = bundle?.research ?? [];
+    const serverSentMap: Record<string, boolean> = {};
+    for (const entry of researchList) {
+      if (entry.relationship_status === 'contacted') {
+        serverSentMap[entry.record.record_id] = true;
+      }
+    }
+
+    let localMap: Record<string, boolean> = {};
+    let alreadyMigrated = false;
     try {
       const raw = window.localStorage.getItem(sentStorageKey(projectId));
-      if (raw) setSentIds(JSON.parse(raw));
-      else setSentIds({});
+      if (raw) localMap = JSON.parse(raw) || {};
+      alreadyMigrated =
+        window.localStorage.getItem(`${sentStorageKey(projectId)}_migrated`) === '1';
     } catch {
-      setSentIds({});
+      localMap = {};
     }
-  }, [projectId]);
+
+    // One-time migration: if this browser previously stored Sent leads only in localStorage,
+    // push them to the shared server database so all collaborators on the campaign can see them.
+    if (!alreadyMigrated && researchList.length > 0) {
+      const unsyncedLocalIds = Object.keys(localMap).filter(
+        (id) =>
+          localMap[id] &&
+          !serverSentMap[id] &&
+          researchList.some((e) => e.record.record_id === id),
+      );
+      try {
+        window.localStorage.setItem(`${sentStorageKey(projectId)}_migrated`, '1');
+      } catch {
+        // Ignore storage errors
+      }
+      if (unsyncedLocalIds.length > 0) {
+        const merged = { ...serverSentMap };
+        for (const id of unsyncedLocalIds) {
+          merged[id] = true;
+          const existing = researchList.find((e) => e.record.record_id === id);
+          const statusToKeep: ReviewStatus =
+            existing?.review?.status && existing.review.status !== 'needs_review'
+              ? existing.review.status
+              : 'shortlisted';
+          updateResearchReview(id, statusToKeep, existing?.review?.note ?? null, 'contacted');
+          void saveDecision(
+            projectId,
+            id,
+            statusToKeep,
+            existing?.review?.note ?? null,
+            'contacted',
+          ).catch(() => undefined);
+        }
+        setSentIds(merged);
+        try {
+          window.localStorage.setItem(sentStorageKey(projectId), JSON.stringify(merged));
+        } catch {
+          // Ignore storage errors
+        }
+        return;
+      }
+    }
+
+    const authoritativeMap = researchList.length > 0 ? serverSentMap : localMap;
+    setSentIds(authoritativeMap);
+    try {
+      window.localStorage.setItem(sentStorageKey(projectId), JSON.stringify(authoritativeMap));
+    } catch {
+      // Ignore storage errors
+    }
+  }, [projectId, bundle?.research, updateResearchReview]);
 
   const toggleSent = (recordId: string, forceValue?: boolean) => {
     if (!projectId) return;
-    const currentlySent = Boolean(sentIds[recordId]);
+    const existingEntry = (bundle?.research ?? []).find(
+      (e) => e.record.record_id === recordId,
+    );
+    const currentlySent = Boolean(
+      sentIds[recordId] || existingEntry?.relationship_status === 'contacted',
+    );
     const nextValue = forceValue !== undefined ? forceValue : !currentlySent;
+    const nextRelationshipStatus = nextValue ? 'contacted' : null;
+    const noteToKeep = existingEntry?.review?.note ?? null;
+
     setSentIds((current) => {
       const next = { ...current, [recordId]: nextValue };
       if (!nextValue) delete next[recordId];
       try {
         window.localStorage.setItem(sentStorageKey(projectId), JSON.stringify(next));
+        window.localStorage.setItem(`${sentStorageKey(projectId)}_migrated`, '1');
       } catch {
         // Ignore storage errors
       }
       return next;
     });
+
+    updateResearchReview(recordId, 'shortlisted', noteToKeep, nextRelationshipStatus);
+    void saveDecision(
+      projectId,
+      recordId,
+      'shortlisted',
+      noteToKeep,
+      nextValue ? 'contacted' : 'none',
+    ).catch(() => undefined);
+
     setActionNotice(
       nextValue
         ? 'Marked outreach as sent and moved lead to the Sent tab.'
@@ -794,6 +906,9 @@ function ProspectsBody({ initialTab }: { initialTab?: TabId }) {
 
   const markLeadsSent = (recordIds: string[], nextValue = true) => {
     if (!projectId || recordIds.length === 0) return;
+    const nextRelationshipStatus = nextValue ? 'contacted' : null;
+    const researchList = bundle?.research ?? [];
+
     setSentIds((current) => {
       const next = { ...current };
       for (const id of recordIds) {
@@ -805,11 +920,26 @@ function ProspectsBody({ initialTab }: { initialTab?: TabId }) {
       }
       try {
         window.localStorage.setItem(sentStorageKey(projectId), JSON.stringify(next));
+        window.localStorage.setItem(`${sentStorageKey(projectId)}_migrated`, '1');
       } catch {
         // Ignore storage errors
       }
       return next;
     });
+
+    for (const id of recordIds) {
+      const existingEntry = researchList.find((e) => e.record.record_id === id);
+      const noteToKeep = existingEntry?.review?.note ?? null;
+      updateResearchReview(id, 'shortlisted', noteToKeep, nextRelationshipStatus);
+      void saveDecision(
+        projectId,
+        id,
+        'shortlisted',
+        noteToKeep,
+        nextValue ? 'contacted' : 'none',
+      ).catch(() => undefined);
+    }
+
     setCheckedIds({});
     setActionNotice(
       nextValue

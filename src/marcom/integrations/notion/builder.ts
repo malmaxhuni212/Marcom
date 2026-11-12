@@ -377,6 +377,7 @@ export function buildProspectsDatabaseProperties(): Record<string, any> {
           { name: 'Sent / Contacted', color: 'blue' },
           { name: 'More Research Needed', color: 'orange' },
           { name: 'Rejected', color: 'red' },
+          { name: 'Removed in Marcom', color: 'gray' },
         ],
       },
     },
@@ -385,6 +386,8 @@ export function buildProspectsDatabaseProperties(): Record<string, any> {
         options: [
           { name: 'Approved', color: 'green' },
           { name: 'Draft Ready', color: 'purple' },
+          { name: 'Needs Revision', color: 'orange' },
+          { name: 'Rejected', color: 'red' },
           { name: 'Sent', color: 'blue' },
           { name: 'Pending Generation', color: 'default' },
         ],
@@ -492,7 +495,15 @@ export function buildProspectPageProperties(
   if (entry.relationship_status === 'contacted') {
     outreachStatus = 'Sent';
   } else if (draft?.copy) {
-    outreachStatus = draft.status === 'approved' ? 'Approved' : 'Draft Ready';
+    if (draft.status === 'approved') {
+      outreachStatus = 'Approved';
+    } else if (draft.status === 'needs_more_research') {
+      outreachStatus = 'Needs Revision';
+    } else if (draft.status === 'rejected') {
+      outreachStatus = 'Rejected';
+    } else {
+      outreachStatus = 'Draft Ready';
+    }
   }
 
   const topSubject = draft?.copy?.subject_lines?.[0]?.text || '';
@@ -596,22 +607,33 @@ export function buildProspectPageProperties(
 /* Prospect Page Dossier Body Blocks Builder                          */
 /* ------------------------------------------------------------------ */
 
-export function buildProspectPageBodyBlocks(
+export interface ProspectBodyBlockOptions {
+  /** Optional revision or sync notice shown inside the Outreach Strategy callout */
+  syncNote?: string | null;
+  /** Optional top-of-page banner warning (e.g. when a prospect was removed in Marcom) */
+  statusBanner?: string | null;
+  /** Optional backup of a previous draft before Marcom regeneration */
+  previousDraftBackup?: {
+    subjectLine?: string | null;
+    emailBody: string;
+    linkedinMessage?: string | null;
+    savedAtIso?: string;
+  } | null;
+}
+
+export function buildProspectSummaryCallout(
   entry: ResearchEntry,
-  draft?: PersonalizationEntry,
-): any[] {
+  statusBanner?: string | null,
+) {
   const r = entry.record;
   const verification = verificationOf(entry);
-  const contacts = contactsOf(entry);
-  const blocks: any[] = [];
-
-  // 1. Executive Summary Callout
   const fitScorePart =
     typeof r.fit?.score === 'number'
       ? `Fit Rating: ${formatFitBand(r.fit?.band)} (${Math.round(r.fit.score)}/100)`
       : `Fit Rating: ${formatFitBand(r.fit?.band)}`;
 
   const summaryCalloutText = [
+    statusBanner || null,
     `Verification Status: ${verification.label} (${r.research_confidence ?? 'medium'} confidence) · ${fitScorePart}`,
     r.fit?.rationale ? `Fit Rationale: ${r.fit.rationale}` : null,
     r.reason_for_relevance ? `Why Relevant: ${r.reason_for_relevance}` : null,
@@ -620,41 +642,75 @@ export function buildProspectPageBodyBlocks(
     .filter(Boolean)
     .join('\n');
 
-  blocks.push(callout(summaryCalloutText, '🛡️', 'gray_background'));
+  return callout(
+    summaryCalloutText,
+    statusBanner ? '⚠️' : '🛡️',
+    statusBanner ? 'yellow_background' : 'gray_background',
+  );
+}
+
+export function buildProspectPageBodyBlocks(
+  entry: ResearchEntry,
+  draft?: PersonalizationEntry,
+  options?: ProspectBodyBlockOptions,
+): any[] {
+  const r = entry.record;
+  const contacts = contactsOf(entry);
+  const blocks: any[] = [];
+
+  // 1. Executive Summary Callout
+  blocks.push(buildProspectSummaryCallout(entry, options?.statusBanner));
 
   // 2. Personalized Outreach Strategy & Message Drafts — placed FIRST at top of page body for immediate review
   blocks.push(heading2('✉️ Personalized Outreach Strategy & Drafts'));
 
   if (draft?.copy) {
-    if (draft.strategy) {
-      const strat = draft.strategy as Record<string, any>;
-      const hooks = Array.isArray(strat.hooks) ? strat.hooks : [];
-      const primaryHook =
-        hooks.find((h: any) => h?.id === strat.primary_hook_id) ||
-        hooks[0] ||
-        strat.hook ||
-        null;
+    const strat = (draft.strategy || {}) as Record<string, any>;
+    const hooks = Array.isArray(strat.hooks) ? strat.hooks : [];
+    const primaryHook =
+      hooks.find((h: any) => h?.id === strat.primary_hook_id) ||
+      hooks[0] ||
+      strat.hook ||
+      null;
 
-      const strategyParts = [
-        strat.recommended_channel
-          ? `📬 Recommended Channel: ${String(strat.recommended_channel).toUpperCase()}${strat.channel_reason ? ` — ${strat.channel_reason}` : ''}`
-          : null,
-        strat.angle ? `🎯 Outreach Angle: ${strat.angle}` : null,
-        primaryHook?.fact ? `💡 Verified Hook: ${primaryHook.fact}` : null,
-        strat.recipient_incentive ? `🎁 Recipient Incentive: ${strat.recipient_incentive}` : null,
-        Array.isArray(strat.avoid) && strat.avoid.length
-          ? `⚠️ Guardrails / Avoid: ${strat.avoid.join('; ')}`
-          : null,
-        Array.isArray(strat.human_checks) && strat.human_checks.length
-          ? `🔍 Checks Before Sending: ${strat.human_checks.join('; ')}`
-          : null,
-      ]
-        .filter(Boolean)
-        .join('\n');
-
-      if (strategyParts) {
-        blocks.push(callout(strategyParts, '🎯', 'blue_background'));
+    let revisionLine: string | null = options?.syncNote || null;
+    if (!revisionLine && draft.updated_at && draft.generated_at) {
+      const genMs = Date.parse(draft.generated_at);
+      const updMs = Date.parse(draft.updated_at);
+      if (
+        (Number.isFinite(genMs) && Number.isFinite(updMs) && updMs - genMs > 5000) ||
+        draft.edited_by_human ||
+        (draft.auto_revisions ?? 0) > 0
+      ) {
+        const formattedTime = new Date(draft.updated_at)
+          .toISOString()
+          .replace('T', ' ')
+          .slice(0, 16);
+        const editSource = draft.edited_by_human ? 'Human-edited' : 'Regenerated in Marcom';
+        revisionLine = `🔄 ${editSource} (${formattedTime} UTC) — earlier inline comments on the draft below may refer to a previous version.`;
       }
+    }
+
+    const strategyParts = [
+      revisionLine,
+      strat.recommended_channel
+        ? `📬 Recommended Channel: ${String(strat.recommended_channel).toUpperCase()}${strat.channel_reason ? ` — ${strat.channel_reason}` : ''}`
+        : null,
+      strat.angle ? `🎯 Outreach Angle: ${strat.angle}` : null,
+      primaryHook?.fact ? `💡 Verified Hook: ${primaryHook.fact}` : null,
+      strat.recipient_incentive ? `🎁 Recipient Incentive: ${strat.recipient_incentive}` : null,
+      Array.isArray(strat.avoid) && strat.avoid.length
+        ? `⚠️ Guardrails / Avoid: ${strat.avoid.join('; ')}`
+        : null,
+      Array.isArray(strat.human_checks) && strat.human_checks.length
+        ? `🔍 Checks Before Sending: ${strat.human_checks.join('; ')}`
+        : null,
+    ]
+      .filter(Boolean)
+      .join('\n');
+
+    if (strategyParts) {
+      blocks.push(callout(strategyParts, '🎯', 'blue_background'));
     }
 
     if (draft.copy.subject_lines?.length) {
@@ -688,6 +744,32 @@ export function buildProspectPageBodyBlocks(
         toggle(
           'Alternative Opening Option',
           multiChunkQuotes(draft.copy.alternative_opening),
+        ),
+      );
+    }
+
+    if (
+      options?.previousDraftBackup?.emailBody &&
+      options.previousDraftBackup.emailBody.trim() !== (draft.copy.email_body || '').trim()
+    ) {
+      const backupChildren: any[] = [];
+      if (options.previousDraftBackup.subjectLine) {
+        backupChildren.push(
+          paragraph(`Previous Subject: ${options.previousDraftBackup.subjectLine}`, {
+            bold: true,
+          }),
+        );
+      }
+      backupChildren.push(...multiChunkQuotes(options.previousDraftBackup.emailBody));
+      if (options.previousDraftBackup.linkedinMessage) {
+        backupChildren.push(
+          paragraph(`Previous LinkedIn / DM: ${options.previousDraftBackup.linkedinMessage}`),
+        );
+      }
+      blocks.push(
+        toggle(
+          '🕘 Previous Draft Version (Preserved before regeneration)',
+          backupChildren,
         ),
       );
     }

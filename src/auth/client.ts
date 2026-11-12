@@ -257,6 +257,12 @@ async function handleGuestLocalApi(
           : status === 'rejected'
             ? 'Rejected by user'
             : null;
+      const relationshipStatus =
+        body.relationship_status !== undefined
+          ? typeof body.relationship_status === 'string'
+            ? body.relationship_status
+            : null
+          : undefined;
       if (!recordId || !status) {
         return jsonResponse({ error: 'The review decision is invalid.' }, 400);
       }
@@ -265,6 +271,7 @@ async function handleGuestLocalApi(
         recordId,
         status,
         note,
+        relationshipStatus,
       );
       return updated
         ? jsonResponse({ success: true, entry: updated })

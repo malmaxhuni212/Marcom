@@ -15,7 +15,10 @@ import { isDatabaseConfigured } from '@/db/env';
 import { listResearch as listFileResearch, updateResearchReview as updateFileReview, deleteResearch as deleteFileResearch, deleteMultipleResearch as deleteFileMultiple, deleteBatchResearch as deleteFileBatch, deleteProjectResearch as deleteFileProject, getNextBatchInfo as getFileNextBatch, saveResearch as saveFileResearch } from '@/marcom/memory/research-store';
 import { getPersonalization as getDbPersonalization } from '@/db/repositories/personalization-repository';
 import { getPersonalization as getFilePersonalization } from '@/marcom/memory/personalization-store';
-import { syncConnectedProjectRecordsToNotion } from '@/marcom/integrations/notion/sync';
+import {
+  markDeletedProjectRecordsInNotion,
+  syncConnectedProjectRecordsToNotion,
+} from '@/marcom/integrations/notion/sync';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
@@ -28,6 +31,7 @@ const ReviewDecisionSchema = z.strictObject({
   record_id: z.string().trim().min(1).max(200),
   status: ReviewStatusSchema,
   note: z.string().trim().max(1_000).nullable().optional(),
+  relationship_status: z.enum(['contacted', 'sent', 'none']).nullable().optional(),
 });
 
 function searchableText(entry: ResearchEntry): string {
@@ -281,14 +285,43 @@ export async function PATCH(req: Request, { params }: RouteCtx) {
         parsed.data.record_id,
         parsed.data.status,
         finalNote,
+        parsed.data.relationship_status,
       );
+      if (access.allowFileFallback) {
+        try {
+          const fileUpdated = updateFileReview(
+            projectId,
+            parsed.data.record_id,
+            parsed.data.status,
+            finalNote,
+            parsed.data.relationship_status,
+          );
+          if (!updated && fileUpdated) {
+            updated = fileUpdated;
+          }
+        } catch {
+          // Ignore file fallback error on read-only fs
+        }
+      }
     } catch (e) {
       if (!access.allowFileFallback) throw e;
       console.warn('Database error in research PATCH, falling back to file memory.');
-      updated = updateFileReview(projectId, parsed.data.record_id, parsed.data.status, finalNote);
+      updated = updateFileReview(
+        projectId,
+        parsed.data.record_id,
+        parsed.data.status,
+        finalNote,
+        parsed.data.relationship_status,
+      );
     }
   } else if (access.allowFileFallback) {
-    updated = updateFileReview(projectId, parsed.data.record_id, parsed.data.status, finalNote);
+    updated = updateFileReview(
+      projectId,
+      parsed.data.record_id,
+      parsed.data.status,
+      finalNote,
+      parsed.data.relationship_status,
+    );
   } else {
     throw new Error('The authoritative database is unavailable.');
   }
@@ -339,6 +372,7 @@ export async function DELETE(req: Request, { params }: RouteCtx) {
       const actor = access.actor;
       if (all) {
         await deleteProjectResearch(actor, projectId);
+        await markDeletedProjectRecordsInNotion({ projectId, allDeleted: true, req });
         return NextResponse.json({ success: true, message: 'All research deleted' });
       }
       if (batchId) {
@@ -349,12 +383,26 @@ export async function DELETE(req: Request, { params }: RouteCtx) {
       }
       if (bodyRecordIds && bodyRecordIds.length > 0) {
         const ok = await deleteMultipleResearch(actor, projectId, bodyRecordIds);
+        if (ok) {
+          await markDeletedProjectRecordsInNotion({
+            projectId,
+            deletedRecordIds: bodyRecordIds,
+            req,
+          });
+        }
         return ok 
           ? NextResponse.json({ success: true, count: bodyRecordIds.length })
           : NextResponse.json({ error: 'No matching records found' }, { status: 404 });
       }
       if (!recordId) return NextResponse.json({ error: 'recordId, batchId, recordIds, or all=true is required' }, { status: 400 });
       const ok = await deleteResearch(actor, projectId, recordId);
+      if (ok) {
+        await markDeletedProjectRecordsInNotion({
+          projectId,
+          deletedRecordIds: [recordId],
+          req,
+        });
+      }
       return ok ? NextResponse.json({ success: true }) : NextResponse.json({ error: 'Record not found' }, { status: 404 });
     } catch (e) {
       if (!access.allowFileFallback) throw e;
@@ -366,6 +414,7 @@ export async function DELETE(req: Request, { params }: RouteCtx) {
   if (!access.allowFileFallback) throw new Error('The authoritative database is unavailable.');
   if (all) {
     deleteFileProject(projectId);
+    await markDeletedProjectRecordsInNotion({ projectId, allDeleted: true, req });
     return NextResponse.json({ success: true, message: 'All research deleted' });
   }
   if (batchId) {
@@ -376,12 +425,26 @@ export async function DELETE(req: Request, { params }: RouteCtx) {
   }
   if (bodyRecordIds && bodyRecordIds.length > 0) {
     const ok = deleteFileMultiple(projectId, bodyRecordIds);
+    if (ok) {
+      await markDeletedProjectRecordsInNotion({
+        projectId,
+        deletedRecordIds: bodyRecordIds,
+        req,
+      });
+    }
     return ok 
       ? NextResponse.json({ success: true, count: bodyRecordIds.length })
       : NextResponse.json({ error: 'No matching records found' }, { status: 404 });
   }
   if (!recordId) return NextResponse.json({ error: 'recordId, batchId, recordIds, or all=true is required' }, { status: 400 });
   const ok = deleteFileResearch(projectId, recordId);
+  if (ok) {
+    await markDeletedProjectRecordsInNotion({
+      projectId,
+      deletedRecordIds: [recordId],
+      req,
+    });
+  }
   return ok ? NextResponse.json({ success: true }) : NextResponse.json({ error: 'Record not found' }, { status: 404 });
 }
 
