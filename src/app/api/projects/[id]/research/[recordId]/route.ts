@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 import { NextResponse } from 'next/server';
 import { isDatabaseConfigured } from '@/db/env';
 import { listResearch as listDbResearch } from '@/db/repositories/research-repository';

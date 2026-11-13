@@ -51,7 +51,6 @@ share-config-details.txt
 /memory/research/*.json
 /memory/personalization/*.json
 /memory/integrations/*.json
-!/memory/personalization/*-settings.json
 /memory/*-original.json
 /memory/guest-quotas.json
 /storage/

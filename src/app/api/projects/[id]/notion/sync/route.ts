@@ -50,6 +50,7 @@ import type {
   PersonalizationSettings,
 } from '@/marcom/schemas/personalization';
 
+export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 export const maxDuration = 300;
 

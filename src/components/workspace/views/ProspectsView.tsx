@@ -3,7 +3,8 @@
 import Link from 'next/link';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { authenticatedFetch } from '@/auth/client';
+import { authenticatedFetch, isClientGuestMode } from '@/auth/client';
+import { applyReconciledChangesToGuestStorage } from '@/lib/guest-storage';
 import type { ResearchEntry, ReviewStatus } from '@/marcom/schemas/research-record';
 import {
   defaultLeadPersonalizationSettings,
@@ -567,7 +568,7 @@ function ProspectsBody({ initialTab }: { initialTab?: TabId }) {
 
     authenticatedFetch(`/api/projects/${projectId}/notion/sync`)
       .then((res) => res.json().catch(() => ({})))
-      .then((data) => {
+      .then(async (data) => {
         if (cancelled) return;
         if (data?.connected && data?.sync?.campaignPageUrl) {
           setNotionUrl(data.sync.campaignPageUrl);
@@ -584,6 +585,9 @@ function ProspectsBody({ initialTab }: { initialTab?: TabId }) {
           setNotionProspectPageIds({});
         }
         if (typeof data?.pulledCount === 'number' && data.pulledCount > 0) {
+          if (data.reconciledChanges && (isGuest || isClientGuestMode())) {
+            await applyReconciledChangesToGuestStorage(projectId, data.reconciledChanges).catch(() => undefined);
+          }
           void reload().catch(() => undefined);
         }
       })
@@ -594,7 +598,7 @@ function ProspectsBody({ initialTab }: { initialTab?: TabId }) {
     return () => {
       cancelled = true;
     };
-  }, [projectId]);
+  }, [projectId, isGuest]);
 
   const handleSyncToNotion = async () => {
     if (!projectId || syncingNotion) return;
@@ -645,6 +649,8 @@ function ProspectsBody({ initialTab }: { initialTab?: TabId }) {
       let mergedPageIds: Record<string, string> = { ...notionProspectPageIds };
       let existingRowsSnapshot: unknown[] | undefined = undefined;
       let activeSyncRecord: Record<string, unknown> | undefined = undefined;
+      let activeBrief = bundle?.project.structured_brief ?? null;
+      let activeConfigUpdatedAt = bundle?.project.configuration_updated_at ?? null;
 
       for (let idx = 0; idx < chunks.length; idx += 1) {
         const chunk = chunks[idx]!;
@@ -664,8 +670,8 @@ function ProspectsBody({ initialTab }: { initialTab?: TabId }) {
             statsOverride,
             ...(idx === 0 ? { activeRecordIds } : {}),
             ...(activeSyncRecord ? { existingSync: activeSyncRecord } : {}),
-            brief: bundle?.project.structured_brief ?? null,
-            configurationUpdatedAt: bundle?.project.configuration_updated_at ?? null,
+            brief: activeBrief,
+            configurationUpdatedAt: activeConfigUpdatedAt,
             prospects: chunk,
             drafts: bundle?.drafts ?? [],
             settings: bundle?.settings ?? null,
@@ -720,8 +726,15 @@ function ProspectsBody({ initialTab }: { initialTab?: TabId }) {
         if (Array.isArray(data.existingRowsSnapshot) && data.existingRowsSnapshot.length > 0) {
           existingRowsSnapshot = data.existingRowsSnapshot;
         }
-        if (typeof data.reconciledChanges?.pulledCount === 'number') {
+        if (data.reconciledChanges?.updatedBrief) {
+          activeBrief = data.reconciledChanges.updatedBrief;
+          activeConfigUpdatedAt = new Date().toISOString();
+        }
+        if (typeof data.reconciledChanges?.pulledCount === 'number' && data.reconciledChanges.pulledCount > 0) {
           totalPulledFromNotion += data.reconciledChanges.pulledCount;
+          if (isGuest || isClientGuestMode()) {
+            await applyReconciledChangesToGuestStorage(projectId, data.reconciledChanges).catch(() => undefined);
+          }
         }
 
         if (data.campaignPageId && data.databaseId) {
@@ -738,7 +751,15 @@ function ProspectsBody({ initialTab }: { initialTab?: TabId }) {
             syncedCount:
               totalSynced +
               (typeof data.syncedCount === 'number' ? data.syncedCount : chunk.length),
-            lastSyncedAt: data.lastSyncedAt || new Date().toISOString(),
+            lastSyncedAt:
+              data.priorLastSyncedAt ||
+              (activeSyncRecord as any)?.lastSyncedAt ||
+              data.lastSyncedAt ||
+              new Date().toISOString(),
+            priorLastSyncedAt:
+              data.priorLastSyncedAt ||
+              (activeSyncRecord as any)?.priorLastSyncedAt ||
+              null,
           };
         }
 

@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { authenticatedFetch } from '@/auth/client';
+import { authenticatedFetch, isClientGuestMode } from '@/auth/client';
+import { applyReconciledChangesToGuestStorage } from '@/lib/guest-storage';
 import CampaignConfigurationForm from '@/components/campaign/CampaignConfigurationForm';
 import PersonalisedTemplatesTab from '@/components/personalization/PersonalisedTemplatesTab';
 import type { StructuredBrief } from '@/marcom/schemas/structured-brief';
@@ -32,7 +33,7 @@ export default function OverviewView() {
 }
 
 function OverviewBody() {
-  const { bundle, activeProject, reload, openResearch, setSettings } = useWorkspace();
+  const { bundle, activeProject, reload, openResearch, setSettings, isGuest } = useWorkspace();
   const [tab, setTab] = useState<OverviewTab>('overview');
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -57,7 +58,7 @@ function OverviewBody() {
 
     authenticatedFetch(`/api/projects/${pid}/notion/sync`)
       .then((res) => res.json().catch(() => ({})))
-      .then((data) => {
+      .then(async (data) => {
         if (cancelled) return;
         if (data?.connected && data?.sync?.campaignPageUrl) {
           setNotionUrl(data.sync.campaignPageUrl);
@@ -65,6 +66,9 @@ function OverviewBody() {
           setNotionUrl(null);
         }
         if (typeof data?.pulledCount === 'number' && data.pulledCount > 0) {
+          if (data.reconciledChanges && (isGuest || isClientGuestMode())) {
+            await applyReconciledChangesToGuestStorage(pid, data.reconciledChanges).catch(() => undefined);
+          }
           void reload().catch(() => undefined);
         }
       })
@@ -75,7 +79,7 @@ function OverviewBody() {
     return () => {
       cancelled = true;
     };
-  }, [bundle?.projectId]);
+  }, [bundle?.projectId, isGuest]);
 
   const handleSyncToNotion = async () => {
     if (!bundle?.projectId || syncingNotion) return;
@@ -119,6 +123,8 @@ function OverviewBody() {
       let mergedPageIds: Record<string, string> = {};
       let existingRowsSnapshot: unknown[] | undefined = undefined;
       let activeSyncRecord: Record<string, unknown> | undefined = undefined;
+      let activeBrief = bundle.project.structured_brief;
+      let activeConfigUpdatedAt = bundle.project.configuration_updated_at ?? null;
 
       for (let idx = 0; idx < chunks.length; idx += 1) {
         const chunk = chunks[idx]!;
@@ -138,8 +144,8 @@ function OverviewBody() {
             statsOverride,
             ...(idx === 0 ? { activeRecordIds } : {}),
             ...(activeSyncRecord ? { existingSync: activeSyncRecord } : {}),
-            brief: bundle.project.structured_brief,
-            configurationUpdatedAt: bundle.project.configuration_updated_at ?? null,
+            brief: activeBrief,
+            configurationUpdatedAt: activeConfigUpdatedAt,
             prospects: chunk,
             drafts: bundle.drafts,
             settings: bundle.settings,
@@ -194,8 +200,15 @@ function OverviewBody() {
         if (Array.isArray(data.existingRowsSnapshot) && data.existingRowsSnapshot.length > 0) {
           existingRowsSnapshot = data.existingRowsSnapshot;
         }
-        if (typeof data.reconciledChanges?.pulledCount === 'number') {
+        if (data.reconciledChanges?.updatedBrief) {
+          activeBrief = data.reconciledChanges.updatedBrief;
+          activeConfigUpdatedAt = new Date().toISOString();
+        }
+        if (typeof data.reconciledChanges?.pulledCount === 'number' && data.reconciledChanges.pulledCount > 0) {
           totalPulledFromNotion += data.reconciledChanges.pulledCount;
+          if (isGuest || isClientGuestMode()) {
+            await applyReconciledChangesToGuestStorage(bundle.projectId, data.reconciledChanges).catch(() => undefined);
+          }
         }
 
         if (data.campaignPageId && data.databaseId) {
@@ -212,7 +225,15 @@ function OverviewBody() {
             syncedCount:
               totalSynced +
               (typeof data.syncedCount === 'number' ? data.syncedCount : chunk.length),
-            lastSyncedAt: data.lastSyncedAt || new Date().toISOString(),
+            lastSyncedAt:
+              data.priorLastSyncedAt ||
+              (activeSyncRecord as any)?.lastSyncedAt ||
+              data.lastSyncedAt ||
+              new Date().toISOString(),
+            priorLastSyncedAt:
+              data.priorLastSyncedAt ||
+              (activeSyncRecord as any)?.priorLastSyncedAt ||
+              null,
           };
         }
 

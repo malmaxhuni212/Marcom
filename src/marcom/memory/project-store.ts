@@ -30,9 +30,77 @@ export function updateProject(
   root = process.cwd(),
 ): ProjectMemory | null {
   const projects = readProjects(root);
-  const index = projects.findIndex((project) => project.project_id === projectId);
-  if (index === -1) return null;
-  const updated = update(projects[index]);
+  let index = projects.findIndex(
+    (project) => project.project_id === projectId || project.aliases?.includes(projectId),
+  );
+  if (index === -1) {
+    const fallbackBase: ProjectMemory = {
+      project_id: projectId,
+      name: 'Campaign',
+      aliases: [],
+      summary: '',
+      status: 'READY_FOR_RESEARCH',
+      structured_brief: {
+        structured_brief_version: '1.0',
+        project: {
+          name: 'Campaign',
+          description: '',
+          primary_objective: '',
+          secondary_objectives: [],
+          success_metrics: [],
+        },
+        targets: [
+          {
+            id: 'target-1',
+            target_type: 'General',
+            entity_kind: 'person',
+            description: '',
+            geography: [],
+            qualification_criteria: [],
+            exclusion_criteria: [],
+            priority: 'primary',
+          },
+        ],
+        research: {
+          required_fields: ['Name'],
+          preferred_source_types: ['Web'],
+          evidence_requirements: [],
+          verification_requirements: [],
+          unknown_handling: 'skip',
+        },
+        personalization: {
+          allowed: [],
+          preferred_details: [],
+          tone: ['Professional'],
+          avoid: [],
+        },
+        outreach: {
+          channels: ['Email'],
+          tone: ['Professional'],
+          objectives: ['Reach out'],
+          approval_required: true,
+        },
+        database: {
+          fields: [{ name: 'Name', required: true, purpose: 'Identity', expected_source: 'research' }],
+        },
+        human_review: {
+          requirements: [],
+          approval_points: ['outreach'],
+        },
+        constraints: [],
+        conflicts: [],
+        approximations: [],
+        unknowns_requiring_confirmation: [],
+      },
+      target_definitions: [],
+      notes: [],
+      configuration_revision: 0,
+      configuration_updated_at: new Date().toISOString(),
+    };
+    projects.push(fallbackBase);
+    index = projects.length - 1;
+  }
+  const updated = update(projects[index]!);
   projects[index] = updated;
   writeProjects(projects, root);
   return updated;

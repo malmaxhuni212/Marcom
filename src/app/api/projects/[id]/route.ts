@@ -23,6 +23,9 @@ const UpdateConfigurationSchema = z.strictObject({
   expected_revision: z.number().int().positive(),
 });
 
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 /** Project detail: project memory (incl. structured brief) + saved research entries. */
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const access = await authorizeApiRequest(req);

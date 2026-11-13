@@ -306,6 +306,7 @@ async function reconcileCampaignHubWithBrief(options: {
   accessToken: string;
   campaignPageId: string;
   existingPageTitle?: string | null;
+  existingPageLastEditedTime?: string | null;
   brief: StructuredBrief;
   syncStats: CampaignBriefSyncStats;
   configurationUpdatedAt?: string | null;
@@ -319,6 +320,7 @@ async function reconcileCampaignHubWithBrief(options: {
     accessToken,
     campaignPageId,
     existingPageTitle,
+    existingPageLastEditedTime,
     brief,
     syncStats,
     configurationUpdatedAt,
@@ -363,27 +365,62 @@ async function reconcileCampaignHubWithBrief(options: {
   const successMetricsToggle = topBlocks.find(
     (b) => b.type === 'toggle' && (b.plainText || '').startsWith('Success Metrics'),
   );
+  const guardrailsToggle = topBlocks.find(
+    (b) => b.type === 'toggle' && (b.plainText || '').toLowerCase().includes('guardrails'),
+  );
   const targetGroupToggles = topBlocks.filter(
     (b) => b.type === 'toggle' && (b.plainText || '').startsWith('Target Group:'),
   );
 
-  const [secondaryObjChildren, successMetricsChildren, ...targetGroupChildrenList] =
-    await Promise.all([
-      secondaryObjToggle
-        ? listNotionBlockChildren(accessToken, secondaryObjToggle.id).catch(() => [])
-        : Promise.resolve([] as NotionBlockChild[]),
-      successMetricsToggle
-        ? listNotionBlockChildren(accessToken, successMetricsToggle.id).catch(() => [])
-        : Promise.resolve([] as NotionBlockChild[]),
-      ...targetGroupToggles.map((t) =>
-        listNotionBlockChildren(accessToken, t.id).catch(() => [] as NotionBlockChild[]),
-      ),
-    ]);
+  const [
+    secondaryObjChildren,
+    successMetricsChildren,
+    guardrailsChildren,
+    ...targetGroupChildrenList
+  ] = await Promise.all([
+    secondaryObjToggle
+      ? listNotionBlockChildren(accessToken, secondaryObjToggle.id).catch(() => [])
+      : Promise.resolve([] as NotionBlockChild[]),
+    successMetricsToggle
+      ? listNotionBlockChildren(accessToken, successMetricsToggle.id).catch(() => [])
+      : Promise.resolve([] as NotionBlockChild[]),
+    guardrailsToggle
+      ? listNotionBlockChildren(accessToken, guardrailsToggle.id).catch(() => [])
+      : Promise.resolve([] as NotionBlockChild[]),
+    ...targetGroupToggles.map((t) =>
+      listNotionBlockChildren(accessToken, t.id).catch(() => [] as NotionBlockChild[]),
+    ),
+  ]);
+
+  let maxHubNotionEditMs = 0;
+  if (existingPageLastEditedTime) {
+    const pMs = Date.parse(existingPageLastEditedTime);
+    if (Number.isFinite(pMs) && pMs > maxHubNotionEditMs) maxHubNotionEditMs = pMs;
+  }
+  for (const b of topBlocks) {
+    if (b.lastEditedTime) {
+      const bMs = Date.parse(b.lastEditedTime);
+      if (Number.isFinite(bMs) && bMs > maxHubNotionEditMs) maxHubNotionEditMs = bMs;
+    }
+  }
+  for (const b of [
+    ...secondaryObjChildren,
+    ...successMetricsChildren,
+    ...guardrailsChildren,
+    ...targetGroupChildrenList.flat(),
+  ]) {
+    if (b.lastEditedTime) {
+      const bMs = Date.parse(b.lastEditedTime);
+      if (Number.isFinite(bMs) && bMs > maxHubNotionEditMs) maxHubNotionEditMs = bMs;
+    }
+  }
 
   const marcomConfigMs = configurationUpdatedAt ? Date.parse(configurationUpdatedAt) : 0;
   const lastSyncedMs = lastSyncedAt ? Date.parse(lastSyncedAt) : 0;
   const isMarcomBriefEditedSinceSync =
-    lastSyncedMs > 0 && marcomConfigMs > lastSyncedMs + 2000;
+    lastSyncedMs > 0 &&
+    marcomConfigMs > lastSyncedMs + 2000 &&
+    marcomConfigMs > maxHubNotionEditMs;
 
   if (!isMarcomBriefEditedSinceSync) {
     let detectedNumChange: { oldRaw: string; newRaw: string } | null = null;
@@ -405,12 +442,15 @@ async function reconcileCampaignHubWithBrief(options: {
       const calloutLines = summaryCalloutBlk.plainText
         .split('\n')
         .map((l) => l.trim())
-        .filter((l) => Boolean(l) && !l.startsWith('Pipeline Snapshot:'));
+        .filter(
+          (l) =>
+            Boolean(l) &&
+            !l.startsWith('Pipeline Snapshot:') &&
+            !l.startsWith('🔄'),
+        );
       if (calloutLines.length > 0) {
-        const notionObjective = calloutLines
-          .join(' ')
-          .replace(/^Primary Objective:\s*/i, '')
-          .trim();
+        const rawCallout = calloutLines.join(' ');
+        const notionObjective = rawCallout.replace(/^Primary Objective:\s*/i, '').trim();
         const currentObjective = (
           workingBrief.project.primary_objective ||
           workingBrief.project.description ||
@@ -423,7 +463,7 @@ async function reconcileCampaignHubWithBrief(options: {
             !workingBrief.project.description ||
             workingBrief.project.description.trim() === currentObjective;
           workingBrief.project.primary_objective = notionObjective;
-          if (wasDescSameAsObj && descriptionBlocks.length === 0) {
+          if (wasDescSameAsObj || descriptionBlocks.length === 0) {
             workingBrief.project.description = notionObjective;
           }
           updatedInMarcom = true;
@@ -484,7 +524,44 @@ async function reconcileCampaignHubWithBrief(options: {
       }
     }
 
-    // 6. Check Target Group toggles
+    // 6. Check Guardrails & Tone toggle
+    if (guardrailsChildren.length > 0) {
+      for (const c of guardrailsChildren) {
+        const text = (c.plainText || '').trim();
+        if (text.toLowerCase().startsWith('outreach channels:')) {
+          const channels = text
+            .replace(/^outreach channels:\s*/i, '')
+            .split(',')
+            .map((ch) => ch.trim())
+            .filter(Boolean);
+          if (
+            channels.length > 0 &&
+            JSON.stringify(channels) !== JSON.stringify(workingBrief.outreach.channels)
+          ) {
+            workingBrief.outreach.channels = channels;
+            updatedInMarcom = true;
+          }
+        } else if (
+          text.toLowerCase().startsWith('tone & voice:') ||
+          text.toLowerCase().startsWith('tone:')
+        ) {
+          const tones = text
+            .replace(/^tone(?:\s*&\s*voice)?:\s*/i, '')
+            .split(',')
+            .map((t) => t.trim())
+            .filter(Boolean);
+          if (
+            tones.length > 0 &&
+            JSON.stringify(tones) !== JSON.stringify(workingBrief.personalization.tone)
+          ) {
+            workingBrief.personalization.tone = tones;
+            updatedInMarcom = true;
+          }
+        }
+      }
+    }
+
+    // 7. Check Target Group toggles
     for (let tIdx = 0; tIdx < targetGroupToggles.length; tIdx += 1) {
       const tBlk = targetGroupToggles[tIdx]!;
       const tChildren = targetGroupChildrenList[tIdx] || [];
@@ -539,6 +616,71 @@ async function reconcileCampaignHubWithBrief(options: {
           updatedInMarcom = true;
         }
       }
+
+      // Parse qualification & exclusion criteria from target toggle children
+      let inQualCriteria = false;
+      let inExclusions = false;
+      const parsedQualCriteria: string[] = [];
+      const parsedExclusions: string[] = [];
+
+      for (const c of tChildren) {
+        const text = (c.plainText || '').trim();
+        if (c.type === 'paragraph') {
+          const lower = text.toLowerCase();
+          if (lower.startsWith('qualification criteria')) {
+            inQualCriteria = true;
+            inExclusions = false;
+            continue;
+          } else if (lower.startsWith('exclusion') || lower.startsWith('hard disqualifier')) {
+            inQualCriteria = false;
+            inExclusions = true;
+            continue;
+          }
+        }
+        if (c.type === 'bulleted_list_item' && text) {
+          if (inQualCriteria) {
+            parsedQualCriteria.push(text);
+          } else if (inExclusions) {
+            parsedExclusions.push(text.replace(/^(?:⚠️\s*)+/, '').trim());
+          }
+        }
+      }
+
+      if (parsedQualCriteria.length > 0) {
+        const currentQcTexts = (targetModel.qualification_criteria || []).map((qc) =>
+          qc.text.trim(),
+        );
+        if (JSON.stringify(parsedQualCriteria) !== JSON.stringify(currentQcTexts)) {
+          detectedNumChange =
+            detectedNumChange ||
+            detectNumericReplacement(currentQcTexts.join(' '), parsedQualCriteria.join(' '));
+          targetModel.qualification_criteria = parsedQualCriteria.map((txt, qIdx) => ({
+            text: txt,
+            origin: targetModel.qualification_criteria?.[qIdx]?.origin || 'explicit',
+            needs_operational_definition:
+              targetModel.qualification_criteria?.[qIdx]?.needs_operational_definition ?? false,
+          }));
+          updatedInMarcom = true;
+        }
+      }
+
+      if (parsedExclusions.length > 0) {
+        const currentExcTexts = (targetModel.exclusion_criteria || []).map((exc) =>
+          exc.text.trim(),
+        );
+        if (JSON.stringify(parsedExclusions) !== JSON.stringify(currentExcTexts)) {
+          detectedNumChange =
+            detectedNumChange ||
+            detectNumericReplacement(currentExcTexts.join(' '), parsedExclusions.join(' '));
+          targetModel.exclusion_criteria = parsedExclusions.map((txt, eIdx) => ({
+            text: txt,
+            origin: targetModel.exclusion_criteria?.[eIdx]?.origin || 'explicit',
+            needs_operational_definition:
+              targetModel.exclusion_criteria?.[eIdx]?.needs_operational_definition ?? false,
+          }));
+          updatedInMarcom = true;
+        }
+      }
     }
 
     // If the user updated a numeric target/goal (e.g., 2000 -> 3000) in any Campaign Hub block,
@@ -563,9 +705,26 @@ async function reconcileCampaignHubWithBrief(options: {
       workingBrief.project.success_metrics = (workingBrief.project.success_metrics || []).map(
         (s) => applyNumericReplacementToText(s, oldRaw, newRaw),
       );
+      if (workingBrief.outreach?.objectives) {
+        workingBrief.outreach.objectives = workingBrief.outreach.objectives.map((s) =>
+          applyNumericReplacementToText(s, oldRaw, newRaw),
+        );
+      }
       for (const t of workingBrief.targets) {
         if (t.description) {
           t.description = applyNumericReplacementToText(t.description, oldRaw, newRaw);
+        }
+        if (t.qualification_criteria) {
+          t.qualification_criteria = t.qualification_criteria.map((qc) => ({
+            ...qc,
+            text: applyNumericReplacementToText(qc.text, oldRaw, newRaw),
+          }));
+        }
+        if (t.exclusion_criteria) {
+          t.exclusion_criteria = t.exclusion_criteria.map((exc) => ({
+            ...exc,
+            text: applyNumericReplacementToText(exc.text, oldRaw, newRaw),
+          }));
         }
       }
     }
@@ -637,7 +796,7 @@ async function reconcileCampaignHubWithBrief(options: {
         }
       }
 
-      // Sync Target Group descriptions in-place if edited in Marcom
+      // Sync Target Group descriptions & qualification criteria in-place if edited in Marcom
       for (let tIdx = 0; tIdx < targetGroupToggles.length; tIdx += 1) {
         const tChildren = targetGroupChildrenList[tIdx] || [];
         const targetModel = workingBrief.targets[tIdx];
@@ -654,6 +813,32 @@ async function reconcileCampaignHubWithBrief(options: {
             await updateNotionBlock(accessToken, descChild.id, {
               paragraph: updatedPara.paragraph,
             }).catch(() => null);
+          }
+        }
+
+        let inQc = false;
+        let qcBulletIdx = 0;
+        const desiredQcs = targetModel.qualification_criteria || [];
+        for (const c of tChildren) {
+          const lower = (c.plainText || '').toLowerCase();
+          if (c.type === 'paragraph' && lower.startsWith('qualification criteria')) {
+            inQc = true;
+            qcBulletIdx = 0;
+            continue;
+          }
+          if (c.type === 'paragraph' && (lower.startsWith('exclusion') || lower.startsWith('hard disqualifier'))) {
+            inQc = false;
+            continue;
+          }
+          if (inQc && c.type === 'bulleted_list_item' && qcBulletIdx < desiredQcs.length) {
+            const desiredText = desiredQcs[qcBulletIdx]!.text.trim();
+            if ((c.plainText || '').trim() !== desiredText) {
+              const updatedBullet = bulletItem(desiredText);
+              await updateNotionBlock(accessToken, c.id, {
+                bulleted_list_item: updatedBullet.bulleted_list_item,
+              }).catch(() => null);
+            }
+            qcBulletIdx += 1;
           }
         }
       }
@@ -967,6 +1152,8 @@ export async function syncProjectToNotion(
   let campaignPageId = '';
   let campaignPageUrl = '';
   let existingHubTitle: string | null = null;
+  let existingHubLastEditedTime: string | null = null;
+  const priorLastSyncedAt = storedSync?.priorLastSyncedAt || storedSync?.lastSyncedAt || null;
   let databaseId = '';
   let databaseUrl = '';
   const prospectPageIds: Record<string, string> = {
@@ -1007,6 +1194,7 @@ export async function syncProjectToNotion(
       campaignPageId = existingPage.id;
       campaignPageUrl = existingPage.url;
       existingHubTitle = existingPage.title;
+      existingHubLastEditedTime = existingPage.lastEditedTime;
       databaseId = existingDb.id;
       databaseUrl = existingDb.url;
       await ensureMissingDatabaseColumns(accessToken, databaseId, existingDb.properties);
@@ -1048,6 +1236,7 @@ export async function syncProjectToNotion(
           accessToken,
           campaignPageId,
           existingPageTitle: existingHubTitle,
+          existingPageLastEditedTime: existingHubLastEditedTime,
           brief: workingBrief,
           syncStats,
           configurationUpdatedAt: options.configurationUpdatedAt,
@@ -1212,7 +1401,12 @@ export async function syncProjectToNotion(
   let createdCount = 0;
   let updatedCount = 0;
   const errors: string[] = [];
-  const lastSyncedMs = storedSync?.lastSyncedAt ? Date.parse(storedSync.lastSyncedAt) : 0;
+  const lastSyncedMs =
+    options.skipHubUpdate && priorLastSyncedAt
+      ? Date.parse(priorLastSyncedAt)
+      : storedSync?.lastSyncedAt
+        ? Date.parse(storedSync.lastSyncedAt)
+        : 0;
 
   await runWithConcurrency(prospects, 3, async (entry) => {
     const recId = entry.record.record_id;
@@ -1469,10 +1663,57 @@ export async function syncProjectToNotion(
             bodyOptions,
           );
 
-          await updateNotionPage(accessToken, targetPageId, {
-            icon: { type: 'emoji', emoji: rowEmoji },
-            properties,
-          });
+          // If Marcom did not modify the outreach draft copy, never overwrite Notion draft cells
+          // so any inline user comments or formatting in Notion table cells are fully preserved
+          if (!allowOutreachMutation) {
+            delete properties['Primary Email Draft'];
+            delete properties['Top Subject Line'];
+            delete properties['LinkedIn / DM Draft'];
+          }
+
+          // If prospect fields in Notion already match Marcom, omit them from updateNotionPage
+          if (rowSnapshot) {
+            if (rowSnapshot.prospectName && rowSnapshot.prospectName === prospectName) {
+              delete properties.Prospect;
+            }
+            if (
+              rowSnapshot.reviewStatus &&
+              rowSnapshot.reviewStatus === properties['Review Status']?.select?.name
+            ) {
+              delete properties['Review Status'];
+            }
+            if (
+              rowSnapshot.outreachStatus &&
+              rowSnapshot.outreachStatus === properties['Outreach Status']?.select?.name
+            ) {
+              delete properties['Outreach Status'];
+            }
+            if (
+              rowSnapshot.role &&
+              rowSnapshot.role === (workingEntry.record.role || '')
+            ) {
+              delete properties['Role / Title'];
+            }
+            if (
+              rowSnapshot.organisation &&
+              rowSnapshot.organisation === (workingEntry.record.organisation || '')
+            ) {
+              delete properties['Organisation'];
+            }
+            if (
+              typeof rowSnapshot.fitScore === 'number' &&
+              properties['Fit Score']?.number === rowSnapshot.fitScore
+            ) {
+              delete properties['Fit Score'];
+            }
+          }
+
+          if (Object.keys(properties).length > 0) {
+            await updateNotionPage(accessToken, targetPageId, {
+              icon: { type: 'emoji', emoji: rowEmoji },
+              properties,
+            });
+          }
           await replaceNotionPageBlocks(
             accessToken,
             targetPageId,
@@ -1536,6 +1777,7 @@ export async function syncProjectToNotion(
     prospectPageIds,
     syncedCount,
     lastSyncedAt,
+    priorLastSyncedAt,
   };
   await saveProjectNotionSync(syncRecord);
 
@@ -1555,6 +1797,7 @@ export async function syncProjectToNotion(
     failedCount: errors.length,
     isResync,
     lastSyncedAt,
+    priorLastSyncedAt,
     prospectPageIds,
     existingRowsSnapshot,
     reconciledChanges:
@@ -1617,6 +1860,7 @@ export async function pullNotionChangesForProject(
         accessToken,
         campaignPageId: existingSync.campaignPageId,
         existingPageTitle: existingPage.title,
+        existingPageLastEditedTime: existingPage.lastEditedTime,
         brief,
         syncStats: {
           totalProspects: prospects.length,
@@ -2078,7 +2322,7 @@ export async function syncConnectedProjectRecordsToNotion(
       ...storedSync,
       prospectPageIds,
       syncedCount: Object.keys(prospectPageIds).length,
-      lastSyncedAt: nowIso,
+      lastSyncedAt: storedSync.lastSyncedAt || nowIso,
     });
 
     return {

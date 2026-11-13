@@ -84,6 +84,8 @@ export interface NotionProjectSyncRecord {
   prospectPageIds: Record<string, string>;
   syncedCount: number;
   lastSyncedAt: string;
+  /** Timestamp before the current sync began, preserved across batch chunks */
+  priorLastSyncedAt?: string | null;
   /** Optional snapshot of Notion database rows captured during Step 0 for batch reconciliation */
   existingRowsSnapshot?: NotionDatabaseRowSnapshot[];
 }
@@ -120,6 +122,7 @@ export interface NotionSyncResult {
   failedCount: number;
   isResync: boolean;
   lastSyncedAt: string;
+  priorLastSyncedAt?: string | null;
   prospectPageIds?: Record<string, string>;
   existingRowsSnapshot?: NotionDatabaseRowSnapshot[];
   reconciledChanges?: NotionReconciledChanges;

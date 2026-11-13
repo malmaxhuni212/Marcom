@@ -20,6 +20,7 @@ import {
   syncConnectedProjectRecordsToNotion,
 } from '@/marcom/integrations/notion/sync';
 
+export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 export const maxDuration = 300;
 
