@@ -1448,3 +1448,415 @@ test('Campaign collaboration: Collaborator B in a separate browser session can s
     await rm(tempDir, { recursive: true, force: true });
   }
 });
+
+test('Campaign Hub qualification criteria edits and newer Notion timestamps pull back into brief', async () => {
+  const tempDir = await mkdtemp(path.join(os.tmpdir(), 'marcom-notion-hub-qual-'));
+  const prevStoreDir = process.env.MARCOM_NOTION_STORE_DIR;
+  const originalFetch = globalThis.fetch;
+
+  process.env.MARCOM_NOTION_STORE_DIR = tempDir;
+
+  const brief = mockBrief();
+  brief.project.primary_objective = 'Generate 2000 submissions';
+  brief.project.description = 'Campaign description with 2000 target';
+  brief.targets[0]!.qualification_criteria = [
+    { text: 'Target audience has 2000 members', origin: 'explicit', needs_operational_definition: false },
+  ];
+
+  const calls: Array<{ method: string; url: string; body?: any }> = [];
+
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = String(input);
+    const method = (init?.method || 'GET').toUpperCase();
+    const body = init?.body ? JSON.parse(String(init.body)) : undefined;
+    calls.push({ method, url, body });
+
+    if (url.includes('/pages/hub-page-qual') && method === 'GET') {
+      return new Response(
+        JSON.stringify({
+          id: 'hub-page-qual',
+          url: 'https://notion.so/hub-page-qual',
+          archived: false,
+          in_trash: false,
+          last_edited_time: '2026-11-12T11:00:00Z',
+          properties: {
+            title: {
+              type: 'title',
+              title: [{ plain_text: 'Maya Poetry Book Awards — Intelligence & Outreach Hub' }],
+            },
+          },
+        }),
+        { status: 200 },
+      );
+    }
+
+    if (url.includes('/databases/db-qual') && method === 'GET') {
+      return new Response(
+        JSON.stringify({
+          id: 'db-qual',
+          url: 'https://notion.so/db-qual',
+          archived: false,
+          in_trash: false,
+          properties: buildProspectsDatabaseSchema('hub-page-qual').properties,
+        }),
+        { status: 200 },
+      );
+    }
+
+    if (url.includes('/blocks/hub-page-qual/children') && method === 'GET') {
+      return new Response(
+        JSON.stringify({
+          results: [
+            {
+              id: 'hub-callout-qual',
+              type: 'callout',
+              last_edited_time: '2026-11-12T11:00:00Z',
+              callout: {
+                rich_text: [
+                  {
+                    plain_text:
+                      'Primary Objective: Generate 2000 submissions\nPipeline Snapshot: 0 researched prospects · 0 shortlisted',
+                  },
+                ],
+              },
+            },
+            {
+              id: 'hub-target-toggle-qual',
+              type: 'toggle',
+              last_edited_time: '2026-11-12T11:00:00Z',
+              toggle: {
+                rich_text: [
+                  {
+                    plain_text:
+                      'Target Group: Poetry Award Judges (person) — Priority: PRIMARY',
+                  },
+                ],
+              },
+            },
+          ],
+          has_more: false,
+        }),
+        { status: 200 },
+      );
+    }
+
+    if (url.includes('/blocks/hub-target-toggle-qual/children') && method === 'GET') {
+      return new Response(
+        JSON.stringify({
+          results: [
+            {
+              id: 'target-desc-child-qual',
+              type: 'paragraph',
+              last_edited_time: '2026-11-12T11:00:00Z',
+              paragraph: {
+                rich_text: [{ plain_text: 'Target Description: Reach 2000 literary scholars.' }],
+              },
+            },
+            {
+              id: 'target-qc-header-qual',
+              type: 'paragraph',
+              last_edited_time: '2026-11-12T11:00:00Z',
+              paragraph: {
+                rich_text: [{ plain_text: 'Qualification Criteria:' }],
+              },
+            },
+            {
+              id: 'target-qc-item-qual',
+              type: 'bulleted_list_item',
+              last_edited_time: '2026-11-12T11:00:00Z',
+              bulleted_list_item: {
+                rich_text: [{ plain_text: 'Target audience has 3000 members' }],
+              },
+            },
+          ],
+          has_more: false,
+        }),
+        { status: 200 },
+      );
+    }
+
+    if (url.includes('/databases/db-qual/query') && method === 'POST') {
+      return new Response(JSON.stringify({ results: [], has_more: false }), { status: 200 });
+    }
+
+    return new Response(JSON.stringify({ success: true }), { status: 200 });
+  }) as any;
+
+  try {
+    const pulled = await pullNotionChangesForProject(
+      {
+        projectId: 'proj-qual-test',
+        brief,
+        configurationUpdatedAt: '2026-10-01T00:00:00Z', // older than Notion's 2026-11-12T11:00:00Z
+        prospects: [],
+        drafts: {},
+        existingSync: {
+          projectId: 'proj-qual-test',
+          notionWorkspaceId: 'ws-1',
+          parentPageId: 'parent-1',
+          campaignPageId: 'hub-page-qual',
+          campaignPageUrl: 'https://notion.so/hub-page-qual',
+          databaseId: 'db-qual',
+          databaseUrl: 'https://notion.so/db-qual',
+          prospectPageIds: {},
+          syncedCount: 0,
+          lastSyncedAt: '2026-10-01T00:00:00Z',
+        },
+      },
+      'fake-token',
+    );
+
+    assert.ok(pulled.updatedBrief);
+    assert.equal(pulled.updatedBrief.targets[0]!.qualification_criteria[0]!.text, 'Target audience has 3000 members');
+    assert.ok(pulled.updatedBrief.project.primary_objective.includes('3000'));
+    assert.ok(pulled.updatedBrief.project.description.includes('3000'));
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (prevStoreDir === undefined) delete process.env.MARCOM_NOTION_STORE_DIR;
+    else process.env.MARCOM_NOTION_STORE_DIR = prevStoreDir;
+    await rm(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('Adding new prospects via research does not advance lastSyncedAt or overwrite Notion edits on re-sync', async () => {
+  const tempDir = await mkdtemp(path.join(os.tmpdir(), 'marcom-notion-research-add-'));
+  const prevStoreDir = process.env.MARCOM_NOTION_STORE_DIR;
+  const originalFetch = globalThis.fetch;
+
+  process.env.MARCOM_NOTION_STORE_DIR = tempDir;
+
+  const brief = mockBrief();
+  brief.project.primary_objective = 'Generate 2000 submissions';
+  const p1 = mockResearchEntry('rec-res-1', 'Alice User');
+  const p2 = mockResearchEntry('rec-res-2', 'Bob Lead');
+  const p3 = mockResearchEntry('rec-res-3', 'Charlie Prospect'); // added in research run
+  const draft1 = { ...mockPersonalization(), record_id: 'rec-res-1', prospect_name: 'Alice User' };
+  const draft2 = { ...mockPersonalization(), record_id: 'rec-res-2', prospect_name: 'Bob Lead' };
+  const draft3 = { ...mockPersonalization(), record_id: 'rec-res-3', prospect_name: 'Charlie Prospect' };
+
+  try {
+    await saveNotionConnection({
+      workspaceId: 'ws-test',
+      workspaceName: 'Acme Workspace',
+      workspaceIcon: null,
+      accessToken: 'fake-token',
+      botId: 'bot-1',
+      connectedAt: '2026-10-01T00:00:00Z',
+    });
+
+    const editIso = '2099-01-01T12:00:00.000Z'; // Far future Notion edit time so it is strictly newer than initial sync
+
+    const calls: Array<{ method: string; url: string; body?: any }> = [];
+    globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      const urlStr = String(input);
+      const method = init?.method || 'GET';
+      const body = init?.body ? JSON.parse(String(init.body)) : undefined;
+      calls.push({ method, url: urlStr, body });
+
+      if (urlStr.includes('/pages/hub-page-123') && method === 'GET') {
+        return new Response(
+          JSON.stringify({
+            id: 'hub-page-123',
+            url: 'https://notion.so/hub-page-123',
+            archived: false,
+            in_trash: false,
+            properties: {
+              title: { title: [{ plain_text: 'Poetry Campaign — Intelligence & Outreach Hub' }] },
+            },
+            last_edited_time: editIso,
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+      if (urlStr.includes('/databases/db-123') && method === 'GET') {
+        return new Response(
+          JSON.stringify({
+            id: 'db-123',
+            url: 'https://notion.so/db-123',
+            archived: false,
+            in_trash: false,
+            properties: buildProspectsDatabaseSchema('hub-page-123').properties,
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+      if (urlStr.includes('/pages') && method === 'POST') {
+        const isHub = Boolean(body?.properties?.title);
+        const id = isHub ? 'hub-page-123' : `prospect-row-${calls.length}`;
+        return new Response(
+          JSON.stringify({
+            id,
+            url: `https://notion.so/${id}`,
+            properties: body?.properties || {},
+            last_edited_time: '2026-10-01T10:00:00.000Z',
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+      if (urlStr.includes('/databases') && method === 'POST') {
+        return new Response(
+          JSON.stringify({
+            id: 'db-123',
+            url: 'https://notion.so/db-123',
+            properties: {},
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+      if (urlStr.includes('/databases/db-123/query')) {
+        return new Response(
+          JSON.stringify({
+            results: [
+              {
+                id: 'prospect-row-1',
+                last_edited_time: editIso,
+                properties: {
+                  Prospect: { title: [{ text: { content: 'Alice User' }, plain_text: 'Alice User' }] },
+                  'Record ID': { rich_text: [{ text: { content: 'rec-res-1' }, plain_text: 'rec-res-1' }] },
+                  'Review Status': { select: { name: 'Needs Review' } },
+                  'Outreach Status': { select: { name: 'Draft Ready' } },
+                },
+              },
+              {
+                id: 'prospect-row-2',
+                last_edited_time: editIso,
+                properties: {
+                  Prospect: { title: [{ text: { content: 'Bob Lead' }, plain_text: 'Bob Lead' }] },
+                  'Record ID': { rich_text: [{ text: { content: 'rec-res-2' }, plain_text: 'rec-res-2' }] },
+                  'Review Status': { select: { name: 'Needs Review' } },
+                  'Outreach Status': { select: { name: 'Draft Ready' } },
+                },
+              },
+            ],
+            has_more: false,
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+      if (urlStr.includes('/blocks/hub-page-123/children')) {
+        return new Response(
+          JSON.stringify({
+            results: [
+              {
+                id: 'callout-1',
+                type: 'callout',
+                last_edited_time: editIso,
+                callout: {
+                  rich_text: [
+                    {
+                      plain_text:
+                        'Primary Objective: Generate 3000 submissions\nPipeline Snapshot: 2 researched prospects · 2 shortlisted',
+                    },
+                  ],
+                },
+              },
+            ],
+            has_more: false,
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+      if (urlStr.includes('/blocks/prospect-row-') && urlStr.includes('/children')) {
+        return new Response(
+          JSON.stringify({
+            results: [
+              {
+                id: 'callout-draft',
+                type: 'callout',
+                last_edited_time: '2026-10-01T10:05:00.000Z',
+                callout: {
+                  rich_text: [{ type: 'text', text: { content: 'Dossier summary' } }],
+                },
+              },
+              { id: 'h2-outreach', type: 'heading_2', heading_2: { rich_text: [{ text: { content: 'Outreach Draft' } }] } },
+              {
+                id: 'para-draft',
+                type: 'paragraph',
+                last_edited_time: '2026-10-01T10:16:00.000Z', // User commented / edited in Notion
+                paragraph: {
+                  rich_text: [{ type: 'text', text: { content: 'Subject: Tailored subject from Notion' } }],
+                },
+              },
+              { id: 'divider-1', type: 'divider', divider: {} },
+            ],
+            has_more: false,
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+      if (method === 'PATCH') {
+        return new Response(JSON.stringify({ id: 'ok' }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      return new Response(JSON.stringify({ id: 'unknown' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }) as any;
+
+    // 1. Initial Sync at 10:00
+    const initialSync = await syncProjectToNotion(
+      {
+        projectId: 'proj-res-test',
+        brief,
+        configurationUpdatedAt: '2026-10-01T10:00:00.000Z',
+        prospects: [p1, p2],
+        drafts: { 'rec-res-1': draft1, 'rec-res-2': draft2 },
+        parentPageId: 'fake-parent',
+      },
+      'fake-token',
+    );
+    assert.equal(initialSync.success, true);
+
+    const storedAfterInitial = await getProjectNotionSync('proj-res-test');
+    assert.ok(storedAfterInitial);
+    const initialSyncedAt = storedAfterInitial.lastSyncedAt;
+
+    // 2. User edits Notion: Objective changed to 3000 at 10:15
+
+    // 3. Research runs in Marcom at 10:20 and adds Prospect 3 (p3)
+    const targetedRes = await syncConnectedProjectRecordsToNotion({
+      projectId: 'proj-res-test',
+      targetEntries: [p3],
+      draftsByRecordId: { 'rec-res-3': draft3 },
+    });
+    assert.equal(targetedRes.synced, true);
+
+    // Verify storedSync.lastSyncedAt did NOT advance to 10:20 and wipe out prior Notion edits
+    const storedAfterResearch = await getProjectNotionSync('proj-res-test');
+    assert.equal(storedAfterResearch?.lastSyncedAt, initialSyncedAt);
+
+    // 4. User triggers Re-sync from Marcom with all 3 prospects
+    const resyncResult = await syncProjectToNotion(
+      {
+        projectId: 'proj-res-test',
+        brief,
+        configurationUpdatedAt: '2026-10-01T10:00:00.000Z', // Original brief config time, NOT research run time
+        prospects: [p1, p2, p3],
+        drafts: { 'rec-res-1': draft1, 'rec-res-2': draft2, 'rec-res-3': draft3 },
+        existingSync: storedAfterResearch,
+      },
+      'fake-token',
+    );
+
+    // Verify that the Notion Objective (3000) was pulled back into Marcom and NOT overwritten with 2000!
+    assert.ok(resyncResult.reconciledChanges?.updatedBrief);
+    assert.ok(resyncResult.reconciledChanges.updatedBrief.project.primary_objective.includes('3000'));
+
+    // Verify unchanged prospect draft cells were NOT overwritten in updateNotionPage
+    const p1Patch = calls.find(
+      (c) => c.method === 'PATCH' && c.url.includes('/pages/prospect-row-1'),
+    );
+    if (p1Patch?.body?.properties) {
+      assert.strictEqual(p1Patch.body.properties['Primary Email Draft'], undefined);
+      assert.strictEqual(p1Patch.body.properties['Top Subject Line'], undefined);
+    }
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (prevStoreDir === undefined) delete process.env.MARCOM_NOTION_STORE_DIR;
+    else process.env.MARCOM_NOTION_STORE_DIR = prevStoreDir;
+    await rm(tempDir, { recursive: true, force: true });
+  }
+});

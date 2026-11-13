@@ -188,7 +188,7 @@ function toProjectMemory(campaign: CampaignRow, config: ConfigurationRow | null)
     })),
     notes: [`Original Brief Source: ${sourceName}`],
     configuration_revision: config?.version ?? campaign.rowVersion,
-    configuration_updated_at: (config?.updatedAt ?? campaign.updatedAt).toISOString(),
+    configuration_updated_at: (config?.updatedAt ?? config?.createdAt ?? campaign.createdAt).toISOString(),
   };
 }
 

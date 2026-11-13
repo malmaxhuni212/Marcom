@@ -28,6 +28,7 @@ import { GroqProvider } from '@/marcom/llm/groq-provider';
 import { discoverProspectSeeds } from '@/marcom/agents/research/discovery';
 import { runResearchAgent } from '@/marcom/agents/research/agent';
 
+export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 type RouteContext = { params: Promise<{ id: string }> };

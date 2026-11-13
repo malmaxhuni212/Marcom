@@ -59,7 +59,11 @@ export async function readCampaignMemory(
   }
   try {
     const store = new JsonFileMemoryStore();
-    return store.projects().find((p) => p.project_id === campaignId) ?? null;
+    return (
+      store.projects().find(
+        (p) => p.project_id === campaignId || p.aliases?.includes(campaignId),
+      ) ?? null
+    );
   } catch {
     return null;
   }

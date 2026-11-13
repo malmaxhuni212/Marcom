@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { readSourceFile, readSourceMeta } from '@/marcom/ingestion/source-store';
 import { authorizeApiRequest } from '@/auth/access';
 
+export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 interface RouteContext {

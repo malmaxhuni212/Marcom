@@ -742,5 +742,893 @@
     ],
     "configuration_revision": 1,
     "configuration_updated_at": "2026-10-28T11:58:28.062Z"
+  },
+  {
+    "project_id": "1e3fe8e7-d870-4fb4-a833-ee94e9fde739",
+    "name": "Maya Book Awards 2026",
+    "aliases": [],
+    "summary": "International literary prize inviting authors worldwide to submit books online, with a marketing strategy focused on author acquisition, community building, partnerships, paid media and targeted outreach to grow submissions and build a long‑term author community.",
+    "status": "READY_FOR_RESEARCH",
+    "structured_brief": {
+      "structured_brief_version": "1.0",
+      "project": {
+        "name": "Maya Book Awards 2026",
+        "description": "International literary prize inviting authors worldwide to submit books online, with a marketing strategy focused on author acquisition, community building, partnerships, paid media and targeted outreach to grow submissions and build a long‑term author community.",
+        "primary_objective": "Generate 2,000+ quality book submissions",
+        "secondary_objectives": [
+          "Increase international awareness of the event in LinkedIn (test)",
+          "Build a reusable database of authors, writers, publishers, organisations and communities",
+          "Develop recurring partnership and sponsorship pipelines",
+          "Re‑engage previous entrants and existing contacts",
+          "Strengthen social and content presence",
+          "Create a long‑term author community and referral network",
+          "Identify potential investors, sponsors and strategic supporters"
+        ],
+        "success_metrics": [
+          "2,000+ quality book submissions",
+          "Increased international awareness",
+          "Reusable database built",
+          "Recurring partnership pipeline established",
+          "Re‑engagement of previous entrants",
+          "Strengthened social and content presence",
+          "Long‑term author community and referral network established",
+          "Potential investors, sponsors and strategic supporters identified"
+        ]
+      },
+      "targets": [
+        {
+          "id": "target-1",
+          "target_type": "Independent, emerging, published authors active in online writing communities",
+          "entity_kind": "person",
+          "description": "Authors who are independent, emerging or published and actively participate in online writing communities, making them likely to submit to an international literary prize.",
+          "geography_mode": "specified",
+          "geography": [
+            "United States",
+            "United Kingdom"
+          ],
+          "qualification_criteria": [
+            {
+              "text": "Independent, emerging, or published authors active in online writing communities",
+              "origin": "explicit",
+              "needs_operational_definition": false
+            }
+          ],
+          "exclusion_criteria": [],
+          "priority": "primary"
+        },
+        {
+          "id": "target-2",
+          "target_type": "Writing and literary communities, workshops, retreats, societies, publishers, booksellers, literary organisations,  media, universities, creative‑writing departments",
+          "entity_kind": "organisation",
+          "description": "Communities and organisations that support writers, including literary societies, publishers, booksellers, media outlets, and academic departments, which can promote the award and encourage submissions.",
+          "geography_mode": "specified",
+          "geography": [
+            "United States",
+            "United Kingdom"
+          ],
+          "qualification_criteria": [
+            {
+              "text": "Writing and literary communities, workshops, retreats, societies, publishers, booksellers, literary organisations, magazines, media, universities, creative‑writing departments",
+              "origin": "explicit",
+              "needs_operational_definition": false
+            }
+          ],
+          "exclusion_criteria": [],
+          "priority": "secondary"
+        },
+        {
+          "id": "target-3",
+          "target_type": "Creators and influencers on BookTok, Bookstagram, literary creators, and potential investors or sponsors",
+          "entity_kind": "person",
+          "description": "Social media creators and influencers who reach author audiences and potential investors or sponsors who can provide funding or long‑term support.",
+          "geography_mode": "specified",
+          "geography": [
+            "United States",
+            "United Kingdom"
+          ],
+          "qualification_criteria": [
+            {
+              "text": "Creators and influencers on BookTok, Bookstagram, literary creators, and potential investors or sponsors who can provide funding, prizes or long‑term support",
+              "origin": "explicit",
+              "needs_operational_definition": false
+            }
+          ],
+          "exclusion_criteria": [],
+          "priority": "tertiary"
+        }
+      ],
+      "research": {
+        "required_fields": [
+          "Name",
+          "Role",
+          "Organisation",
+          "Location",
+          "Email",
+          "LinkedIn",
+          "Source Links",
+          "Evidence"
+        ],
+        "preferred_source_types": [
+          "LinkedIn",
+          "Author websites",
+          "Publishing industry directories",
+          "University directories",
+          "Social media platforms (BookTok, Bookstagram)",
+          "Literary organization websites",
+          "Press releases"
+        ],
+        "evidence_requirements": [
+          "Verified public profile",
+          "Publication list",
+          "Affiliation confirmation"
+        ],
+        "verification_requirements": [
+          "Cross‑check email with domain",
+          "Confirm role via LinkedIn",
+          "Confirm affiliation via official website"
+        ],
+        "unknown_handling": "Record unknowns and flag for human review",
+        "search_settings": {
+          "keywords": [
+            "Independent, emerging, published authors active in online writing communities",
+            "Writing and literary communities, workshops, retreats, societies, publishers, booksellers, literary organisations, magazines, media, universities, creative‑writing departments",
+            "Creators and influencers on BookTok, Bookstagram, literary creators, and potential investors or sponsors",
+            "Independent, emerging, or published authors active in online writing communities",
+            "Creators and influencers on BookTok, Bookstagram, literary creators, and potential investors or sponsors who can provide funding, prizes or long‑term support"
+          ],
+          "excluded_keywords": [],
+          "preferred_domains": [],
+          "excluded_domains": [],
+          "default_result_limit": 10
+        }
+      },
+      "personalization": {
+        "allowed": [
+          "Author’s books",
+          "Role",
+          "Community involvement",
+          "Achievements"
+        ],
+        "preferred_details": [
+          "Recent publications",
+          "Community leadership",
+          "Relevant projects"
+        ],
+        "tone": [
+          "Professional",
+          "Friendly",
+          "Optimistic"
+        ],
+        "avoid": [
+          "Generic praise",
+          "Over‑familiar tone",
+          "Private or sensitive information"
+        ]
+      },
+      "outreach": {
+        "objectives": [
+          "Acquire submissions",
+          "Build community",
+          "Establish partnerships"
+        ],
+        "channels": [
+          "Email",
+          "LinkedIn",
+          "Social Media",
+          "Direct outreach"
+        ],
+        "tone": [
+          "Professional"
+        ],
+        "approval_required": true
+      },
+      "database": {
+        "fields": [
+          {
+            "name": "Name",
+            "required": true,
+            "purpose": "Identify prospect",
+            "expected_source": "research"
+          },
+          {
+            "name": "Role",
+            "required": true,
+            "purpose": "Determine relevance",
+            "expected_source": "research"
+          },
+          {
+            "name": "Organisation",
+            "required": true,
+            "purpose": "Contextualize prospect",
+            "expected_source": "research"
+          },
+          {
+            "name": "Location",
+            "required": true,
+            "purpose": "Geographic targeting",
+            "expected_source": "research"
+          },
+          {
+            "name": "Email",
+            "required": true,
+            "purpose": "Primary contact",
+            "expected_source": "research"
+          },
+          {
+            "name": "LinkedIn",
+            "required": true,
+            "purpose": "Professional profile",
+            "expected_source": "research"
+          },
+          {
+            "name": "Source Links",
+            "required": true,
+            "purpose": "Evidence of information",
+            "expected_source": "research"
+          },
+          {
+            "name": "Evidence",
+            "required": true,
+            "purpose": "Proof of relevance",
+            "expected_source": "research"
+          },
+          {
+            "name": "Target Group",
+            "required": true,
+            "purpose": "Segmentation",
+            "expected_source": "research"
+          },
+          {
+            "name": "Priority",
+            "required": true,
+            "purpose": "Campaign prioritization",
+            "expected_source": "research"
+          },
+          {
+            "name": "Contact Method",
+            "required": true,
+            "purpose": "Preferred outreach channel",
+            "expected_source": "research"
+          },
+          {
+            "name": "Notes",
+            "required": false,
+            "purpose": "Additional context",
+            "expected_source": "human"
+          }
+        ]
+      },
+      "human_review": {
+        "requirements": [
+          "Verify relevance of prospect",
+          "Confirm evidence supporting relevance",
+          "Ensure personalization is appropriate",
+          "Select correct outreach channel",
+          "Review draft message tone and content"
+        ],
+        "approval_points": [
+          "Relevance",
+          "Evidence",
+          "Personalization",
+          "Channel",
+          "Message tone"
+        ]
+      },
+      "constraints": [
+        "Must not fabricate names, roles, emails or facts",
+        "Use only publicly available, legitimate professional information",
+        "Avoid private or sensitive personal data",
+        "Record evidence and sources",
+        "No outreach during research stage",
+        "Human review required before any communication",
+        "Confirm prize structure, deadlines, entry pricing, eligibility, judging criteria, audience size, previous entrant performance, paid‑media budget, tracking setup, partnership propositions before final execution",
+        "Maintain compliance with GDPR and other data protection rules"
+      ],
+      "conflicts": [],
+      "approximations": [
+        {
+          "quote": "2,000+ quality book submissions",
+          "interpretation": "Target number is approximate; treat as a goal rather than a fixed threshold"
+        }
+      ],
+      "unknowns_requiring_confirmation": [
+        {
+          "topic": "Exact prize structure and amounts",
+          "reason": "Needed to tailor messaging and partnership proposals",
+          "quote": null,
+          "blocking": true
+        },
+        {
+          "topic": "Final submission deadline",
+          "reason": "Critical for time‑sensitive outreach",
+          "quote": null,
+          "blocking": true
+        },
+        {
+          "topic": "Entry pricing and eligibility rules",
+          "reason": "Essential for accurate eligibility messaging",
+          "quote": null,
+          "blocking": true
+        },
+        {
+          "topic": "Geographic/language eligibility",
+          "reason": "Determines target audience scope",
+          "quote": null,
+          "blocking": true
+        },
+        {
+          "topic": "Final judging process and criteria",
+          "reason": "Important for credibility and messaging",
+          "quote": null,
+          "blocking": true
+        },
+        {
+          "topic": "Existing Maya audience/database size",
+          "reason": "Needed to assess reach and segmentation",
+          "quote": null,
+          "blocking": true
+        },
+        {
+          "topic": "Previous entrant performance",
+          "reason": "Informs re‑engagement strategy",
+          "quote": null,
+          "blocking": true
+        },
+        {
+          "topic": "Available paid‑media budget",
+          "reason": "Guides channel allocation",
+          "quote": null,
+          "blocking": true
+        },
+        {
+          "topic": "Tracking and analytics setup",
+          "reason": "Required for performance measurement",
+          "quote": null,
+          "blocking": true
+        },
+        {
+          "topic": "Final partnership/sponsorship proposition",
+          "reason": "Needed to craft partnership outreach",
+          "quote": null,
+          "blocking": true
+        }
+      ]
+    },
+    "target_definitions": [
+      {
+        "target_type": "Independent, emerging, published authors active in online writing communities",
+        "definition": "Authors who are independent, emerging or published and actively participate in online writing communities, making them likely to submit to an international literary prize.",
+        "aliases": []
+      },
+      {
+        "target_type": "Writing and literary communities, workshops, retreats, societies, publishers, booksellers, literary organisations,  media, universities, creative‑writing departments",
+        "definition": "Communities and organisations that support writers, including literary societies, publishers, booksellers, media outlets, and academic departments, which can promote the award and encourage submissions.",
+        "aliases": []
+      },
+      {
+        "target_type": "Creators and influencers on BookTok, Bookstagram, literary creators, and potential investors or sponsors",
+        "definition": "Social media creators and influencers who reach author audiences and potential investors or sponsors who can provide funding or long‑term support.",
+        "aliases": []
+      }
+    ],
+    "notes": [],
+    "configuration_revision": 6,
+    "configuration_updated_at": "2026-11-12T12:53:31.691Z"
+  },
+  {
+    "project_id": "96aa9f85-6aae-48ec-8555-80229b7357e1",
+    "name": "Make Happen UK Partnerships Campaign",
+    "aliases": [],
+    "summary": "A UK‑focused 8‑week campaign to build relationships with creative, social‑enterprise, charitable, media, and sponsorship communities to secure partnership, referral, sponsorship and collaboration opportunities for the Make Happen 12‑week programme.",
+    "status": "READY_FOR_RESEARCH",
+    "structured_brief": {
+      "structured_brief_version": "1.0",
+      "project": {
+        "name": "Make Happen UK Partnerships Campaign",
+        "description": "A UK‑focused 8‑week campaign to build relationships with creative, social‑enterprise, charitable, media, and sponsorship communities to secure partnership, referral, sponsorship and collaboration opportunities for the Make Happen 12‑week programme.",
+        "primary_objective": "Identify approximately 3,000 qualified UK prospects over eight weeks and secure partnership, referral, sponsorship and collaboration opportunities.",
+        "secondary_objectives": [
+          "Pilot outreach with 500–750 prospects before scaling",
+          "Measure outcomes such as qualified prospects, responses, meetings, agreements, referrals, enquiries, enrolments and staff time per opportunity"
+        ],
+        "success_metrics": [
+          "Number of qualified prospects",
+          "Response rate",
+          "Meeting rate",
+          "Agreement rate",
+          "Referral rate",
+          "Enrolment rate",
+          "Staff time per opportunity"
+        ]
+      },
+      "targets": [
+        {
+          "id": "target-1",
+          "target_type": "Creative communities and organisations",
+          "entity_kind": "organisation",
+          "description": "UK‑based creative communities and organisations that could partner or sponsor the Make Happen programme",
+          "geography_mode": "specified",
+          "geography": [
+            "UK"
+          ],
+          "qualification_criteria": [
+            {
+              "text": "Belongs to creative communities and organisations",
+              "origin": "explicit",
+              "needs_operational_definition": false
+            },
+            {
+              "text": "UK‑based",
+              "origin": "explicit",
+              "needs_operational_definition": false
+            }
+          ],
+          "exclusion_criteria": [],
+          "priority": "primary"
+        },
+        {
+          "id": "target-2",
+          "target_type": "Charities, NGOs and community organisations",
+          "entity_kind": "organisation",
+          "description": "UK‑based charities, NGOs and community organisations with a focus on social impact",
+          "geography_mode": "specified",
+          "geography": [
+            "UK"
+          ],
+          "qualification_criteria": [
+            {
+              "text": "Belongs to charities, NGOs and community organisations",
+              "origin": "explicit",
+              "needs_operational_definition": false
+            },
+            {
+              "text": "UK‑based",
+              "origin": "explicit",
+              "needs_operational_definition": false
+            }
+          ],
+          "exclusion_criteria": [],
+          "priority": "secondary"
+        },
+        {
+          "id": "target-3",
+          "target_type": "Social enterprise and entrepreneurship networks",
+          "entity_kind": "organisation",
+          "description": "UK‑based social enterprise and entrepreneurship networks",
+          "geography_mode": "specified",
+          "geography": [
+            "UK"
+          ],
+          "qualification_criteria": [
+            {
+              "text": "Belongs to social enterprise and entrepreneurship networks",
+              "origin": "explicit",
+              "needs_operational_definition": false
+            },
+            {
+              "text": "UK‑based",
+              "origin": "explicit",
+              "needs_operational_definition": false
+            }
+          ],
+          "exclusion_criteria": [],
+          "priority": "primary"
+        },
+        {
+          "id": "target-4",
+          "target_type": "Creators, influencers and practitioners",
+          "entity_kind": "person",
+          "description": "UK‑based creators, influencers and practitioners active in creative or social‑impact domains",
+          "geography_mode": "specified",
+          "geography": [
+            "UK"
+          ],
+          "qualification_criteria": [
+            {
+              "text": "Belongs to creators, influencers and practitioners",
+              "origin": "explicit",
+              "needs_operational_definition": false
+            },
+            {
+              "text": "UK‑based",
+              "origin": "explicit",
+              "needs_operational_definition": false
+            }
+          ],
+          "exclusion_criteria": [],
+          "priority": "secondary"
+        },
+        {
+          "id": "target-5",
+          "target_type": "Universities and education networks",
+          "entity_kind": "organisation",
+          "description": "UK‑based universities and education networks that could partner or refer participants",
+          "geography_mode": "specified",
+          "geography": [
+            "UK"
+          ],
+          "qualification_criteria": [
+            {
+              "text": "Belongs to universities and education networks",
+              "origin": "explicit",
+              "needs_operational_definition": false
+            },
+            {
+              "text": "UK‑based",
+              "origin": "explicit",
+              "needs_operational_definition": false
+            }
+          ],
+          "exclusion_criteria": [],
+          "priority": "tertiary"
+        },
+        {
+          "id": "target-6",
+          "target_type": "Podcasts, newsletters and media",
+          "entity_kind": "organisation",
+          "description": "UK‑based podcasts, newsletters and media outlets covering creative or social‑impact topics",
+          "geography_mode": "specified",
+          "geography": [
+            "UK"
+          ],
+          "qualification_criteria": [
+            {
+              "text": "Belongs to podcasts, newsletters and media",
+              "origin": "explicit",
+              "needs_operational_definition": false
+            },
+            {
+              "text": "UK‑based",
+              "origin": "explicit",
+              "needs_operational_definition": false
+            }
+          ],
+          "exclusion_criteria": [],
+          "priority": "secondary"
+        },
+        {
+          "id": "target-7",
+          "target_type": "Coworking and community hubs",
+          "entity_kind": "organisation",
+          "description": "UK‑based coworking and community hubs that could host events or partner",
+          "geography_mode": "specified",
+          "geography": [
+            "UK"
+          ],
+          "qualification_criteria": [
+            {
+              "text": "Belongs to coworking and community hubs",
+              "origin": "explicit",
+              "needs_operational_definition": false
+            },
+            {
+              "text": "UK‑based",
+              "origin": "explicit",
+              "needs_operational_definition": false
+            }
+          ],
+          "exclusion_criteria": [],
+          "priority": "tertiary"
+        },
+        {
+          "id": "target-8",
+          "target_type": "Sponsors and funders",
+          "entity_kind": "organisation",
+          "description": "UK‑based sponsors and funders interested in supporting creative or social‑impact initiatives",
+          "geography_mode": "specified",
+          "geography": [
+            "UK"
+          ],
+          "qualification_criteria": [
+            {
+              "text": "Belongs to sponsors and funders",
+              "origin": "explicit",
+              "needs_operational_definition": false
+            },
+            {
+              "text": "UK‑based",
+              "origin": "explicit",
+              "needs_operational_definition": false
+            }
+          ],
+          "exclusion_criteria": [],
+          "priority": "secondary"
+        }
+      ],
+      "research": {
+        "required_fields": [
+          "Name",
+          "Organisation",
+          "Role",
+          "Email",
+          "Phone",
+          "Geography",
+          "Partnership potential score",
+          "Consent status"
+        ],
+        "preferred_source_types": [
+          "LinkedIn",
+          "Company websites",
+          "Charity registers",
+          "NGO directories",
+          "Podcast directories",
+          "Media outlets",
+          "University directories",
+          "Sponsorship databases"
+        ],
+        "evidence_requirements": [
+          "UK‑based status",
+          "Evidence of activity in target domain",
+          "Evidence of partnership potential"
+        ],
+        "verification_requirements": [
+          "Cross‑check identity across at least two sources",
+          "Confirm contact details",
+          "Confirm consent status"
+        ],
+        "unknown_handling": "Flag missing details as unknown and seek confirmation before proceeding",
+        "search_settings": {
+          "keywords": [
+            "Creative communities and organisations",
+            "Charities, NGOs and community organisations",
+            "Social enterprise and entrepreneurship networks",
+            "Creators, influencers and practitioners",
+            "Universities and education networks",
+            "Podcasts, newsletters and media",
+            "Coworking and community hubs",
+            "Sponsors and funders",
+            "Belongs to creative communities and organisations",
+            "UK‑based",
+            "Belongs to charities, NGOs and community organisations",
+            "Belongs to social enterprise and entrepreneurship networks"
+          ],
+          "excluded_keywords": [],
+          "preferred_domains": [],
+          "excluded_domains": [],
+          "default_result_limit": 10
+        }
+      },
+      "personalization": {
+        "allowed": [
+          "Target audience group",
+          "Partnership model",
+          "Make Happen programme",
+          "UK region"
+        ],
+        "preferred_details": [
+          "Recent activity",
+          "Partnership potential score"
+        ],
+        "tone": [
+          "Professional",
+          "Friendly",
+          "Optimistic"
+        ],
+        "avoid": [
+          "Generic info@ addresses",
+          "Generic outreach language"
+        ]
+      },
+      "outreach": {
+        "objectives": [
+          "Secure partnership, referral, sponsorship and collaboration opportunities"
+        ],
+        "channels": [
+          "Email",
+          "LinkedIn"
+        ],
+        "tone": [
+          "Professional"
+        ],
+        "approval_required": true
+      },
+      "database": {
+        "fields": [
+          {
+            "name": "Name",
+            "required": true,
+            "purpose": "Identify prospect",
+            "expected_source": "research"
+          },
+          {
+            "name": "Organisation",
+            "required": true,
+            "purpose": "Identify organisation",
+            "expected_source": "research"
+          },
+          {
+            "name": "Role",
+            "required": true,
+            "purpose": "Identify role for person prospects",
+            "expected_source": "research"
+          },
+          {
+            "name": "Email",
+            "required": true,
+            "purpose": "Contact email",
+            "expected_source": "research"
+          },
+          {
+            "name": "Geography",
+            "required": true,
+            "purpose": "UK region",
+            "expected_source": "research"
+          },
+          {
+            "name": "Tier",
+            "required": true,
+            "purpose": "Engagement tier",
+            "expected_source": "research"
+          },
+          {
+            "name": "Partnership potential score",
+            "required": true,
+            "purpose": "Scoring for partnership potential",
+            "expected_source": "research"
+          },
+          {
+            "name": "Consent status",
+            "required": true,
+            "purpose": "GDPR consent",
+            "expected_source": "research"
+          }
+        ]
+      },
+      "human_review": {
+        "requirements": [
+          "Verify compliance with UK GDPR, Data Protection Act and PECR",
+          "Confirm programme dates, pricing, capacity, budget, offers and conversion goals",
+          "Approve outreach content"
+        ],
+        "approval_points": [
+          "Compliance check",
+          "Outreach content approval",
+          "Data protection compliance"
+        ]
+      },
+      "constraints": [
+        "8‑week campaign duration",
+        "UK GDPR, Data Protection Act and PECR compliance",
+        "No bulk messaging or unlawful scraping",
+        "Pilot 100–150 prospects before scaling",
+        "Weekly reviews of targeting, offers and compliance risks"
+      ],
+      "conflicts": [],
+      "approximations": [
+        {
+          "quote": "approximately 2,000 qualified UK prospects",
+          "interpretation": "Target number is approximate; treat as a target range"
+        },
+        {
+          "quote": "8‑week period",
+          "interpretation": "Campaign duration is approximate; treat as 8 weeks"
+        },
+        {
+          "quote": "pilot 100–150 prospects",
+          "interpretation": "Pilot size is approximate; treat as 100–150 prospects"
+        },
+        {
+          "quote": "Creative communities and organisations (400)",
+          "interpretation": "Target allocation is approximate; treat as 400 prospects"
+        },
+        {
+          "quote": "charities, NGOs and community organisations (350)",
+          "interpretation": "Target allocation is approximate; treat as 350 prospects"
+        },
+        {
+          "quote": "social enterprise and entrepreneurship networks (300)",
+          "interpretation": "Target allocation is approximate; treat as 300 prospects"
+        },
+        {
+          "quote": "creators, influencers and practitioners (300)",
+          "interpretation": "Target allocation is approximate; treat as 300 prospects"
+        },
+        {
+          "quote": "universities and education networks (200)",
+          "interpretation": "Target allocation is approximate; treat as 200 prospects"
+        },
+        {
+          "quote": "podcasts, newsletters and media (150)",
+          "interpretation": "Target allocation is approximate; treat as 150 prospects"
+        },
+        {
+          "quote": "coworking and community hubs (150)",
+          "interpretation": "Target allocation is approximate; treat as 150 prospects"
+        },
+        {
+          "quote": "sponsors and funders (150)",
+          "interpretation": "Target allocation is approximate; treat as 150 prospects"
+        }
+      ],
+      "unknowns_requiring_confirmation": [
+        {
+          "topic": "Programme dates",
+          "reason": "Required for outreach messaging",
+          "quote": "Confirm programme dates",
+          "blocking": true
+        },
+        {
+          "topic": "Pricing",
+          "reason": "Required for outreach messaging",
+          "quote": "Confirm pricing",
+          "blocking": true
+        },
+        {
+          "topic": "Capacity",
+          "reason": "Required for outreach messaging",
+          "quote": "Confirm capacity",
+          "blocking": true
+        },
+        {
+          "topic": "Budget",
+          "reason": "Required for outreach messaging",
+          "quote": "Confirm budget",
+          "blocking": true
+        },
+        {
+          "topic": "Offers",
+          "reason": "Required for outreach messaging",
+          "quote": "Confirm offers",
+          "blocking": true
+        },
+        {
+          "topic": "Conversion goals",
+          "reason": "Required for outreach messaging",
+          "quote": "Confirm conversion goals",
+          "blocking": true
+        },
+        {
+          "topic": "Compliance details",
+          "reason": "Required for outreach messaging",
+          "quote": "Confirm compliance",
+          "blocking": true
+        }
+      ]
+    },
+    "target_definitions": [
+      {
+        "target_type": "Creative communities and organisations",
+        "definition": "UK‑based creative communities and organisations that could partner or sponsor the Make Happen programme",
+        "aliases": []
+      },
+      {
+        "target_type": "Charities, NGOs and community organisations",
+        "definition": "UK‑based charities, NGOs and community organisations with a focus on social impact",
+        "aliases": []
+      },
+      {
+        "target_type": "Social enterprise and entrepreneurship networks",
+        "definition": "UK‑based social enterprise and entrepreneurship networks",
+        "aliases": []
+      },
+      {
+        "target_type": "Creators, influencers and practitioners",
+        "definition": "UK‑based creators, influencers and practitioners active in creative or social‑impact domains",
+        "aliases": []
+      },
+      {
+        "target_type": "Universities and education networks",
+        "definition": "UK‑based universities and education networks that could partner or refer participants",
+        "aliases": []
+      },
+      {
+        "target_type": "Podcasts, newsletters and media",
+        "definition": "UK‑based podcasts, newsletters and media outlets covering creative or social‑impact topics",
+        "aliases": []
+      },
+      {
+        "target_type": "Coworking and community hubs",
+        "definition": "UK‑based coworking and community hubs that could host events or partner",
+        "aliases": []
+      },
+      {
+        "target_type": "Sponsors and funders",
+        "definition": "UK‑based sponsors and funders interested in supporting creative or social‑impact initiatives",
+        "aliases": []
+      }
+    ],
+    "notes": [],
+    "configuration_revision": 1,
+    "configuration_updated_at": "2026-11-13T02:45:49.525Z"
   }
 ]

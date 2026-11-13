@@ -67,6 +67,7 @@ const FeedbackInputSchema = z.strictObject({
   scope: FeedbackScopeSchema.default('project'),
 });
 
+export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 export const maxDuration = 300;
 

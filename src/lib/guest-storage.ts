@@ -1128,3 +1128,87 @@ export async function deleteGuestPersonalizationEntry(
   });
   return true;
 }
+
+export async function applyReconciledChangesToGuestStorage(
+  projectId: string,
+  reconciled: {
+    updatedBrief?: StructuredBrief | null;
+    updatedResearchEntries?: ResearchEntry[];
+    updatedDrafts?: PersonalizationEntry[];
+    updatedReviews?: Array<{
+      recordId: string;
+      status: ReviewStatus;
+      note: string | null;
+      relationshipStatus?: 'contacted' | null;
+    }>;
+  },
+): Promise<void> {
+  const campaign = await getStoredGuestCampaign(projectId);
+  if (!campaign) return;
+
+  let nextProject = campaign.project;
+  if (reconciled.updatedBrief) {
+    const sb = StructuredBriefSchema.parse(reconciled.updatedBrief);
+    const now = new Date().toISOString();
+    nextProject = {
+      ...nextProject,
+      name: sb.project.name || nextProject.name,
+      summary: sb.project.description || nextProject.summary,
+      structured_brief: sb,
+      target_definitions: sb.targets.map((t) => ({
+        target_type: t.target_type,
+        definition: t.description,
+        aliases: [],
+      })),
+      configuration_revision: (nextProject.configuration_revision ?? 1) + 1,
+      configuration_updated_at: now,
+    };
+  }
+
+  let nextResearch = [...(campaign.research ?? [])];
+  if (reconciled.updatedResearchEntries && reconciled.updatedResearchEntries.length > 0) {
+    const map = new Map(reconciled.updatedResearchEntries.map((e) => [e.record.record_id, e]));
+    nextResearch = nextResearch.map((e) => map.get(e.record.record_id) ?? e);
+  }
+
+  if (reconciled.updatedReviews && reconciled.updatedReviews.length > 0) {
+    const revMap = new Map(reconciled.updatedReviews.map((r) => [r.recordId, r]));
+    const now = new Date().toISOString();
+    nextResearch = nextResearch.map((e) => {
+      const rev = revMap.get(e.record.record_id);
+      if (!rev) return e;
+      return {
+        ...e,
+        relationship_status:
+          rev.relationshipStatus !== undefined ? rev.relationshipStatus : e.relationship_status,
+        review: {
+          project_id: projectId,
+          record_id: rev.recordId,
+          status: rev.status,
+          note: rev.note,
+          reviewed_at: now,
+          reviewed_by: 'notion-sync',
+        },
+      };
+    });
+  }
+
+  let nextPersonalizations = [...(campaign.personalizations ?? [])];
+  if (reconciled.updatedDrafts && reconciled.updatedDrafts.length > 0) {
+    const draftMap = new Map(reconciled.updatedDrafts.map((d) => [d.record_id, d]));
+    nextPersonalizations = nextPersonalizations.map((d) => draftMap.get(d.record_id) ?? d);
+    for (const d of reconciled.updatedDrafts) {
+      if (!nextPersonalizations.some((existing) => existing.record_id === d.record_id)) {
+        nextPersonalizations.push(d);
+      }
+    }
+  }
+
+  await writeGuestCampaign({
+    ...campaign,
+    updatedAt: new Date().toISOString(),
+    project: nextProject,
+    research: nextResearch,
+    personalizations: nextPersonalizations,
+  });
+}
